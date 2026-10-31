@@ -1698,9 +1698,14 @@ function focusChar(ch) {
 }
 let drag = null;
 canvas.addEventListener('pointerdown', (e) => {
-  if (e.pointerType === 'mouse') return; // with a mouse the camera moves with WASD only; clicks are for picking spots
-  drag = { x: e.clientX, y: e.clientY, t: performance.now() }; velYaw = velPitch = 0; canvas.setPointerCapture(e.pointerId);
+  // mouse: hold the middle button and drag to turn and tilt the camera (left click is for picking spots)
+  if (e.pointerType === 'mouse' && e.button !== 1) return;
+  if (e.pointerType === 'mouse') { e.preventDefault(); canvas.style.cursor = 'move'; }
+  drag = { x: e.clientX, y: e.clientY, t: performance.now(), mid: e.pointerType === 'mouse' }; velYaw = velPitch = 0; canvas.setPointerCapture(e.pointerId);
 });
+// stop the browser's middle-click auto-scroll from kicking in over the bar
+canvas.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
+canvas.addEventListener('auxclick', (e) => { if (e.button === 1) e.preventDefault(); });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 canvas.addEventListener('pointermove', (e) => {
   if (!drag) return;
@@ -1710,9 +1715,14 @@ canvas.addEventListener('pointermove', (e) => {
   camT.pitch = Math.max(0.02, Math.min(camT.free ? 1.5 : 1.25, camT.pitch + dpitch));
   // remember how fast you were dragging, so the camera glides on after you let go
   velYaw = velYaw * 0.6 + (dyaw / edt) * 0.4; velPitch = velPitch * 0.6 + (dpitch / edt) * 0.4;
-  drag = { x: e.clientX, y: e.clientY, t: now }; lastMoveT = now;
+  drag = { x: e.clientX, y: e.clientY, t: now, mid: drag.mid }; lastMoveT = now;
 });
-const endDrag = () => { if (drag && performance.now() - lastMoveT > 90) velYaw = velPitch = 0; drag = null; };
+const endDrag = () => {
+  // middle-drag stops dead like a classic MMO camera; a finger flick glides a little
+  if (drag && (drag.mid || performance.now() - lastMoveT > 90)) velYaw = velPitch = 0;
+  if (drag && drag.mid) canvas.style.cursor = 'default';
+  drag = null;
+};
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
 const maxD = () => (camT.free ? 40 : 14);

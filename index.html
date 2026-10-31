@@ -196,7 +196,7 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
     <button id="track" type="button" title="Next track">Jukebox</button>
     <button id="pix" type="button" aria-pressed="true">PS1 mode</button>
     <button id="mute" type="button" aria-pressed="false">Sound on</button>
-    <span class="keyhint">WASD move · Q/E turn · Shift faster · scroll zoom · click a spot to go there</span>
+    <span class="keyhint">WASD move · hold middle mouse to turn · scroll zoom · click a spot to go there</span>
   </div>
 
   <section class="panel" id="whoPanel" hidden aria-label="Who's here">
@@ -282,9 +282,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=17"></script>
-<script src="net.js?v=17"></script>
-<script src="bar.js?v=17"></script>
+<script src="config.js?v=18"></script>
+<script src="net.js?v=18"></script>
+<script src="bar.js?v=18"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };
