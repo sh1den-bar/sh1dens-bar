@@ -851,9 +851,9 @@ const swirlTex = canvasTex(64, 64, (x, w, h) => {
 });
 
 // furniture and glowing bits get a depth bias so they always win against the floor and walls they touch
-const roomMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -3 }));
-const glowMat = new THREE.MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 });
-const decal = (opts) => new THREE.MeshBasicMaterial(Object.assign({ polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 }, opts));
+const roomMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -3 }));
+const glowMat = new THREE.MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 });
+const decal = (opts) => new THREE.MeshBasicMaterial(Object.assign({ polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 }, opts));
 function addStatic(parts, mat) { const m = new THREE.Mesh(toGeometry(parts), mat || roomMat); scene.add(m); return m; }
 function scaleUV(geo, su, sv) { const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv); uv.needsUpdate = true; }
 
@@ -943,8 +943,8 @@ function doorFrame(x0, z0, x1, z1) {
     if (alongX) S.push(box(px - 0.05, px + 0.05, 0, DOOR_H + 0.05, pz - 0.08, pz + 0.08, BRASS_D, 0.03));
     else S.push(box(px - 0.08, px + 0.08, 0, DOOR_H + 0.05, pz - 0.05, pz + 0.05, BRASS_D, 0.03));
   }
-  if (alongX) S.push(box(Math.min(x0, x1), Math.max(x0, x1), DOOR_H, DOOR_H + 0.08, z0 - 0.08, z0 + 0.08, BRASS, 0.03));
-  else S.push(box(x0 - 0.08, x0 + 0.08, DOOR_H, DOOR_H + 0.08, Math.min(z0, z1), Math.max(z0, z1), BRASS, 0.03));
+  if (alongX) S.push(box(Math.min(x0, x1) - 0.06, Math.max(x0, x1) + 0.06, DOOR_H, DOOR_H + 0.08, z0 - 0.095, z0 + 0.095, BRASS, 0.03));
+  else S.push(box(x0 - 0.095, x0 + 0.095, DOOR_H, DOOR_H + 0.08, Math.min(z0, z1) - 0.06, Math.max(z0, z1) + 0.06, BRASS, 0.03));
 }
 doorFrame(8.6, -4, 10.4, -4); doorFrame(5, -1, 5, 1); doorFrame(-5, 0.5, -5, 2.5); doorFrame(-10, -4, -8.4, -4); doorFrame(-5, -8.5, -5, -7); doorFrame(-4.4, -11, -3.2, -11); doorFrame(5, -7.0, 5, -5.8);
 
@@ -959,7 +959,7 @@ S.push(cyl(V(-3, 0.2, -2.52), V(3, 0.2, -2.52), 0.018, 0.018, BRASS, { n: 6 }));
 for (const x of [-2.6, 0, 2.6]) S.push(cyl(V(x, 0, -2.56), V(x, 0.2, -2.52), 0.012, 0.012, BRASS, { n: 4 }));
 // back bar
 S.push(box(-2.9, 2.9, 0, 1.0, -3.98, -3.6, LACQUER));
-S.push(box(-2.95, 2.95, 1.0, 1.03, -4.0, -3.56, MARBLE));
+S.push(box(-2.95, 2.95, 1.0, 1.03, -3.985, -3.56, MARBLE));
 for (const y of [1.3, 1.72]) {
   S.push(box(-2.75, 2.75, y, y + 0.03, -3.98, -3.74, MARBLE_L, 0.04));
   S.push(box(-2.75, 2.75, y + 0.03, y + 0.036, -3.75, -3.74, BRASS, 0.03));
@@ -1240,8 +1240,10 @@ const SW = { x: 9.5, z: -8.0, x0: 7.4, x1: 11.6, z0: -9.6, z1: -6.4, water: 0.42
 const TILE = [168, 196, 206], TILE_D = [120, 150, 164];
 for (const [x0, x1, z0, z1] of [[SW.x0 - 0.25, SW.x1 + 0.25, SW.z0 - 0.25, SW.z0], [SW.x0 - 0.25, SW.x1 + 0.25, SW.z1, SW.z1 + 0.25],
   [SW.x0 - 0.25, SW.x0, SW.z0, SW.z1], [SW.x1, SW.x1 + 0.25, SW.z0, SW.z1]]) {
+  const endCap = z1 - z0 < 3.3 && x1 - x0 < 0.3;
   S.push(box(x0, x1, 0, 0.5, z0, z1, TILE_D, 0.05));
-  S.push(box(x0 - 0.01, x1 + 0.01, 0.5, 0.54, z0 - 0.01, z1 + 0.01, TILE, 0.04));
+  const e = endCap ? 0.005 : 0.01;
+  S.push(box(x0 - e, x1 + e, 0.5, endCap ? 0.535 : 0.54, z0 - 0.01, z1 + 0.01, TILE, 0.04));
 }
 const poolFloorTex = canvasTex(16, 16, (x, w, h) => {
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
@@ -1548,7 +1550,7 @@ const beamTex = canvasTex(16, 16, (x, w, h) => {
     x.fillStyle = `rgb(${Math.round(255 * k)},${Math.round(226 * k)},${Math.round(176 * k)})`; x.fillRect(i, j, 1, 1);
   }
 });
-const beamMat = new THREE.MeshBasicMaterial({ map: beamTex, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 });
+const beamMat = new THREE.MeshBasicMaterial({ map: beamTex, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -16 });
 const traffic = [];
 for (const tc of TRAFFIC) {
   const c = carParts(tc.kind, tc.color);
@@ -1571,7 +1573,8 @@ function driveTraffic(dt) {
 
 // ===== BACKSTREET =====
 const AL = { x0: -14, x1: 15, z0: -19, z1: -11 };
-groundPlane(AL.x0, AL.x1, AL.z0, -11.02, wetTex, 3, 0);
+groundPlane(AL.x0, 5, AL.z0, -11.02, wetTex, 3, 0);
+groundPlane(5, AL.x1, AL.z0, -12.02, wetTex, 3, 0);
 // the far side of the alley: the back of another building
 {
   const w = AL.x1 - AL.x0, g = new THREE.PlaneGeometry(w, 7);
@@ -1684,7 +1687,7 @@ const tiles = [];
 const TILE_COL = [new THREE.Color(0x10224a), new THREE.Color(0x2c4f9a), new THREE.Color(0x8a96c0), new THREE.Color(0x24164a)];
 for (let i = 0; i < DF.n; i++) for (let j = 0; j < DF.n; j++) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(DF.s - 0.04, DF.s - 0.04),
-    new THREE.MeshBasicMaterial({ color: 0x0a1020, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 }));
+    new THREE.MeshBasicMaterial({ color: 0x0a1020, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -16 }));
   m.renderOrder = 1;
   m.rotation.x = -Math.PI / 2;
   m.position.set(DF.x + (i - (DF.n - 1) / 2) * DF.s, 0.02, DF.z + (j - (DF.n - 1) / 2) * DF.s);
@@ -2286,7 +2289,7 @@ const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: 
 const targets = SPOT_LIST.map((s) => ({ kind: 'spot', s, box: new THREE.Box3(new THREE.Vector3(s.hit.x - s.hit.sx / 2, s.hit.y - s.hit.sy / 2, s.hit.z - s.hit.sz / 2), new THREE.Vector3(s.hit.x + s.hit.sx / 2, s.hit.y + s.hit.sy / 2, s.hit.z + s.hit.sz / 2)) }))
   .concat(OBJECTS.map((o) => ({ kind: 'object', o, box: new THREE.Box3(new THREE.Vector3(o.hit.x - o.hit.sx / 2, o.hit.y - o.hit.sy / 2, o.hit.z - o.hit.sz / 2), new THREE.Vector3(o.hit.x + o.hit.sx / 2, o.hit.y + o.hit.sy / 2, o.hit.z + o.hit.sz / 2)) })));
 
-const ringMat = new THREE.MeshBasicMaterial({ color: 0xffc870, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16, fog: false });
+const ringMat = new THREE.MeshBasicMaterial({ color: 0xffc870, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -16, fog: false });
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 1.0, 24), ringMat);
 ring.rotation.x = -Math.PI / 2; ring.visible = false; ring.renderOrder = 2; scene.add(ring);
 const hintEl = document.getElementById('hint');
