@@ -1208,13 +1208,13 @@ changeTileTex.wrapS = changeTileTex.wrapT = THREE.RepeatWrapping;
 floorFor(ROOMS.change, changeTileTex, 0.8);
 // lockers along the VIP side
 const LOCKER = [38, 44, 48], LOCKER_D = [26, 30, 34];
-S.push(box(2.0, 2.48, 0, 1.95, -10.8, -4.4, LOCKER));
+S.push(box(2.06, 2.48, 0, 1.95, -10.8, -4.4, LOCKER));
 for (let z = -10.8; z < -4.45; z += 0.4) {
   S.push(box(2.48, 2.5, 0.06, 1.9, z + 0.02, z + 0.38, LOCKER_D, 0.03));
   for (const y of [1.6, 1.66, 1.72]) S.push(box(2.5, 2.51, y, y + 0.02, z + 0.1, z + 0.3, [14, 16, 18], 0.02));
   S.push(box(2.5, 2.53, 0.95, 1.05, z + 0.32, z + 0.34, BRASS, 0.02));
 }
-S.push(box(2.0, 2.52, 1.95, 2.0, -10.82, -4.38, BRASS_D, 0.03));
+S.push(box(2.06, 2.52, 1.95, 2.0, -10.82, -4.38, BRASS_D, 0.03));
 // two wooden benches down the middle
 const BENCHES = [[-9.3, 1.9], [-5.6, 1.6]];
 for (const [cz, len] of BENCHES) {
