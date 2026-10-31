@@ -152,7 +152,7 @@ const LOOK = {
   eyes: [['Bare eyes', 0], ['Round glasses', 1], ['Shades', 2]],
   smoke: [['No smoke', 0], ['Cigarette', 1], ['Cigar', 2]],
   dance: [['Bounce', 0], ['Two-step', 1], ['Hands up', 2], ['Head nod', 3]],
-  spot: [['Dance room', 0], ['Main bar', 1], ['TV room', 2], ['Pool room', 3], ['VIP lounge (mods)', 4]]
+  spot: [['Dance room', 0], ['Main bar', 1], ['TV room', 2], ['Billiards', 3], ['VIP lounge (mods)', 4], ['Pool lounge', 5]]
 };
 const KEYS = ['jacket', 'pants', 'skin', 'head', 'hair', 'beard', 'eyes', 'smoke', 'dance', 'spot'];
 const LABELS = { jacket: 'Jacket', pants: 'Pants', skin: 'Skin', head: 'Head', hair: 'Hair color', beard: 'Beard', eyes: 'Eyes', smoke: 'Smoke', dance: 'Dance move', spot: 'Hangout' };
@@ -225,7 +225,10 @@ function buildParts(look, seed) {
   const SKIN_SHAD = SKIN.map((v) => v * 0.83);
   const LIP = SKIN.map((v) => v * 0.72);
   const HAIR = LOOK.hair[look.hair][1];
-  const JACKET = look.outfit === 'barman' ? [222, 218, 208] : LOOK.jacket[look.jacket][1];
+  // swimwear in the pool lounge: bare top and feet, swim shorts in a colour picked from the jacket choice
+  const SWIM = look.outfit === 'swim';
+  const SHORTS = [[30, 110, 120], [170, 40, 50], [30, 50, 110], [24, 24, 28], [220, 214, 200], [190, 140, 40]][look.jacket] || [30, 110, 120];
+  const JACKET = look.outfit === 'barman' ? [222, 218, 208] : SWIM ? SKIN : LOOK.jacket[look.jacket][1];
   const RIB = look.outfit === 'barman' ? [206, 202, 192] : JACKET.map((v) => v * 0.6);
   const CARGO = LOOK.pants[look.pants][1];
   const CARGO_D = CARGO.map((v) => v * 0.74);
@@ -295,13 +298,23 @@ function buildParts(look, seed) {
   }
 
   // pelvis, belt
-  P('hips', loft([rring(0.84, 0.30, 0.20, 0, 0.005, 14), rring(0.92, 0.345, 0.222, 0, 0, 14), rring(1.0, 0.34, 0.22, 0, 0, 14)], CARGO, { smooth: true }));
-  O('hips', loft([rring(0.945, 0.352, 0.232, 0, 0, 14), rring(0.99, 0.355, 0.234, 0, 0, 14)], WEB, { amt: 0.03 }));
-  O('hips', box(-0.032, 0.032, 0.94, 0.995, 0.112, 0.124, GUN, 0.03));
+  P('hips', loft([rring(0.84, 0.30, 0.20, 0, 0.005, 14), rring(0.92, 0.345, 0.222, 0, 0, 14), rring(1.0, 0.34, 0.22, 0, 0, 14)], SWIM ? SHORTS : CARGO, { smooth: true }));
+  if (!SWIM) {
+    O('hips', loft([rring(0.945, 0.352, 0.232, 0, 0, 14), rring(0.99, 0.355, 0.234, 0, 0, 14)], WEB, { amt: 0.03 }));
+    O('hips', box(-0.032, 0.032, 0.94, 0.995, 0.112, 0.124, GUN, 0.03));
+  } else O('hips', loft([rring(0.975, 0.345, 0.225, 0, 0, 14), rring(1.0, 0.342, 0.222, 0, 0, 14)], SHORTS.map((v) => v * 0.7), { amt: 0.03 }));
 
   // legs
   for (const s of [-1, 1]) {
     const th = s > 0 ? 'thL' : 'thR', kn = s > 0 ? 'knL' : 'knR';
+    if (SWIM) {
+      // swim shorts to mid-thigh, then bare legs and feet
+      P(th, tube([V(s * 0.10, 0.97, 0), V(s * 0.104, 0.72, 0.004)], [0.082, 0.078], SHORTS, { n: 10 }));
+      P(th, tube([V(s * 0.104, 0.74, 0.004), V(s * 0.106, 0.48, 0.008)], [0.064, 0.056], SKIN, { n: 10 }));
+      P(kn, tube([V(s * 0.106, 0.52, 0.008), V(s * 0.108, 0.32, 0), V(s * 0.11, 0.07, 0)], [0.056, 0.05, 0.04], SKIN, { n: 10 }));
+      P(kn, loft([rring(0.0, 0.085, 0.22, s * 0.11, 0.045, 10, 3), rring(0.04, 0.09, 0.22, s * 0.11, 0.045, 10, 3), rring(0.08, 0.07, 0.12, s * 0.11, 0.01, 10, 2.5)], SKIN_SHAD, { smooth: true }));
+      continue;
+    }
     P(th, tube([V(s * 0.10, 0.97, 0), V(s * 0.104, 0.72, 0.004), V(s * 0.106, 0.48, 0.008)], [0.08, 0.076, 0.066], CARGO, { n: 10 }));
     O(th, box(s * 0.176 - 0.011, s * 0.176 + 0.011, 0.60, 0.73, -0.042, 0.042, CARGO_D, 0.04));
     O(th, box(s * 0.178 - 0.013, s * 0.178 + 0.013, 0.715, 0.75, -0.046, 0.046, CARGO, 0.04));
@@ -317,12 +330,19 @@ function buildParts(look, seed) {
 
   // torso
   P('spine', cyl(V(0, 1.43, -0.006), V(0, 1.585, -0.01), 0.056, 0.054, SKIN_SHAD, { n: 12, smooth: true }));
-  P('spine', loft([rring(0.985, 0.336, 0.218, 0, 0, 14), rring(1.04, 0.342, 0.222, 0, 0, 14)], RIB, { amt: 0.03, smooth: true }));
-  P('spine', loft([rring(1.035, 0.356, 0.234, 0, 0.002, 14), rring(1.10, 0.368, 0.238, 0, 0.004, 14), rring(1.20, 0.38, 0.24, 0, 0.005, 14),
-    rring(1.30, 0.41, 0.24, 0, 0, 14), rring(1.38, 0.435, 0.238, 0, -0.003, 14), rring(1.44, 0.40, 0.222, 0, -0.006, 14),
-    rring(1.475, 0.25, 0.17, 0, -0.01, 14)], JACKET, { smooth: true }));
-  P('spine', loft([rring(1.44, 0.17, 0.152, 0, -0.008, 14), rring(1.475, 0.165, 0.148, 0, -0.009, 14), rring(1.51, 0.152, 0.138, 0, -0.01, 14)], RIB, { cap: false, amt: 0.03, smooth: true }));
-  if (look.outfit === 'barman') {
+  if (SWIM) {
+    // bare torso, a little slimmer than the jacket
+    P('spine', loft([rring(0.98, 0.33, 0.212, 0, 0, 14), rring(1.10, 0.31, 0.2, 0, 0.004, 14), rring(1.22, 0.34, 0.21, 0, 0.008, 14),
+      rring(1.32, 0.38, 0.22, 0, 0.004, 14), rring(1.40, 0.4, 0.21, 0, -0.004, 14), rring(1.45, 0.3, 0.17, 0, -0.008, 14),
+      rring(1.48, 0.16, 0.13, 0, -0.01, 14)], SKIN, { smooth: true, amt: 0.03 }));
+  } else {
+    P('spine', loft([rring(0.985, 0.336, 0.218, 0, 0, 14), rring(1.04, 0.342, 0.222, 0, 0, 14)], RIB, { amt: 0.03, smooth: true }));
+    P('spine', loft([rring(1.035, 0.356, 0.234, 0, 0.002, 14), rring(1.10, 0.368, 0.238, 0, 0.004, 14), rring(1.20, 0.38, 0.24, 0, 0.005, 14),
+      rring(1.30, 0.41, 0.24, 0, 0, 14), rring(1.38, 0.435, 0.238, 0, -0.003, 14), rring(1.44, 0.40, 0.222, 0, -0.006, 14),
+      rring(1.475, 0.25, 0.17, 0, -0.01, 14)], JACKET, { smooth: true }));
+    P('spine', loft([rring(1.44, 0.17, 0.152, 0, -0.008, 14), rring(1.475, 0.165, 0.148, 0, -0.009, 14), rring(1.51, 0.152, 0.138, 0, -0.01, 14)], RIB, { cap: false, amt: 0.03, smooth: true }));
+  }
+  if (SWIM) { /* no zipper or pockets on bare skin */ } else if (look.outfit === 'barman') {
     // classic hotel bartender: black waistcoat over a white shirt, black bow tie
     const VEST = [20, 20, 24], VEST_L = [34, 34, 40], BRASS_B = [170, 130, 64];
     O('spine', loft([rring(0.975, 0.35, 0.232, 0, 0.002, 14), rring(1.10, 0.38, 0.25, 0, 0.004, 14), rring(1.20, 0.392, 0.252, 0, 0.005, 14),
@@ -344,9 +364,10 @@ function buildParts(look, seed) {
     const shK = s > 0 ? 'shL' : 'shR', elK = s > 0 ? 'elL' : 'elR';
     const sh = V(s * 0.232, 1.40, -0.005), el = V(s * 0.305, 1.12, -0.012), wr = V(s * 0.35, 0.89, 0.03);
     const cuff0 = add(wr, mul(sub(el, wr), 0.16));
-    P(shK, tube([V(s * 0.19, 1.445, -0.005), sh, V(s * 0.272, 1.26, -0.01), el], [0.068, 0.076, 0.07, 0.064], JACKET, { n: 10 }));
-    P(elK, tube([add(el, V(0, 0.03, 0)), el, V(s * 0.33, 1.0, 0.01), cuff0], [0.06, 0.064, 0.064, 0.062], JACKET, { n: 10 }));
-    P(elK, cyl(cuff0, wr, 0.055, 0.05, RIB, { n: 10, smooth: true }));
+    const aw = SWIM ? 0.78 : 1;
+    P(shK, tube([V(s * 0.19, 1.445, -0.005), sh, V(s * 0.272, 1.26, -0.01), el], [0.068 * aw, 0.076 * aw, 0.07 * aw, 0.064 * aw], JACKET, { n: 10 }));
+    P(elK, tube([add(el, V(0, 0.03, 0)), el, V(s * 0.33, 1.0, 0.01), SWIM ? wr : cuff0], [0.06 * aw, 0.064 * aw, 0.064 * aw, 0.062 * aw], JACKET, { n: 10 }));
+    if (!SWIM) P(elK, cyl(cuff0, wr, 0.055, 0.05, RIB, { n: 10, smooth: true }));
     const hx = wr[0] + s * 0.004, hz = wr[2] + 0.008;
     P(elK, loft([rring(0.895, 0.036, 0.074, hx, hz, 10), rring(0.845, 0.038, 0.086, hx, hz + 0.004, 10),
       rring(0.80, 0.034, 0.084, hx - s * 0.002, hz + 0.008, 10), rring(0.76, 0.026, 0.066, hx - s * 0.006, hz + 0.01, 10)], SKIN, { smooth: true }));
@@ -355,7 +376,7 @@ function buildParts(look, seed) {
   if (look.outfit === 'barman') {
     // sleeve garters on the white shirt sleeves
     for (const s of [-1, 1]) O(s > 0 ? 'shL' : 'shR', cyl(V(s * 0.262, 1.3, -0.008), V(s * 0.268, 1.27, -0.009), 0.074, 0.073, [24, 24, 28], { n: 10, smooth: true, amt: 0.02 }));
-  } else O('shL', box(0.333, 0.35, 1.215, 1.30, -0.032, 0.018, RIB, 0.03));
+  } else if (!SWIM) O('shL', box(0.333, 0.35, 1.215, 1.30, -0.032, 0.018, RIB, 0.03));
   return { B, B2, ember };
 }
 
@@ -373,6 +394,24 @@ function getGeos(look, seed) {
 }
 
 const emberMat = new THREE.MeshBasicMaterial({ color: 0xff6a1c });
+function addBody(g, geos, k) {
+  const m = new THREE.Mesh(geos[k], charMat); m.userData.body = true; g.add(m);
+  if (geos.over[k]) { const o = new THREE.Mesh(geos.over[k], charOverMat); o.userData.body = true; g.add(o); }
+}
+// change clothes in place (swimwear in the pool lounge, normal clothes everywhere else)
+function swapOutfit(ch, outfit) {
+  if ((ch.outfit || '') === (outfit || '')) return;
+  const look = Object.assign({}, ch.look, { outfit: outfit || undefined });
+  const geos = getGeos(look, ch.seed);
+  for (const k in ch.bones) {
+    const g = ch.bones[k];
+    for (const c of g.children.slice()) if (c.userData && c.userData.body) g.remove(c);
+    addBody(g, geos, k);
+  }
+  ch.ember = null;
+  if (geos.ember) { ch.ember = new THREE.Mesh(geos.ember, emberMat); ch.ember.userData.body = true; ch.bones.head.add(ch.ember); }
+  ch.outfit = outfit || '';
+}
 const labelLayer = document.getElementById('labels');
 function makeCharacter(look, name, seed) {
   const geos = getGeos(look, seed);
@@ -383,13 +422,12 @@ function makeCharacter(look, name, seed) {
     const p = PIV[k], par = PARENT[k];
     const pp = par ? PIV[par] : [0, 0, 0];
     g.position.set(p[0] - pp[0], p[1] - pp[1], p[2] - pp[2]);
-    g.add(new THREE.Mesh(geos[k], charMat));
-    if (geos.over[k]) g.add(new THREE.Mesh(geos.over[k], charOverMat));
+    addBody(g, geos, k);
     bones[k] = g;
     (par ? bones[par] : root).add(g);
   }
   let ember = null;
-  if (geos.ember) { ember = new THREE.Mesh(geos.ember, emberMat); bones.head.add(ember); }
+  if (geos.ember) { ember = new THREE.Mesh(geos.ember, emberMat); ember.userData.body = true; bones.head.add(ember); }
   // name tags are crisp HTML labels laid over the 3D view (see placeLabels), not pixelated sprites
   let label = null;
   if (name) { label = document.createElement('div'); label.className = 'nametag'; label.textContent = name; label.hidden = true; labelLayer.appendChild(label); }
@@ -507,6 +545,15 @@ function pose(ch, act, beat, t) {
     b.shL.rotation.x = -1.25; b.elL.rotation.x = -0.25; b.shL.rotation.z = -0.25;
     b.shR.rotation.x = -0.35 - 0.25 * aim; b.elR.rotation.x = -1.35 + 0.45 * aim; b.shR.rotation.z = 0.15;
     if (ch.cue) ch.cue.position.z = -0.08 + 0.12 * aim;
+  } else if (act === 'wade') {
+    // standing in the water: arms floating out, a slow sway with the music
+    const sw = Math.sin(t * 0.9 + ph * 6), k = Math.abs(Math.sin(PI * beat));
+    b.hips.position.y = 0.95 - 0.02 * k;
+    b.hips.position.x = 0.03 * sw; b.spine.rotation.z = 0.05 * sw;
+    b.shL.rotation.z = 0.55 + 0.12 * Math.sin(t * 1.3 + ph); b.shR.rotation.z = -0.55 - 0.12 * Math.sin(t * 1.1 + ph * 2);
+    b.shL.rotation.x = b.shR.rotation.x = -0.25; b.elL.rotation.x = b.elR.rotation.x = -0.35;
+    b.thL.rotation.x = -0.06; b.knL.rotation.x = 0.12;
+    b.head.rotation.x = 0.08 * k; b.head.rotation.y = 0.4 * Math.sin(t * 0.21 + ph * 4);
   } else if (act === 'dj') {
     const k = Math.abs(Math.sin(PI * beat));
     b.spine.rotation.x = 0.28;
@@ -550,7 +597,8 @@ const ROOMS = {
   dance: { x0: 5, x1: 14, z0: -4, z1: 4, name: 'Dance room' },
   tv: { x0: -13, x1: -5, z0: -4, z1: 4, name: 'TV room' },
   pool: { x0: -13, x1: -5, z0: -11, z1: -4, name: 'Pool room' },
-  vip: { x0: -5, x1: 2, z0: -11, z1: -4, name: 'VIP lounge' }
+  vip: { x0: -5, x1: 2, z0: -11, z1: -4, name: 'VIP lounge' },
+  swim: { x0: 5, x1: 14, z0: -12, z1: -4, name: 'Pool lounge' }
 };
 function roomAt(x, z) {
   for (const k in ROOMS) { const r = ROOMS[k]; if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r; }
@@ -574,6 +622,10 @@ const poolLamp = pLight(0xfff0c8, 1.4, 4.2, -9, 1.9, -7.5);
 pLight(0x2c4c8c, 0.5, 7, -6.5, 2.8, -5);
 // vip: fireplace and a reading lamp
 const fireLight = pLight(0xff8a3a, 1.2, 5.5, -1.5, 0.7, -10.4);
+// pool lounge: hot magenta and red, plus a cool glow coming off the water
+const swimLights = [pLight(0xff2a8a, 1.5, 8, 7.0, 2.7, -6.0), pLight(0xff3040, 1.2, 7, 12.0, 2.7, -10.5)];
+const waterLight = pLight(0x7ad8ff, 1.0, 4.5, 9.5, 0.9, -8.0);
+const candleLight = pLight(0xffa860, 0.7, 4, 9.5, 0.9, -11.3);
 pLight(0xffc890, 0.7, 4, 1.2, 1.6, -5.2);
 
 function canvasTex(w, h, draw, repeat) {
@@ -653,6 +705,25 @@ const redWallTex = canvasTex(32, 64, (x, w, h) => {
   x.fillStyle = 'rgb(110,84,42)'; x.fillRect(0, 44, w, 1); x.fillRect(0, 0, 1, h);
 });
 redWallTex.wrapS = redWallTex.wrapT = THREE.RepeatWrapping;
+// dark brick for the pool lounge
+const brickTex = canvasTex(32, 64, (x, w, h) => {
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const row = Math.floor(j / 4), off = row % 2 ? 4 : 0, mortar = j % 4 === 3 || (i + off) % 8 === 7;
+    const v = mortar ? 10 : 28 + rr() * 10 + ((Math.floor((i + off) / 8) * 7 + row * 3) % 5) * 2;
+    x.fillStyle = mortar ? 'rgb(12,6,8)' : `rgb(${Math.round(v + 14)},${Math.round(v * 0.45)},${Math.round(v * 0.5)})`; x.fillRect(i, j, 1, 1);
+  }
+});
+brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
+// dark polished concrete with a magenta sheen
+const swimFloorTex = canvasTex(32, 32, (x, w, h) => { noiseFill(x, w, h, [18, 10, 16], 7); });
+// a swirl-pattern rug
+const swirlTex = canvasTex(64, 64, (x, w, h) => {
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const dx = i - 32, dy = j - 32, r = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx);
+    const band = Math.floor((r + a * 2.2) / 3.2) % 2;
+    x.fillStyle = band ? 'rgb(150,26,70)' : 'rgb(30,6,16)'; x.fillRect(i, j, 1, 1);
+  }
+});
 
 // furniture and glowing bits get a depth bias so they always win against the floor and walls they touch
 const roomMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -3 }));
@@ -677,6 +748,8 @@ floorFor(ROOMS.dance, concreteTex, 2);
 floorFor(ROOMS.tv, carpetTex, 0.8);
 floorFor(ROOMS.pool, woodTex, 1.2);
 floorFor(ROOMS.vip, vipTex, 0.8);
+swimFloorTex.wrapS = swimFloorTex.wrapT = THREE.RepeatWrapping;
+floorFor(ROOMS.swim, swimFloorTex, 1.5);
 
 // walls: each room gets its own inward-facing walls (seen from inside, invisible from behind),
 // with doorway gaps given as [from, to] distances along the wall
@@ -684,7 +757,8 @@ const WALL_H = 3.2, DOOR_H = 2.4;
 const wallMats = {
   deco: ps1(new THREE.MeshLambertMaterial({ map: wallTex })),
   green: ps1(new THREE.MeshLambertMaterial({ map: greenWallTex })),
-  red: ps1(new THREE.MeshLambertMaterial({ map: redWallTex }))
+  red: ps1(new THREE.MeshLambertMaterial({ map: redWallTex })),
+  brick: ps1(new THREE.MeshLambertMaterial({ map: brickTex }))
 };
 const DOOR_PARTS = [];
 function wallPlane(ax, az, bx, bz, nx, nz, y0, y1, mat, texW) {
@@ -723,7 +797,8 @@ const DOOR = {
   poolVip: [2.5, 4]      // x = -5, z -8.5..-7
 };
 roomWalls(ROOMS.bar, { right: [DOOR.barDance], left: [DOOR.barTv], front: [[4.1, 5.9]] }, wallMats.deco);
-roomWalls(ROOMS.dance, { left: [DOOR.barDance] }, wallMats.deco);
+roomWalls(ROOMS.dance, { left: [DOOR.barDance], back: [[3.6, 5.4]] }, wallMats.deco);
+roomWalls(ROOMS.swim, { front: [[3.6, 5.4]] }, wallMats.brick);
 roomWalls(ROOMS.tv, { right: [DOOR.barTv], back: [DOOR.tvPool] }, wallMats.deco);
 roomWalls(ROOMS.pool, { front: [DOOR.tvPool], right: [DOOR.poolVip] }, wallMats.green);
 roomWalls(ROOMS.vip, { left: [DOOR.poolVip] }, wallMats.red);
@@ -744,7 +819,7 @@ function doorFrame(x0, z0, x1, z1) {
   if (alongX) S.push(box(Math.min(x0, x1), Math.max(x0, x1), DOOR_H, DOOR_H + 0.08, z0 - 0.08, z0 + 0.08, BRASS, 0.03));
   else S.push(box(x0 - 0.08, x0 + 0.08, DOOR_H, DOOR_H + 0.08, Math.min(z0, z1), Math.max(z0, z1), BRASS, 0.03));
 }
-doorFrame(5, -1, 5, 1); doorFrame(-5, 0.5, -5, 2.5); doorFrame(-10, -4, -8.4, -4); doorFrame(-5, -8.5, -5, -7);
+doorFrame(8.6, -4, 10.4, -4); doorFrame(5, -1, 5, 1); doorFrame(-5, 0.5, -5, 2.5); doorFrame(-10, -4, -8.4, -4); doorFrame(-5, -8.5, -5, -7);
 
 // ===== MAIN BAR =====
 // counter: lacquered front with brass fluting, black marble top, brass foot rail
@@ -995,8 +1070,70 @@ S.push(cyl(V(1.2, 1.45, -5.2), V(1.2, 1.7, -5.2), 0.22, 0.12, [120, 96, 60], { n
 sconce(1.97, -8.0, -1); sconceZ(-4.0, -10.97, 1);
 succulent(1.5, 0, -4.5, 2.2);
 
+// ===== POOL LOUNGE (behind the dance room): magenta light, dark brick, candles, a glowing shallow pool =====
+const SW = { x: 9.5, z: -8.0, x0: 7.4, x1: 11.6, z0: -9.6, z1: -6.4, water: 0.42 };
+// basin: a low tiled rim, a glowing tiled floor and a rippling water surface
+const TILE = [168, 196, 206], TILE_D = [120, 150, 164];
+for (const [x0, x1, z0, z1] of [[SW.x0 - 0.25, SW.x1 + 0.25, SW.z0 - 0.25, SW.z0], [SW.x0 - 0.25, SW.x1 + 0.25, SW.z1, SW.z1 + 0.25],
+  [SW.x0 - 0.25, SW.x0, SW.z0, SW.z1], [SW.x1, SW.x1 + 0.25, SW.z0, SW.z1]]) {
+  S.push(box(x0, x1, 0, 0.5, z0, z1, TILE_D, 0.05));
+  S.push(box(x0 - 0.01, x1 + 0.01, 0.5, 0.54, z0 - 0.01, z1 + 0.01, TILE, 0.04));
+}
+const poolFloorTex = canvasTex(16, 16, (x, w, h) => {
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const grout = i % 4 === 0 || j % 4 === 0;
+    x.fillStyle = grout ? 'rgb(70,120,150)' : `rgb(${110 + rr() * 20},${170 + rr() * 20},${200 + rr() * 20})`; x.fillRect(i, j, 1, 1);
+  }
+}, [8, 6]);
+const poolFloor = new THREE.Mesh(new THREE.PlaneGeometry(SW.x1 - SW.x0, SW.z1 - SW.z0), decal({ map: poolFloorTex, fog: false }));
+poolFloor.rotation.x = -Math.PI / 2; poolFloor.position.set(SW.x, 0.012, SW.z); scene.add(poolFloor);
+const waterTex = canvasTex(64, 64, (x, w, h) => {
+  x.fillStyle = 'rgb(90,170,210)'; x.fillRect(0, 0, w, h);
+  x.strokeStyle = 'rgba(230,250,255,0.75)'; x.lineWidth = 1;
+  for (let k = 0; k < 26; k++) {
+    let px = rr() * w, py = rr() * h; x.beginPath(); x.moveTo(px, py);
+    for (let s = 0; s < 4; s++) { px += (rr() - 0.5) * 18; py += (rr() - 0.5) * 18; x.lineTo(px, py); }
+    x.stroke();
+  }
+}, [3, 2]);
+const waterMat = new THREE.MeshBasicMaterial({ map: waterTex, transparent: true, opacity: 0.62, depthWrite: false, fog: false, side: THREE.DoubleSide });
+const water = new THREE.Mesh(new THREE.PlaneGeometry(SW.x1 - SW.x0, SW.z1 - SW.z0, 8, 6), waterMat);
+water.rotation.x = -Math.PI / 2; water.position.set(SW.x, SW.water, SW.z); water.renderOrder = 3; scene.add(water);
+// columns with gold bands at the corners of the room
+for (const [x, z] of [[6.2, -5.0], [12.8, -5.0], [6.2, -11.2], [12.8, -11.2]]) {
+  S.push(box(x - 0.22, x + 0.22, 0, 3.2, z - 0.22, z + 0.22, [70, 22, 26]));
+  for (const y of [0.1, 2.9]) S.push(box(x - 0.24, x + 0.24, y, y + 0.05, z - 0.24, z + 0.24, BRASS, 0.03));
+}
+// daybeds along the back wall, facing the water
+const DAYBEDS = [];
+for (const x of [7.6, 9.5, 11.4]) {
+  S.push(box(x - 0.42, x + 0.42, 0.05, 0.36, -11.75, -10.05, [30, 12, 18]));
+  S.push(box(x - 0.4, x + 0.4, 0.36, 0.44, -11.7, -10.1, [110, 26, 58], 0.05));
+  S.push(box(x - 0.42, x + 0.42, 0.36, 0.95, -11.8, -11.55, [30, 12, 18]));
+  for (const [dx, dz] of [[-0.36, -11.7], [0.36, -11.7], [-0.36, -10.1], [0.36, -10.1]]) S.push(cyl(V(x + dx, 0, dz), V(x + dx, 0.05, dz), 0.025, 0.025, BRASS, { n: 4 }));
+  DAYBEDS.push([x, -10.85]);
+}
+// candle clusters on pedestals in the corners
+const CANDLES = [[5.5, -11.5], [13.5, -11.5], [5.5, -4.5], [13.5, -4.5], [8.5, -11.85], [10.5, -11.85]];
+for (const [x, z] of CANDLES) {
+  S.push(box(x - 0.18, x + 0.18, 0, 0.62, z - 0.18, z + 0.18, [26, 10, 14]));
+  [[0, 0, 0.2], [0.08, 0.05, 0.14], [-0.07, 0.06, 0.1], [0.04, -0.08, 0.17]].forEach(([dx, dz, hh]) => {
+    S.push(cyl(V(x + dx, 0.62, z + dz), V(x + dx, 0.62 + hh, z + dz), 0.025, 0.025, [230, 220, 196], { n: 6, amt: 0.03 }));
+    G.push(cyl(V(x + dx, 0.62 + hh, z + dz), V(x + dx, 0.62 + hh + 0.03, z + dz), 0.012, 0.004, [255, 200, 120], { n: 4, amt: 0 }));
+  });
+}
+// a mirrored row of small candles along the pool rim
+for (let x = SW.x0 - 0.1; x <= SW.x1 + 0.1; x += 0.6) for (const z of [SW.z0 - 0.12, SW.z1 + 0.12]) {
+  S.push(cyl(V(x, 0.54, z), V(x, 0.62, z), 0.02, 0.02, [230, 220, 196], { n: 5, amt: 0.03 }));
+  G.push(cyl(V(x, 0.62, z), V(x, 0.645, z), 0.01, 0.003, [255, 200, 120], { n: 4, amt: 0 }));
+}
+
 addStatic(S);
 addStatic(G, glowMat);
+for (const [x, z] of [[6.3, -8.0], [12.7, -8.0]]) {
+  const rug = new THREE.Mesh(new THREE.CircleGeometry(0.85, 20), decal({ map: swirlTex }));
+  rug.rotation.x = -Math.PI / 2; rug.position.set(x, 0.006, z); scene.add(rug);
+}
 
 // jukebox face and the gold sign (unlit, glowing)
 const jukeFace = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.7), decal({ map: canvasTex(16, 18, (x) => {
@@ -1036,6 +1173,7 @@ function doorSign(text, x, z, rotY) {
 doorSign('DANCE', 4.97, 0, -Math.PI / 2); doorSign('BAR', 5.03, 0, Math.PI / 2);
 doorSign('CINEMA', -4.97, 1.5, Math.PI / 2); doorSign('BAR', -5.03, 1.5, -Math.PI / 2);
 doorSign('BILLIARDS', -9.2, -3.97, 0); doorSign('CINEMA', -9.2, -4.03, Math.PI);
+doorSign('POOL', 9.5, -3.97, 0); doorSign('DANCE', 9.5, -4.03, Math.PI);
 doorSign('VIP', -5.03, -7.75, -Math.PI / 2); doorSign('BILLIARDS', -4.97, -7.75, Math.PI / 2);
 
 // the TV: a black screen in 3D, with the YouTube player laid over it in CSS 3D
@@ -1125,6 +1263,12 @@ VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'l
   i === 0 ? "The host's chair" : 'Take an armchair', hitBox(x, 0.5, z, 0.8, 1.0, 0.8), { hostOnly: i === 0 }));
 [[-4.6, -9.9, Math.PI / 4], [1.5, -9.7, -Math.PI / 4], [-4.5, -4.6, Math.PI * 0.8], [1.5, -6.6, -Math.PI / 2]].forEach(([x, z, yaw], i) =>
   addSpot('vip-stand-' + i, 4, 'lean', x, z, yaw, 'Hang out by the fire', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
+// pool lounge: wading in the water, daybeds, and standing room around the edge
+for (const [i, x] of [8.0, 9.0, 10.0, 11.0].entries()) for (const [j, z] of [-8.6, -7.4].entries())
+  addSpot('swim-water-' + i + j, 5, 'wade', x, z, (j ? Math.PI : 0) + (i - 1.5) * 0.3, 'Get in the pool', hitBox(x, 0.3, z, 0.9, 0.6, 1.1));
+DAYBEDS.forEach(([x, z], i) => addSpot('swim-bed-' + i, 5, 'sitlow', x, z + 0.15, 0, 'Lie back on a daybed', hitBox(x, 0.45, z, 0.85, 0.9, 1.7)));
+[[6.4, -8.0, Math.PI / 2], [12.6, -8.0, -Math.PI / 2], [6.6, -6.2, 2.2], [12.4, -6.2, -2.2], [8.0, -5.0, Math.PI], [11.0, -5.0, Math.PI]].forEach(([x, z, yaw], i) =>
+  addSpot('swim-side-' + i, 5, 'lean', x, z, yaw, 'Hang out by the pool', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // dance floor: one spot per tile, filled from the middle outward
 {
   const r = rngFrom(5), order = [];
@@ -1166,7 +1310,7 @@ function placeAll() {
   for (const ch of people) {
     if (ch.placed) continue;
     const free = (cat) => SPOT_LIST.find((s) => s.cat === cat && !s.hostOnly && !spotOwner.has(s.id));
-    const s = free(ch.look.spot) || (ch.look.spot === 4 && free(1)) || free(0);
+    const s = free(ch.look.spot) || (ch.look.spot === 4 && free(1)) || free(0) || free(5);
     if (s) claim(ch, s); else putAt(ch, overflowSpot(over++));
   }
 }
@@ -1233,6 +1377,8 @@ function rebuild() {
     const prev = lastSpots.get(key);
     if (prev && prev !== ch.spot) ch.pop = 0;
     lastSpots.set(key, ch.spot);
+    const sp = SPOT_BY_ID[ch.spot];
+    swapOutfit(ch, sp && sp.cat === 5 ? 'swim' : '');
     setGlass(ch, ch.act === 'pool' ? null : ch.drink);
     const pd = lastDrinks.get(key);
     if (ch.drink && pd !== undefined && pd !== ch.drink) bartenderSays(ch.drink, ch.name);
@@ -1390,6 +1536,7 @@ const VIEWS = {
   tv: { tx: -10.5, ty: 1.4, tz: 0, d: 6, yaw: Math.PI / 2, pitch: 0.16 },
   pool: { tx: -9, ty: 0.9, tz: -7.5, d: 6, yaw: 0.75, pitch: 0.6 },
   vip: { tx: -1.5, ty: 0.9, tz: -7.4, d: 5, yaw: 0.35, pitch: 0.42 },
+  swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
   map: { tx: 0.5, ty: 0, tz: -3.6, d: 26, yaw: 0, pitch: 1.3, free: true }
 };
 for (const k in VIEWS) VIEWS[k].free = !!VIEWS[k].free;
@@ -1471,7 +1618,7 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'Shift') keys.fast = false;
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-const BIRD = { pitch: 1.3, d: 14, x0: -13.5, x1: 14.5, z0: -11.5, z1: 4.5 };
+const BIRD = { pitch: 1.3, d: 14, x0: -13.5, x1: 14.5, z0: -12.5, z1: 4.5 };
 function keyboardPan(dt) {
   const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), mz = (keys.f ? 1 : 0) - (keys.b ? 1 : 0), rot = (keys.e ? 1 : 0) - (keys.q ? 1 : 0);
   if (!mx && !mz && !rot) return;
@@ -1602,7 +1749,7 @@ const OBJECTS = [
   { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, 0, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, 0], size: 0.7 },
   { id: 'pooltable', label: 'Play pool', hit: hitBox(PT.x, 0.45, PT.z, PT.l, 0.9, PT.w), cat: 3, floor: [PT.x, PT.z], size: 1.2 }
 ];
-const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip };
+const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim };
 const targets = SPOT_LIST.map((s) => ({ kind: 'spot', s, box: new THREE.Box3(new THREE.Vector3(s.hit.x - s.hit.sx / 2, s.hit.y - s.hit.sy / 2, s.hit.z - s.hit.sz / 2), new THREE.Vector3(s.hit.x + s.hit.sx / 2, s.hit.y + s.hit.sy / 2, s.hit.z + s.hit.sz / 2)) }))
   .concat(OBJECTS.map((o) => ({ kind: 'object', o, box: new THREE.Box3(new THREE.Vector3(o.hit.x - o.hit.sx / 2, o.hit.y - o.hit.sy / 2, o.hit.z - o.hit.sz / 2), new THREE.Vector3(o.hit.x + o.hit.sx / 2, o.hit.y + o.hit.sy / 2, o.hit.z + o.hit.sz / 2)) })));
 
@@ -1826,6 +1973,10 @@ function tick() {
   fireLight.intensity = 1.1 * fl;
   flames.forEach((f, i) => { f.scale.set(1, 0.7 + 0.45 * Math.abs(Math.sin(t * (5 + i) + i)), 1); });
   neonLight.intensity = 0.7;
+  waterTex.offset.set((t * 0.03) % 1, (t * 0.017) % 1);
+  waterLight.intensity = 0.9 + 0.15 * Math.sin(t * 1.7);
+  candleLight.intensity = 0.6 + 0.12 * Math.sin(t * 9.1) * Math.sin(t * 3.7);
+  swimLights[0].intensity = 1.3 + 0.35 * pulse;
   for (const l of barLights) l.intensity = 1.1 + 0.05 * Math.sin(t * 2 + l.position.x);
   tvLight.intensity = tvOn ? 0.55 + 0.2 * Math.sin(t * 9) * Math.sin(t * 2.3) : 0;
   expireBubbles();
@@ -1994,7 +2145,7 @@ $('enter').onclick = () => enterBar(true);
 $('enterQuiet').onclick = () => enterBar(false);
 $('mute').onclick = () => { setMuted(!muted); $('mute').setAttribute('aria-pressed', muted ? 'true' : 'false'); $('mute').textContent = muted ? 'Sound off' : 'Sound on'; };
 $('track').onclick = () => { if (hasCharacter() || !(window.NET && window.NET.online)) changeMusic(); else { toast('Create a character to change the music.'); } };
-for (const v of ['bar', 'dance', 'tv', 'pool', 'vip', 'map']) $('v-' + v).onclick = () => setView(v);
+for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'vip', 'map']) $('v-' + v).onclick = () => setView(v);
 $('findMe').onclick = () => { const me = crowd.find((c) => c.mine); if (me) focusChar(me); else openCreator(); };
 $('pix').onclick = () => { pixels = !pixels; snapOn.value = pixels ? 1 : 0; $('pix').setAttribute('aria-pressed', pixels ? 'true' : 'false'); resize(); };
 
