@@ -938,7 +938,7 @@ function tick() {
 const $ = (id) => document.getElementById(id);
 function updateRosterUI() {
   const people = crowd.filter((c) => !c.host && c !== draftChar);
-  $('count').textContent = people.length === 1 ? '1 regular' : people.length + ' regulars';
+  $('count').textContent = people.length === 1 ? '1 character' : people.length + ' characters';
   const ul = $('who'); ul.textContent = '';
   for (const ch of crowd) {
     if (ch === draftChar) continue;

@@ -15,6 +15,15 @@ let db = null, TS = null, offset = 0, banned = false, myName = null, lastSend = 
 let current = null, queue = [], curDur = 0, durWritten = false, errored = false, tooLong = false, advancing = false;
 let player = null, playerReady = false, loadedId = null, entered = false, mutedAll = false, tvVolume = 70;
 let msgs = [], triedLocalSave = false;
+let allChars = [], online = new Set(), lastCrowdKey = '';
+// only people who have the bar open right now are shown (the bartender is always there)
+function pushCrowd() {
+  const here = allChars.filter((e) => online.has(e.uid) || e.uid === NET.uid).slice(-80);
+  const key = here.map((e) => e.uid + e.name + e.code).join('|');
+  if (key === lastCrowdKey) return;
+  lastCrowdKey = key;
+  window.BAR.setRegulars(here);
+}
 
 // ---------------------------------------------------------------- helpers
 const now = () => Date.now() + offset;
@@ -81,13 +90,21 @@ function joined() {
     if (s.val()) { pres.onDisconnect().remove(); pres.set(true); }
     else status('Reconnecting…');
   });
-  db.ref('presence').on('value', (s) => { const n = s.numChildren(); status(n === 1 ? '1 here now' : n + ' here now'); });
+  // re-mark ourselves as here every minute, in case another tab of ours closed and cleared it
+  setInterval(() => { pres.set(true).catch(() => { }); }, 60000);
+  db.ref('presence').on('value', (s) => {
+    const n = s.numChildren();
+    status(n === 1 ? '1 here now' : n + ' here now');
+    online = new Set(); s.forEach((c) => { online.add(c.key); });
+    pushCrowd();
+  });
 
-  db.ref('chars').orderByChild('t').limitToLast(80).on('value', (s) => {
+  db.ref('chars').on('value', (s) => {
     const list = [];
-    s.forEach((c) => { const v = c.val() || {}; list.push({ uid: c.key, name: v.name, code: v.code }); });
-    window.BAR.setRegulars(list);
-    const mine = list.find((e) => e.uid === NET.uid);
+    s.forEach((c) => { const v = c.val() || {}; list.push({ uid: c.key, name: v.name, code: v.code, t: v.t || 0 }); });
+    allChars = list.sort((a, b) => a.t - b.t);
+    pushCrowd();
+    const mine = allChars.find((e) => e.uid === NET.uid);
     myName = mine ? mine.name : null;
     if (mine) window.BAR.setMine({ name: mine.name, code: mine.code });
     else if (!triedLocalSave) {
