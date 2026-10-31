@@ -721,6 +721,7 @@ const ROOMS = {
   pool: { x0: -13, x1: -5, z0: -11, z1: -4, name: 'Pool room' },
   vip: { x0: -5, x1: 2, z0: -11, z1: -4, name: 'VIP lounge' },
   swim: { x0: 5, x1: 14, z0: -12, z1: -4, name: 'Pool lounge' },
+  change: { x0: 2, x1: 5, z0: -11, z1: -4, name: 'Changing room' },
   street: { x0: -26, x1: 28, z0: 4, z1: 15.4, name: 'Street', outside: true },
   alley: { x0: -14, x1: 15, z0: -19, z1: -11, name: 'Backstreet', outside: true }
 };
@@ -923,7 +924,8 @@ const DOOR = {
 };
 roomWalls(ROOMS.bar, { right: [DOOR.barDance], left: [DOOR.barTv], front: [[4.1, 5.9]] }, wallMats.deco);
 roomWalls(ROOMS.dance, { left: [DOOR.barDance], back: [[3.6, 5.4]] }, wallMats.deco);
-roomWalls(ROOMS.swim, { front: [[3.6, 5.4]] }, wallMats.brick);
+roomWalls(ROOMS.swim, { front: [[3.6, 5.4]], left: [[5.0, 6.2]] }, wallMats.brick);
+roomWalls(ROOMS.change, { right: [[4.0, 5.2]] }, wallMats.brick);
 roomWalls(ROOMS.tv, { right: [DOOR.barTv], back: [DOOR.tvPool] }, wallMats.deco);
 roomWalls(ROOMS.pool, { front: [DOOR.tvPool], right: [DOOR.poolVip] }, wallMats.green);
 roomWalls(ROOMS.vip, { left: [DOOR.poolVip], back: [[0.6, 1.8]] }, wallMats.red);
@@ -944,7 +946,7 @@ function doorFrame(x0, z0, x1, z1) {
   if (alongX) S.push(box(Math.min(x0, x1), Math.max(x0, x1), DOOR_H, DOOR_H + 0.08, z0 - 0.08, z0 + 0.08, BRASS, 0.03));
   else S.push(box(x0 - 0.08, x0 + 0.08, DOOR_H, DOOR_H + 0.08, Math.min(z0, z1), Math.max(z0, z1), BRASS, 0.03));
 }
-doorFrame(8.6, -4, 10.4, -4); doorFrame(5, -1, 5, 1); doorFrame(-5, 0.5, -5, 2.5); doorFrame(-10, -4, -8.4, -4); doorFrame(-5, -8.5, -5, -7); doorFrame(-4.4, -11, -3.2, -11);
+doorFrame(8.6, -4, 10.4, -4); doorFrame(5, -1, 5, 1); doorFrame(-5, 0.5, -5, 2.5); doorFrame(-10, -4, -8.4, -4); doorFrame(-5, -8.5, -5, -7); doorFrame(-4.4, -11, -3.2, -11); doorFrame(5, -7.0, 5, -5.8);
 
 // ===== MAIN BAR =====
 // counter: lacquered front with brass fluting, black marble top, brass foot rail
@@ -1195,6 +1197,43 @@ S.push(cyl(V(1.2, 1.45, -5.2), V(1.2, 1.7, -5.2), 0.22, 0.12, [120, 96, 60], { n
 sconce(1.97, -8.0, -1);
 succulent(1.5, 0, -4.5, 2.2);
 
+// ===== CHANGING ROOM (between the VIP and the pool lounge, only reachable from the pool) =====
+const changeTileTex = canvasTex(16, 16, (x, w, h) => {
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const grout = i % 4 === 0 || j % 4 === 0, n = rr() * 10;
+    x.fillStyle = grout ? 'rgb(30,26,30)' : `rgb(${Math.round(70 + n)},${Math.round(64 + n)},${Math.round(68 + n)})`; x.fillRect(i, j, 1, 1);
+  }
+});
+changeTileTex.wrapS = changeTileTex.wrapT = THREE.RepeatWrapping;
+floorFor(ROOMS.change, changeTileTex, 0.8);
+// lockers along the VIP side
+const LOCKER = [38, 44, 48], LOCKER_D = [26, 30, 34];
+S.push(box(2.0, 2.48, 0, 1.95, -10.8, -4.4, LOCKER));
+for (let z = -10.8; z < -4.45; z += 0.4) {
+  S.push(box(2.48, 2.5, 0.06, 1.9, z + 0.02, z + 0.38, LOCKER_D, 0.03));
+  for (const y of [1.6, 1.66, 1.72]) S.push(box(2.5, 2.51, y, y + 0.02, z + 0.1, z + 0.3, [14, 16, 18], 0.02));
+  S.push(box(2.5, 2.53, 0.95, 1.05, z + 0.32, z + 0.34, BRASS, 0.02));
+}
+S.push(box(2.0, 2.52, 1.95, 2.0, -10.82, -4.38, BRASS_D, 0.03));
+// two wooden benches down the middle
+const BENCHES = [[-9.3, 1.9], [-5.6, 1.6]];
+for (const [cz, len] of BENCHES) {
+  S.push(box(3.22, 3.78, 0.4, 0.46, cz - len / 2, cz + len / 2, [120, 84, 50], 0.05));
+  for (const dz of [-len / 2 + 0.15, len / 2 - 0.15]) S.push(box(3.3, 3.7, 0, 0.4, cz + dz - 0.05, cz + dz + 0.05, [26, 26, 30], 0.03));
+}
+// mirror and vanity on the pool side, a towel rail on the back wall
+S.push(box(4.6, 4.98, 0.85, 0.9, -10.6, -8.0, MARBLE_L, 0.04));
+S.push(box(4.7, 4.98, 0, 0.85, -10.55, -8.05, LACQUER));
+const mirrorMat = decal({ color: 0x6a7684 });
+const mirror = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.9), mirrorMat);
+mirror.position.set(4.975, 1.55, -9.3); mirror.rotation.y = -Math.PI / 2; scene.add(mirror);
+S.push(box(4.94, 4.97, 2.02, 2.08, -10.55, -8.05, BRASS, 0.03));
+G.push(box(4.93, 4.96, 2.08, 2.12, -10.5, -8.1, [255, 236, 200], 0));
+S.push(cyl(V(2.6, 1.5, -10.92), V(4.4, 1.5, -10.92), 0.015, 0.015, BRASS, { n: 5 }));
+const TOWELS = [[176, 196, 206], [234, 230, 220], [150, 40, 70], [234, 230, 220]];
+TOWELS.forEach((c, i) => { const x = 2.85 + i * 0.45; S.push(box(x - 0.17, x + 0.17, 0.9, 1.52, -10.95, -10.88, c, 0.04)); });
+const changeLight = pLight(0xffe8d0, 0.9, 6, 3.5, 2.8, -7.6);
+
 // ===== POOL LOUNGE (behind the dance room): magenta light, dark brick, candles, a glowing shallow pool =====
 const SW = { x: 9.5, z: -8.0, x0: 7.4, x1: 11.6, z0: -9.6, z1: -6.4, water: 0.42 };
 // basin: a low tiled rim, a glowing tiled floor and a rippling water surface
@@ -1353,9 +1392,9 @@ groundPlane(ST.x0, ST.x1, ST.curb0 - 0.12, ST.curb1 + 0.12, asphaltTex, 3, ROAD_
 groundPlane(ST.x0, ST.x1, ST.curb1 + 0.12, ST.walk1 + 2, pavingTex, 1.2, 0);
 S.push(box(ST.x0, ST.x1, ROAD_Y, 0, ST.curb0 - 0.12, ST.curb0, [74, 74, 80], 0.03));
 S.push(box(ST.x0, ST.x1, ROAD_Y, 0, ST.curb1, ST.curb1 + 0.12, [74, 74, 80], 0.03));
-const LANE_Z = (ST.curb0 + ST.curb1) / 2;
+const PARK_Z = ST.curb0 + 2.25, LANE_Z = (PARK_Z + ST.curb1) / 2;
 for (let x = ST.x0 + 1; x < ST.x1; x += 3.2) S.push(box(x, x + 1.6, ROAD_Y, ROAD_Y + 0.012, LANE_Z - 0.06, LANE_Z + 0.06, [190, 166, 84], 0.03));
-for (const z of [ST.curb0 + 2.0, ST.curb1 - 2.0]) S.push(box(ST.x0, ST.x1, ROAD_Y, ROAD_Y + 0.01, z - 0.05, z + 0.05, [150, 150, 150], 0.03));
+for (const z of [PARK_Z]) S.push(box(ST.x0, ST.x1, ROAD_Y, ROAD_Y + 0.01, z - 0.05, z + 0.05, [150, 150, 150], 0.03));
 
 // the building's outside walls: dark stone, taller than the rooms, with the entrance and the back door cut in
 const stoneTex = canvasTex(32, 64, (x, w, h) => {
@@ -1444,10 +1483,10 @@ for (const x of PARKED) parkCar('suv', [13, 13, 15], x, ST.curb0 + 1.1, 0, ROAD_
 
 // passing traffic in both lanes, looping from one end of the street to the other
 const TRAFFIC = [
-  { kind: 'sedan', color: [44, 46, 52], z: 9.0, dir: 1, speed: 8.5, x: -20 },
-  { kind: 'suv', color: [13, 13, 15], z: 9.0, dir: 1, speed: 7.2, x: 8 },
-  { kind: 'sedan', color: [96, 96, 102], z: 11.6, dir: -1, speed: 9.5, x: 18 },
-  { kind: 'sedan', color: [70, 22, 26], z: 11.6, dir: -1, speed: 8.0, x: -6 }
+  { kind: 'sedan', color: [44, 46, 52], z: LANE_Z - 1.05, dir: 1, speed: 8.5, x: -20 },
+  { kind: 'suv', color: [13, 13, 15], z: LANE_Z - 1.05, dir: 1, speed: 7.2, x: 8 },
+  { kind: 'sedan', color: [96, 96, 102], z: LANE_Z + 1.05, dir: -1, speed: 9.5, x: 18 },
+  { kind: 'sedan', color: [70, 22, 26], z: LANE_Z + 1.05, dir: -1, speed: 8.0, x: -6 }
 ];
 const beamTex = canvasTex(16, 16, (x, w, h) => {
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
@@ -1570,7 +1609,7 @@ doorSign('CINEMA', -4.97, 1.5, Math.PI / 2); doorSign('BAR', -5.03, 1.5, -Math.P
 doorSign('BILLIARDS', -9.2, -3.97, 0); doorSign('CINEMA', -9.2, -4.03, Math.PI);
 doorSign('POOL', 9.5, -3.97, 0); doorSign('DANCE', 9.5, -4.03, Math.PI);
 doorSign('VIP', -5.03, -7.75, -Math.PI / 2); doorSign('BILLIARDS', -4.97, -7.75, Math.PI / 2);
-doorSign('BACKSTREET', -3.8, -10.97, 0); doorSign('VIP', -3.8, -11.05, Math.PI);
+doorSign('BACKSTREET', -3.8, -10.97, 0); doorSign('POOL', 4.97, -6.4, -Math.PI / 2); doorSign('CHANGING', 5.03, -6.4, Math.PI / 2); doorSign('VIP', -3.8, -11.05, Math.PI);
 // the big sign over the street entrance
 const outSign = goldSign("SH1DEN'S", 320, 64, 46); SIGNS.push(outSign);
 const outSignMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 0.68), decal({ map: outSign.tex, transparent: true }));
@@ -1682,6 +1721,10 @@ PARKED.forEach((x, i) => addSpot('street-suv-' + i, 6, 'lean', x + 0.6, ST.curb0
 addSpot('alley-door-0', 7, 'lean', -3.9, -11.85, Math.PI - 0.3, 'Step out back', standHit(-3.9, -11.85));
 CRATES.forEach(([x, z], i) => addSpot('alley-crate-' + i, 7, 'sitlow', x, z, Math.PI / 2, 'Sit on a crate', hitBox(x, 0.4, z, 0.65, 0.8, 0.65)));
 [[2.6, -11.45, Math.PI], [-8.6, -12.7, Math.PI - 0.4], [3.6, -12.4, Math.PI + 0.5]].forEach(([x, z, yaw], i) => addSpot('alley-wall-' + i, 7, 'lean', x, z, yaw, 'Hang out in the backstreet', standHit(x, z)));
+// changing room: sit on the benches, check the mirror, lean on the lockers (you change into swimwear here too)
+BENCHES.forEach(([cz, len], b) => [-0.45, 0.45].forEach((o, k) => addSpot('change-bench-' + b + k, 8, 'sitlow', k ? 3.42 : 3.58, cz + o, k ? Math.PI / 2 : -Math.PI / 2, 'Sit on the bench', hitBox(3.5, 0.3, cz + o, 0.6, 0.6, 0.7))));
+addSpot('change-mirror-0', 8, 'lean', 4.35, -9.3, Math.PI / 2, 'Check the mirror', standHit(4.35, -9.3));
+addSpot('change-locker-0', 8, 'lean', 2.75, -7.5, -Math.PI / 2, 'Lean on the lockers', standHit(2.75, -7.5));
 // dance floor: one spot per tile, filled from the middle outward
 {
   const r = rngFrom(5), order = [];
@@ -1791,7 +1834,7 @@ function rebuild() {
     if (prev && prev !== ch.spot) ch.pop = 0;
     lastSpots.set(key, ch.spot);
     const sp = SPOT_BY_ID[ch.spot];
-    swapOutfit(ch, sp && sp.cat === 5 ? 'swim' : '');
+    swapOutfit(ch, sp && (sp.cat === 5 || sp.cat === 8) ? 'swim' : '');
     setGlass(ch, ch.act === 'pool' ? null : ch.drink);
     const pd = lastDrinks.get(key);
     if (ch.drink && pd !== undefined && pd !== ch.drink) bartenderSays(ch.drink, ch.name);
@@ -1950,6 +1993,7 @@ const VIEWS = {
   pool: { tx: -9, ty: 0.9, tz: -7.5, d: 6, yaw: 0.75, pitch: 0.6 },
   vip: { tx: -1.5, ty: 0.9, tz: -7.4, d: 5, yaw: 0.35, pitch: 0.42 },
   swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
+  change: { tx: 3.5, ty: 1.0, tz: -8.2, d: 5, yaw: 0.0, pitch: 0.5 },
   street: { tx: 0, ty: 1.6, tz: 6.2, d: 9, yaw: 0.0, pitch: 0.22 },
   alley: { tx: -2.6, ty: 0.9, tz: -15.2, d: 7, yaw: 0.55, pitch: 0.32 },
   map: { tx: 0.5, ty: 0, tz: -1.8, d: 34, yaw: 0, pitch: 1.3, free: true }
@@ -2185,7 +2229,7 @@ const OBJECTS = [
   { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, 0, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, 0], size: 0.7 },
   { id: 'pooltable', label: 'Play pool', hit: hitBox(PT.x, 0.45, PT.z, PT.l, 0.9, PT.w), cat: 3, floor: [PT.x, PT.z], size: 1.2 }
 ];
-const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley };
+const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley, 8: ROOMS.change };
 const targets = SPOT_LIST.map((s) => ({ kind: 'spot', s, box: new THREE.Box3(new THREE.Vector3(s.hit.x - s.hit.sx / 2, s.hit.y - s.hit.sy / 2, s.hit.z - s.hit.sz / 2), new THREE.Vector3(s.hit.x + s.hit.sx / 2, s.hit.y + s.hit.sy / 2, s.hit.z + s.hit.sz / 2)) }))
   .concat(OBJECTS.map((o) => ({ kind: 'object', o, box: new THREE.Box3(new THREE.Vector3(o.hit.x - o.hit.sx / 2, o.hit.y - o.hit.sy / 2, o.hit.z - o.hit.sz / 2), new THREE.Vector3(o.hit.x + o.hit.sx / 2, o.hit.y + o.hit.sy / 2, o.hit.z + o.hit.sz / 2)) })));
 
@@ -2584,7 +2628,7 @@ $('enter').onclick = () => enterBar(true);
 $('enterQuiet').onclick = () => enterBar(false);
 $('mute').onclick = () => { setMuted(!muted); $('mute').setAttribute('aria-pressed', muted ? 'true' : 'false'); $('mute').textContent = muted ? 'Sound off' : 'Sound on'; };
 $('track').onclick = () => { if (hasCharacter() || !(window.NET && window.NET.online)) changeMusic(); else { toast('Create a character to change the music.'); } };
-for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'vip', 'street', 'alley', 'map']) $('v-' + v).onclick = () => setView(v);
+for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'vip', 'change', 'street', 'alley', 'map']) $('v-' + v).onclick = () => setView(v);
 $('findMe').onclick = () => { const me = crowd.find((c) => c.mine); if (me) focusChar(me); else openCreator(); };
 $('pix').onclick = () => { pixels = !pixels; snapOn.value = pixels ? 1 : 0; $('pix').setAttribute('aria-pressed', pixels ? 'true' : 'false'); resize(); };
 
