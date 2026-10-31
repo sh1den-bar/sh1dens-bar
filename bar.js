@@ -760,13 +760,13 @@ pLight(0x2c4c8c, 0.7, 8, -8, 2.8, 2.5);
 // pool room: the long lamp over the table
 const poolLamp = pLight(0xfff0c8, 1.4, 4.2, -9, 1.9, -7.5);
 pLight(0x2c4c8c, 0.5, 7, -6.5, 2.8, -5);
-// vip: fireplace and a reading lamp
-const fireLight = pLight(0xff8a3a, 1.2, 5.5, -1.5, 0.7, -10.4);
+// vip: the glowing disc and the pink cove light
+const fireLight = pLight(0xff2a8a, 1.4, 5, -1.1, 1.6, -10.2);
 // pool lounge: hot magenta and red, plus a cool glow coming off the water
 const swimLights = [pLight(0xff2a8a, 1.5, 8, 7.0, 2.7, -6.0), pLight(0xff3040, 1.2, 7, 12.0, 2.7, -10.5)];
 const waterLight = pLight(0x7ad8ff, 1.0, 4.5, 9.5, 0.9, -8.0);
 const candleLight = pLight(0xffa860, 0.7, 4, 9.5, 0.9, -11.3);
-pLight(0xffc890, 0.7, 4, 1.2, 1.6, -5.2);
+pLight(0xff3c96, 0.9, 4.2, -1.5, 2.9, -7.8);
 
 function canvasTex(w, h, draw, repeat) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -838,11 +838,10 @@ const greenWallTex = canvasTex(32, 64, (x, w, h) => {
   x.fillStyle = 'rgb(110,84,42)'; x.fillRect(0, 0, 1, h); x.fillRect(0, 40, w, 1);
 });
 greenWallTex.wrapS = greenWallTex.wrapT = THREE.RepeatWrapping;
+// vip: dark fluted wood panels (lit pink from above by the cove lights)
 const redWallTex = canvasTex(32, 64, (x, w, h) => {
-  noiseFill(x, w, h, [34, 9, 11], 5);
-  x.fillStyle = 'rgba(120,40,40,0.8)';
-  for (let j = 4; j < h; j += 12) for (let i = 4; i < w; i += 16) { x.fillRect(i + 3, j, 2, 1); x.fillRect(i + 1, j + 2, 6, 1); x.fillRect(i + 3, j + 4, 2, 1); }
-  x.fillStyle = 'rgb(110,84,42)'; x.fillRect(0, 44, w, 1); x.fillRect(0, 0, 1, h);
+  noiseFill(x, w, h, [30, 18, 20], 5);
+  for (let i = 0; i < w; i += 4) { x.fillStyle = 'rgb(14,8,10)'; x.fillRect(i, 0, 1, h); x.fillStyle = 'rgb(40,26,28)'; x.fillRect(i + 2, 0, 1, h); }
 });
 redWallTex.wrapS = redWallTex.wrapT = THREE.RepeatWrapping;
 // dark brick for the pool lounge
@@ -1164,52 +1163,89 @@ for (const z of [-8.75, -6.75]) {
 S.push(tube([V(-5.4, 0.9, -8.75), V(-5.43, 0.72, -8.25), V(-5.45, 0.66, -7.75), V(-5.43, 0.72, -7.25), V(-5.4, 0.9, -6.75)], [0.022, 0.022, 0.022, 0.022, 0.022], VELVET, { n: 5 }));
 sconceZ(-6.2, -10.97, 1); sconceZ(-12.0, -10.97, 1);
 
-// ===== VIP CIGAR LOUNGE =====
-// deco fireplace on the back wall
-S.push(box(-2.7, -0.3, 0, 1.3, -10.98, -10.6, MARBLE_L));
-S.push(box(-2.85, -0.15, 1.3, 1.38, -10.98, -10.5, MARBLE));
-S.push(box(-2.0, -1.0, 0.1, 0.85, -10.62, -10.585, [6, 4, 4], 0.02));
-tubeB([V(-2.05, 0.1, -10.58), V(-2.05, 0.85, -10.58), V(-1.5, 1.05, -10.58), V(-0.95, 0.85, -10.58), V(-0.95, 0.1, -10.58)], 0.02, BRASS);
-const fireMat = new THREE.MeshBasicMaterial({ color: 0xff7a2a, transparent: true, opacity: 0.85 });
-const flames = [];
-for (let k = 0; k < 4; k++) {
-  const f = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.4, 5), fireMat);
-  f.position.set(-1.8 + k * 0.2, 0.32, -10.68); scene.add(f); flames.push(f);
+// ===== VIP LOUNGE: dark panels, pink neon, a glowing disc behind a tall plant, cognac leather sofas =====
+const FX = -1.1;                       // centre of the feature wall
+const PINK = [255, 46, 150], PINK_HI = [255, 120, 200];
+const COGNAC = [138, 76, 38], COGNAC_D = [100, 52, 26], COGNAC_HI = [156, 90, 48];
+const MARBLE_BK = [18, 18, 20];
+// feature wall: a dark recessed square outlined in neon, with the glowing disc and a plant in front
+S.push(box(FX - 1.4, FX + 1.4, 0.35, 2.95, -10.99, -10.965, [8, 6, 9], 0.02));
+for (const [x0, x1, y0, y1] of [[FX - 1.44, FX + 1.44, 2.93, 2.97], [FX - 1.44, FX + 1.44, 0.33, 0.37], [FX - 1.44, FX - 1.4, 0.33, 2.97], [FX + 1.4, FX + 1.44, 0.33, 2.97]])
+  G.push(box(x0, x1, y0, y1, -10.965, -10.94, PINK, 0));
+const discTex = canvasTex(64, 64, (x, w, h) => {
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const r = Math.hypot(i - w / 2 + 0.5, j - h / 2 + 0.5) / (w / 2), k = Math.max(0, 1 - r * r);
+    x.fillStyle = `rgb(${Math.round(236 + 19 * k)},${Math.round(40 + 120 * k)},${Math.round(150 + 70 * k)})`; x.fillRect(i, j, 1, 1);
+  }
+});
+const disc = new THREE.Mesh(new THREE.CircleGeometry(0.95, 28), decal({ map: discTex, fog: false }));
+disc.position.set(FX, 1.62, -10.955); scene.add(disc);
+S.push(box(FX - 1.38, FX + 1.38, 0.37, 0.43, -10.965, -10.72, [16, 12, 14], 0.03));
+S.push(cyl(V(FX, 0.43, -10.83), V(FX, 0.68, -10.83), 0.1, 0.13, [12, 12, 14], { n: 10 }));
+for (let k = 0; k < 24; k++) {
+  const a = (k / 24) * Math.PI * 2, lean = 0.06 + (k % 4) * 0.045, h = 1.1 + ((k * 7) % 5) * 0.16;
+  const bx = FX + Math.cos(a) * 0.04, bz = -10.83 + Math.sin(a) * 0.03;
+  const tx = bx + Math.cos(a) * lean * 3, tz = Math.max(-10.93, bz + Math.sin(a) * lean * 1.2);
+  S.push(tube([V(bx, 0.66, bz), V((bx + tx) / 2, 0.66 + h * 0.55, (bz + tz) / 2), V(tx, 0.66 + h, tz)], [0.02, 0.014, 0.003], k % 2 ? [22, 30, 20] : [30, 38, 24], { n: 4 }));
 }
-// armchairs around a low marble table
+// black marble dado with small pink lights above it, neon cove strips along the tops of the side walls
+for (const [x0, x1, z0, z1] of [[-4.985, -4.96, -10.98, -8.5], [-4.985, -4.96, -7.0, -4.02], [1.96, 1.985, -10.98, -4.02], [-4.98, -4.4, -10.985, -10.96], [-3.2, FX - 1.46, -10.985, -10.96], [FX + 1.46, 1.98, -10.985, -10.96]]) {
+  S.push(box(x0, x1, 0, 0.85, z0, z1, MARBLE_BK, 0.03));
+  S.push(box(x0 - (x1 - x0 < 0.1 ? 0.005 : 0), x1 + (x1 - x0 < 0.1 ? 0.005 : 0), 0.85, 0.875, z0, z1, [60, 58, 62], 0.02));
+}
+for (const [x0, x1] of [[-4.99, -4.93], [1.93, 1.99]]) G.push(box(x0, x1, 2.98, 3.02, -10.97, -4.03, PINK, 0));
+for (const [x, z] of [[-4.94, -10.0], [-4.94, -5.4], [1.94, -10.0], [1.94, -5.6]]) G.push(box(x - 0.012, x + 0.012, 0.95, 1.02, z - 0.13, z + 0.13, PINK_HI, 0));
+// the pink wash the cove strips throw down the side walls
+const washTex = canvasTex(4, 32, (x, w, h) => {
+  for (let j = 0; j < h; j++) { const k = Math.pow(1 - j / (h - 1), 2.2); x.fillStyle = `rgb(${Math.round(150 * k)},${Math.round(20 * k)},${Math.round(80 * k)})`; x.fillRect(0, j, w, 1); }
+});
+const washMat = new THREE.MeshBasicMaterial({ map: washTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+for (const [x, z0, z1, ry] of [[-4.95, -10.97, -8.5, Math.PI / 2], [-4.95, -7.0, -4.03, Math.PI / 2], [1.95, -10.97, -4.03, -Math.PI / 2]]) {
+  const y0 = z1 > -7.1 && z0 > -7.1 || x > 0 ? 1.0 : 1.0;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(z1 - z0, 3.0 - y0), washMat);
+  m.position.set(x, (3.0 + y0) / 2, (z0 + z1) / 2); m.rotation.y = ry; scene.add(m);
+}
+// a patterned rug and two round wooden tables
+const rugTex = canvasTex(32, 32, (x, w, h) => {
+  noiseFill(x, w, h, [150, 122, 98], 10);
+  x.fillStyle = 'rgb(40,24,20)'; x.fillRect(0, 0, w, 2); x.fillRect(0, h - 2, w, 2); x.fillRect(0, 0, 2, h); x.fillRect(w - 2, 0, 2, h);
+  x.fillStyle = 'rgb(150,60,40)';
+  for (let j = 5; j < h - 4; j += 6) for (let i = 5; i < w - 4; i += 6) { x.fillRect(i + 1, j, 1, 3); x.fillRect(i, j + 1, 3, 1); }
+  x.fillStyle = 'rgb(70,40,30)'; for (let i = 4; i < w - 4; i += 2) { x.fillRect(i, 3, 1, 1); x.fillRect(i, h - 4, 1, 1); }
+});
+const rug = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 2.2), decal({ map: rugTex }));
+rug.rotation.x = -Math.PI / 2; rug.position.set(FX, 0.006, -8.55); scene.add(rug);
+const WOOD_T = [92, 56, 30];
+S.push(cyl(V(FX, 0, -8.75), V(FX, 0.36, -8.75), 0.34, 0.34, WOOD_T, { n: 16, amt: 0.04 }));
+for (let y = 0.06; y < 0.36; y += 0.075) S.push(cyl(V(FX, y, -8.75), V(FX, y + 0.012, -8.75), 0.345, 0.345, [70, 42, 22], { n: 16, amt: 0.02, cap: false }));
+S.push(cyl(V(FX + 0.62, 0, -8.05), V(FX + 0.62, 0.27, -8.05), 0.26, 0.26, WOOD_T, { n: 14, amt: 0.04 }));
+S.push(cyl(V(FX - 0.08, 0.36, -8.8), V(FX - 0.08, 0.39, -8.8), 0.06, 0.05, [30, 30, 34], { n: 8 }));
+S.push(box(FX + 0.1, FX + 0.34, 0.36, 0.38, -8.7, -8.55, [180, 170, 150], 0.04));
+// cognac leather sofas: a long one under the disc and two curved ones facing each other
 const VIP_CHAIRS = [];
-function armchair(x, z, yaw) {
-  const parts = [];
-  const c = Math.cos(yaw), s = Math.sin(yaw);
-  const R = (lx, lz) => [x + lx * c + lz * s, z - lx * s + lz * c];
-  const bx = (lx0, lx1, y0, y1, lz0, lz1, col) => {
-    const pts0 = [], pts1 = [];
-    for (const [lx, lz] of [[lx0, lz0], [lx1, lz0], [lx1, lz1], [lx0, lz1]]) { const p = R(lx, lz); pts0.push(V(p[0], y0, p[1])); pts1.push(V(p[0], y1, p[1])); }
-    parts.push(loft([pts0, pts1], col));
-  };
-  bx(-0.4, 0.4, 0.1, 0.42, -0.4, 0.38, LEATHER_B);
-  bx(-0.4, 0.4, 0.42, 1.0, -0.42, -0.24, LEATHER_B);
-  for (const e of [-1, 1]) bx(e > 0 ? 0.28 : -0.44, e > 0 ? 0.44 : -0.28, 0.1, 0.66, -0.42, 0.38, LEATHER_B);
-  bx(-0.28, 0.28, 0.42, 0.48, -0.24, 0.34, [76, 46, 30]);
-  for (const [lx, lz] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.33], [0.35, 0.33]]) { const p = R(lx, lz); parts.push(cyl(V(p[0], 0, p[1]), V(p[0], 0.1, p[1]), 0.025, 0.025, BRASS, { n: 4 })); }
-  for (const p of parts) S.push(p);
-  VIP_CHAIRS.push([x, z, yaw]);
+function sofaParts(len, curve) {
+  // built facing +z (the way a seated character looks), centred on the seat
+  const P = [], half = len / 2;
+  const arcZ = (x) => -0.42 + curve * (x / half) * (x / half);
+  P.push(loft([rring(0.06, len - 0.1, 0.86, 0, 0.02, 16, 3.5), rring(0.36, len, 0.9, 0, 0.02, 16, 3.5), rring(0.44, len - 0.08, 0.84, 0, 0.03, 16, 3.5)], COGNAC, { amt: 0.04, smooth: true }));
+  const n = 10, back = [], low = [];
+  for (let i = 0; i <= n; i++) { const x = -half + 0.12 + (len - 0.24) * i / n; back.push(V(x, 0.74, arcZ(x))); low.push(V(x, 0.5, arcZ(x) + 0.03)); }
+  P.push(tube(back, back.map(() => 0.17), COGNAC_HI, { n: 10 }));
+  P.push(tube(low, low.map(() => 0.19), COGNAC, { n: 10 }));
+  for (const e of [-1, 1]) P.push(tube([V(e * (half - 0.08), 0.52, arcZ(e * (half - 0.08)) + 0.05), V(e * (half - 0.06), 0.55, 0.12), V(e * (half - 0.1), 0.5, 0.38)], [0.14, 0.15, 0.13], COGNAC_HI, { n: 10 }));
+  // tufting buttons on the back
+  for (let i = 1; i < n; i += 2) { const x = back[i][0]; P.push(cyl(V(x, 0.74, arcZ(x) + 0.16), V(x, 0.74, arcZ(x) + 0.175), 0.012, 0.012, COGNAC_D, { n: 4, amt: 0 })); }
+  for (const e of [-1, 1]) for (const f of [-1, 1]) P.push(cyl(V(e * (half - 0.2), 0, f * 0.3), V(e * (half - 0.2), 0.06, f * 0.3), 0.03, 0.03, [20, 14, 10], { n: 4 }));
+  return P;
 }
-armchair(-1.5, -8.4, 0); armchair(-3.0, -6.9, Math.PI / 2); armchair(0.0, -6.9, -Math.PI / 2); armchair(-1.5, -5.4, Math.PI);
-S.push(cyl(V(-1.5, 0, -6.9), V(-1.5, 0.4, -6.9), 0.12, 0.12, BRASS_D, { n: 8 }));
-S.push(cyl(V(-1.5, 0.4, -6.9), V(-1.5, 0.45, -6.9), 0.55, 0.55, MARBLE, { n: 14 }));
-S.push(cyl(V(-1.5, 0.405, -6.9), V(-1.5, 0.445, -6.9), 0.565, 0.565, BRASS, { n: 14, amt: 0.03, cap: false }));
-S.push(cyl(V(-1.3, 0.45, -7.1), V(-1.3, 0.48, -7.1), 0.08, 0.07, [40, 40, 44], { n: 8 }));
-S.push(cyl(V(-1.7, 0.45, -6.7), V(-1.7, 0.55, -6.7), 0.035, 0.04, [170, 120, 60], { n: 6 }));
-S.push(box(-1.85, -1.55, 0.45, 0.53, -7.15, -6.95, [70, 40, 22], 0.04));
-// humidor and a reading lamp
-S.push(box(0.9, 1.9, 0, 1.6, -10.98, -10.5, [44, 26, 16]));
-S.push(box(0.95, 1.85, 0.9, 1.5, -10.52, -10.475, [90, 70, 50], 0.05));
-S.push(box(0.95, 1.85, 1.6, 1.65, -11, -10.48, BRASS, 0.03));
-S.push(cyl(V(1.2, 0, -5.2), V(1.2, 0.03, -5.2), 0.18, 0.16, BRASS_D, { n: 8 }));
-S.push(cyl(V(1.2, 0.03, -5.2), V(1.2, 1.5, -5.2), 0.015, 0.015, BRASS, { n: 4 }));
-S.push(cyl(V(1.2, 1.45, -5.2), V(1.2, 1.7, -5.2), 0.22, 0.12, [120, 96, 60], { n: 8 }));
-sconce(1.97, -8.0, -1);
+function sofa(cx, cz, yaw, len, curve, seats) {
+  S.push(...placeParts(sofaParts(len, curve), cx, cz, yaw, 0));
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  for (const lx of seats) VIP_CHAIRS.push([cx + lx * c + 0.06 * s, cz - lx * s + 0.06 * c, yaw]);
+}
+sofa(FX, -10.15, 0, 2.6, 0.08, [0, -0.82, 0.82]);                    // the host sits in the middle
+sofa(-3.45, -8.05, Math.PI / 2 - 0.3, 1.9, 0.32, [-0.42, 0.42]);
+sofa(0.95, -8.05, -Math.PI / 2 + 0.3, 1.9, 0.32, [-0.42, 0.42]);
 succulent(1.5, 0, -4.5, 2.2);
 
 // ===== CHANGING ROOM (between the VIP and the pool lounge, only reachable from the pool) =====
@@ -1761,10 +1797,10 @@ addSpot('pool-cue-1', 3, 'pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 
 [[-9.0, -5.2, Math.PI], [-7.2, -5.0, Math.PI + 0.5], [-10.8, -5.0, Math.PI - 0.5], [-6.0, -9.8, -Math.PI / 2 - 0.5], [-9.0, -10.3, 0]].forEach(([x, z, yaw], i) =>
   addSpot('pool-watch-' + i, 3, 'lean', x, z, yaw, 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // VIP lounge: the host's armchair is his alone
-VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'lounge' : 'sitlow', x - Math.sin(yaw) * 0.05, z - Math.cos(yaw) * 0.05, yaw,
-  i === 0 ? "The host's chair" : 'Take an armchair', hitBox(x, 0.5, z, 0.8, 1.0, 0.8), { hostOnly: i === 0 }));
-[[-4.6, -9.9, Math.PI / 4], [1.5, -9.7, -Math.PI / 4], [-4.5, -4.6, Math.PI * 0.8], [1.5, -6.6, -Math.PI / 2]].forEach(([x, z, yaw], i) =>
-  addSpot('vip-stand-' + i, 4, 'lean', x, z, yaw, 'Hang out by the fire', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
+VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'lounge' : 'sitlow', x, z, yaw,
+  i === 0 ? "The host's seat" : 'Sink into the sofa', hitBox(x, 0.45, z, 0.7, 0.9, 0.7), { hostOnly: i === 0 }));
+[[-4.5, -9.8, Math.PI / 4], [1.5, -10.4, -Math.PI / 4], [-4.5, -4.6, Math.PI * 0.8], [1.4, -5.4, -Math.PI * 0.8]].forEach(([x, z, yaw], i) =>
+  addSpot('vip-stand-' + i, 4, 'lean', x, z, yaw, 'Hang out in the lounge', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // pool lounge: wading in the water, daybeds, and standing room around the edge
 // seats in the water: backs against the long sides of the pool, facing the middle
 for (const [i, x] of [8.0, 9.0, 10.0, 11.0].entries()) {
@@ -2062,7 +2098,7 @@ const VIEWS = {
   dance: { tx: 9.6, ty: 1.0, tz: 0, d: 7, yaw: -1.25, pitch: 0.45 },
   tv: { tx: -10.5, ty: 1.4, tz: 0, d: 6, yaw: Math.PI / 2, pitch: 0.16 },
   pool: { tx: -9, ty: 0.9, tz: -7.5, d: 6, yaw: 0.75, pitch: 0.6 },
-  vip: { tx: -1.5, ty: 0.9, tz: -7.4, d: 5, yaw: 0.35, pitch: 0.42 },
+  vip: { tx: -1.3, ty: 1.0, tz: -8.9, d: 5.5, yaw: 0.2, pitch: 0.3 },
   swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
   change: { tx: 3.5, ty: 1.0, tz: -8.2, d: 5, yaw: 0.0, pitch: 0.5 },
   street: { tx: 0, ty: 1.6, tz: 6.2, d: 9, yaw: 0.0, pitch: 0.22 },
@@ -2522,8 +2558,7 @@ function tick() {
     bm.mat.color.setHex(bm.k % 2 ? hue : 0xb8c4ff); bm.mat.opacity = 0.05 + 0.09 * pulse;
   }
   const fl = 0.8 + 0.2 * Math.sin(t * 11) * Math.sin(t * 4.3);
-  fireLight.intensity = 1.1 * fl;
-  flames.forEach((f, i) => { f.scale.set(1, 0.7 + 0.45 * Math.abs(Math.sin(t * (5 + i) + i)), 1); });
+  fireLight.intensity = 1.3 + 0.12 * Math.sin(t * 0.8);
   neonLight.intensity = 0.7;
   driveTraffic(dt);
   backLight.intensity = Math.random() < 0.02 ? 0.25 : 1.1;
