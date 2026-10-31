@@ -2406,10 +2406,10 @@ function toast(text) {
 let pixels = true;
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
-  const scale = pixels ? Math.max(2, Math.round(Math.min(w, h) / 260)) : 1;
+  const scale = pixels ? Math.max(2, Math.round(Math.min(w, h) / 380)) : 1;
   renderer.setPixelRatio(pixels ? 1 : Math.min(devicePixelRatio, 2));
   renderer.setSize(Math.max(1, Math.round(w / scale)), Math.max(1, Math.round(h / scale)), false);
-  snap.value.set(Math.round(w / scale / 2), Math.round(h / scale / 2));
+  snap.value.set(Math.round(w / scale / 1.5), Math.round(h / scale / 1.5));
   camera.aspect = w / h; camera.updateProjectionMatrix();
   if (cssRenderer) cssRenderer.setSize(w, h);
 }
