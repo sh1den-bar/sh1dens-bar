@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SH1DEN'S Bar</title>
+<meta name="description" content="A PS1-style bar for the sh1denfps community. Make your own character, chat and watch videos together.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the bar fills the screen; HUD rows float top and bottom, the room panel docks right, other panels slide over the scene. */
+:root {
+  --bg: #070606;
+  --panel: rgba(16, 13, 11, 0.92);
+  --solid: #120f0d;
+  --line: #2d2723;
+  --fg: #d6cec2;
+  --dim: #8a8075;
+  --neon: #ff4a3a;
+  --amber: #ffa860;
+  --display: "VT323", "Courier New", monospace;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 13px; overflow: hidden; }
+[hidden] { display: none !important; }
+#stage { position: fixed; inset: 0; }
+canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; cursor: grab; touch-action: none; }
+canvas:active { cursor: grabbing; }
+.css3d { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.scan { position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,0.2) 2px 3px),
+              radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55)); }
+
+/* the TV screen that sits on the bar wall */
+#tvHold { position: absolute; left: -9999px; top: 0; }
+#tvScreen { width: 960px; height: 540px; background: #050506; overflow: hidden; backface-visibility: hidden; position: relative; }
+#tvScreen iframe { width: 960px; height: 540px; border: 0; display: block; filter: contrast(1.08) saturate(0.88); }
+#tvScreen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(0,0,0,0.22) 3px 5px); }
+#tvIdle { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; background: #0b0a0a;
+  font-family: var(--display); color: #6f6a64; font-size: 46px; line-height: 1.1; padding: 40px; }
+#tvIdle b { display: block; color: var(--neon); font-weight: 400; font-size: 80px; text-shadow: 0 0 12px rgba(255,74,58,0.6); }
+
+.hud { position: absolute; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; z-index: 2; }
+.hud > * { pointer-events: auto; }
+.top { top: 0; padding-top: calc(12px + env(safe-area-inset-top, 0px)); justify-content: space-between; }
+.bottom { bottom: 0; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1; color: var(--neon);
+  text-shadow: 0 0 8px rgba(255, 74, 58, 0.6); letter-spacing: 0.05em; }
+.brand .stat { color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; font-variant-numeric: tabular-nums; }
+.brand .stat + .stat::before { content: "· "; }
+.group { display: flex; flex-wrap: wrap; gap: 6px; }
+.spacer { flex: 1; }
+
+button { font: inherit; font-size: 12px; color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+  padding: 7px 11px; cursor: pointer; letter-spacing: 0.03em; }
+button:hover { border-color: var(--dim); }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+button[aria-pressed="true"] { border-color: var(--amber); color: #fff; }
+button.primary { background: var(--neon); border-color: var(--neon); color: #160604; font-weight: 500; }
+button.primary:hover { background: #ff6656; }
+button:disabled { opacity: 0.45; cursor: default; }
+button.mini { padding: 2px 7px; font-size: 11px; margin-left: 6px; }
+button.danger { border-color: #6a2620; color: #ff8a7a; }
+
+.panel { position: absolute; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px;
+  padding: 16px; overflow-y: auto; max-height: calc(100% - 140px); z-index: 3; }
+.panel h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 28px; line-height: 1; letter-spacing: 0.04em; }
+.panel h3 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 22px; line-height: 1; letter-spacing: 0.04em; color: var(--amber); }
+.panel p { margin: 0; color: var(--dim); line-height: 1.5; max-width: 60ch; }
+.panel header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.x { padding: 4px 9px; }
+
+#creator { left: max(16px, env(safe-area-inset-left, 0px)); top: 70px; width: 340px; }
+#whoPanel { left: max(16px, env(safe-area-inset-left, 0px)); top: 70px; width: 240px; }
+
+#room { right: max(16px, env(safe-area-inset-right, 0px)); top: 70px; bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  width: 330px; max-height: none; padding: 0; gap: 0; overflow: hidden; }
+#room > section { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+#room .tvsec { flex: 0 0 auto; max-height: 45%; overflow-y: auto; }
+#room .chatsec { flex: 1 1 auto; }
+#room .foot { flex: 0 0 auto; border-bottom: 0; }
+#tvNow { font-size: 14px; color: var(--fg); overflow-wrap: anywhere; }
+#tvBy { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+#tvQueue { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+#tvQueue li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 12px; }
+#tvQueue .qt { min-width: 0; overflow-wrap: anywhere; flex: 1 1 100%; }
+#tvQueue .qb { color: var(--dim); font-size: 11px; }
+.inline { display: flex; gap: 6px; }
+.inline input { flex: 1; min-width: 0; }
+.vol { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.vol input { flex: 1; accent-color: var(--amber); padding: 0; }
+.msg { color: var(--amber); font-size: 12px; min-height: 1em; }
+#chatLog { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; min-height: 80px; display: flex; flex-direction: column; gap: 5px; }
+#chatLog li { line-height: 1.45; overflow-wrap: anywhere; }
+#chatLog li.sys { color: var(--dim); }
+#chatLog b { font-weight: 500; }
+#myId { font-size: 11px; color: var(--dim); overflow-wrap: anywhere; user-select: all; }
+details summary { cursor: pointer; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+details[open] { display: flex; flex-direction: column; gap: 8px; }
+
+@media (max-width: 760px) {
+  #creator, #whoPanel, #room { left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+    width: auto; top: auto; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); max-height: 58%; }
+  #room { height: 58%; }
+}
+
+label { display: flex; flex-direction: column; gap: 6px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
+input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: var(--solid); border: 1px solid var(--line); padding: 8px 10px; text-transform: none; letter-spacing: 0; }
+.err { color: var(--neon); font-size: 12px; }
+#opts { display: grid; gap: 4px; }
+.opt { display: grid; grid-template-columns: 96px 30px 1fr 30px; align-items: center; gap: 6px; }
+.opt .lab { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.opt .val { text-align: center; min-width: 0; }
+.opt button { padding: 4px 0; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+#who { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+#who button { width: 100%; text-align: left; background: transparent; }
+
+.cover { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5, 4, 4, 0.82); padding: 24px; z-index: 5;
+  padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+.gatebox { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; max-width: 440px; }
+.gatebox h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(56px, 14vw, 96px); line-height: 0.9;
+  color: var(--neon); text-shadow: 0 0 14px rgba(255, 74, 58, 0.7), 0 0 2px #fff; letter-spacing: 0.05em; }
+.gatebox p { margin: 0; color: var(--dim); line-height: 1.6; }
+.gatebox .small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
+#loading { font-family: var(--display); font-size: 26px; color: var(--dim); background: var(--bg); z-index: 6; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" aria-label="PS1-style 3D bar with dancing characters"></canvas>
+  <div class="scan"></div>
+
+  <div id="tvHold">
+    <div id="tvScreen">
+      <div id="ytPlayer"></div>
+      <div id="tvIdle"><div><b>SH1DEN TV</b><span id="tvIdleText">Post a YouTube link in the room chat</span></div></div>
+    </div>
+  </div>
+
+  <div class="hud top">
+    <div class="brand"><h1>SH1DEN'S</h1><span class="stat" id="count">0 regulars</span><span class="stat" id="roomStatus">Connecting…</span></div>
+    <div class="group" role="group" aria-label="Camera">
+      <button id="v-room" type="button">Room</button>
+      <button id="v-bar" type="button">Bar</button>
+      <button id="v-dance" type="button">Dance floor</button>
+      <button id="v-lounge" type="button">Lounge</button>
+      <button id="v-tv" type="button">TV</button>
+    </div>
+  </div>
+
+  <div class="hud bottom">
+    <button id="createBtn" class="primary" type="button">Create your character</button>
+    <button id="findMe" type="button">Find me</button>
+    <button id="whoBtn" type="button">Who's here</button>
+    <button id="roomBtn" type="button" aria-pressed="true">Chat &amp; TV</button>
+    <span class="spacer"></span>
+    <button id="track" type="button" title="Next track">Jukebox</button>
+    <button id="pix" type="button" aria-pressed="true">PS1 mode</button>
+    <button id="mute" type="button" aria-pressed="false">Sound on</button>
+  </div>
+
+  <section class="panel" id="whoPanel" hidden aria-label="Who's here">
+    <header><h2>Regulars</h2><button class="x" type="button" id="whoClose" aria-label="Close">✕</button></header>
+    <p>Tap a name to find them.</p>
+    <ul id="who"></ul>
+  </section>
+
+  <aside class="panel" id="room" aria-label="Chat and TV">
+    <section class="tvsec">
+      <header><h3>On the TV</h3><button type="button" id="tvWatch" class="mini">Watch</button></header>
+      <div id="tvNow">Nothing playing</div>
+      <div id="tvBy">Post a YouTube link to start the TV.</div>
+      <div class="row"><button type="button" id="tvSkip" class="mini danger" hidden>Skip video</button></div>
+      <form id="tvForm" class="inline" novalidate>
+        <input id="tvInput" name="tvInput" placeholder="Paste a YouTube link" autocomplete="off" spellcheck="false" aria-label="YouTube link">
+        <button type="submit" id="tvAdd">Add</button>
+      </form>
+      <div class="msg" id="tvMsg" role="status"></div>
+      <label class="vol" for="tvVol">TV volume <input id="tvVol" type="range" min="0" max="100" value="70"></label>
+      <h3 style="font-size:18px;color:var(--dim)">Up next</h3>
+      <p id="tvQueueEmpty">Queue is empty.</p>
+      <ol id="tvQueue"></ol>
+    </section>
+    <section class="chatsec">
+      <h3>Room chat</h3>
+      <ol id="chatLog" aria-live="polite"></ol>
+      <form id="chatForm" class="inline" novalidate>
+        <input id="chatInput" name="chatInput" maxlength="200" autocomplete="off" aria-label="Chat message">
+        <button type="submit" id="chatSend">Send</button>
+      </form>
+      <div class="msg" id="chatHint" role="status"></div>
+    </section>
+    <section class="foot">
+      <details>
+        <summary>Room ID &amp; host tools</summary>
+        <p>Your room ID (the host needs theirs for setup):</p>
+        <div class="inline"><span id="myId">not connected</span><button type="button" id="copyId" class="mini">Copy</button></div>
+        <div id="adminBox" hidden>
+          <p>You're a host here: you can delete messages, ban people, skip and remove videos.</p>
+          <div class="row"><button type="button" id="clearChat" class="danger">Clear chat</button></div>
+        </div>
+      </details>
+    </section>
+  </aside>
+
+  <section class="panel" id="creator" hidden aria-label="Create your character">
+    <header><h2>Your regular</h2><button class="x" type="button" id="closeCreator" aria-label="Close">✕</button></header>
+    <form id="form" novalidate>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <label for="nm">Twitch username
+          <input id="nm" name="nm" maxlength="25" autocomplete="off" spellcheck="false" placeholder="your_name">
+        </label>
+        <span class="err" id="nmErr" hidden></span>
+        <div id="opts"></div>
+        <div class="row">
+          <button type="button" id="rand">Randomize</button>
+          <button type="submit" class="primary" id="walkIn">Walk in</button>
+        </div>
+      </div>
+    </form>
+    <div id="done" hidden style="display:flex;flex-direction:column;gap:12px">
+      <p id="doneMsg"></p>
+      <div class="row"><button type="button" id="doneClose">Back to the bar</button></div>
+    </div>
+  </section>
+
+  <div class="cover" id="gate">
+    <div class="gatebox">
+      <h1>SH1DEN'S</h1>
+      <p>A PS1 bar for the sh1denfps community. Make your own regular, chat with whoever's inside and watch videos together on the TV.</p>
+      <button id="enter" class="primary" type="button">Enter the bar</button>
+      <button id="enterQuiet" type="button">Enter without sound</button>
+      <span class="small">Music and TV sound start once you enter</span>
+    </div>
+  </div>
+  <div class="cover" id="loading">LOADING THE BAR…</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script src="net.js"></script>
+<script src="bar.js"></script>
+<script>
+  document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
+  document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };
+  document.getElementById('roomBtn').onclick = () => {
+    const p = document.getElementById('room'); p.hidden = !p.hidden;
+    document.getElementById('roomBtn').setAttribute('aria-pressed', p.hidden ? 'false' : 'true');
+  };
+  if (matchMedia('(max-width: 760px)').matches) { document.getElementById('room').hidden = true; document.getElementById('roomBtn').setAttribute('aria-pressed', 'false'); }
+</script>
+</body>
+</html>
