@@ -1317,7 +1317,7 @@ function carWheels(P, xs, track, r, w) {
     P.push(cyl(V(x, r, zo), V(x, r, zo + e * 0.012), r * 0.62, r * 0.62, RIM_C, { n: 8, amt: 0.03 }));
   }
 }
-function carParts(kind, color) {
+function carParts(kind, color, opts) {
   const P = [], L = [];
   const dark = color.map((v) => Math.round(v * 0.6));
   const head = [255, 244, 220], tail = [210, 22, 22];
@@ -1343,24 +1343,78 @@ function carParts(kind, color) {
     }
     carWheels(P, [-1.4, 1.4], 1.66, 0.34, 0.24);
   } else {
-    // an original sports coupe: long low hood, a short glasshouse set well back, a stubby tail with a lip spoiler
-    const prof = [[-2.2, 0.32, 0.86, 1.72], [-1.95, 0.27, 0.93, 1.8], [-1.0, 0.25, 0.96, 1.84], [1.2, 0.24, 0.8, 1.84], [1.95, 0.27, 0.66, 1.78], [2.22, 0.33, 0.56, 1.66]];
-    P.push(loft(prof.map(([x, b, t, w]) => yzRing(x, b, t, w, 14, 3.4)), color, { amt: 0.03, smooth: true }));
-    P.push(loft([yzRing(-1.75, 0.9, 0.96, 1.66, 14, 3.4), yzRing(-1.2, 0.9, 1.26, 1.5, 14, 3.4), yzRing(-0.1, 0.88, 1.3, 1.5, 14, 3.4), yzRing(0.75, 0.82, 0.86, 1.66, 14, 3.4)], GLASS_D, { amt: 0.03, smooth: true }));
-    P.push(loft([yzRing(-1.1, 1.22, 1.29, 1.42, 12, 3), yzRing(-0.2, 1.25, 1.33, 1.42, 12, 3)], color, { amt: 0.03 }));
-    P.push(box(-2.24, -2.06, 0.93, 0.98, -0.8, 0.8, dark, 0.03));
-    for (const e of [-1, 1]) P.push(box(-2.12, -2.08, 0.86, 0.93, e * 0.7 - 0.03, e * 0.7 + 0.03, dark, 0.03));
-    P.push(box(2.12, 2.24, 0.3, 0.42, -0.6, 0.6, [10, 10, 11], 0.03));
+    // an original open-top sports coupe: flared arches, long low hood, open cockpit with a raked windscreen,
+    // ducktail wing, splitter, diffuser and spoked wheels (front wheels steered, like it just pulled up)
+    const prof = [[-2.28, 0.36, 0.82, 1.6], [-2.2, 0.3, 0.9, 1.74], [-2.02, 0.26, 0.94, 1.84], [-1.75, 0.24, 0.95, 1.9], [-1.35, 0.24, 0.94, 1.95],
+      [-0.95, 0.24, 0.93, 1.9], [-0.4, 0.23, 0.92, 1.84], [0.3, 0.23, 0.9, 1.84], [0.85, 0.23, 0.84, 1.89], [1.38, 0.24, 0.78, 1.95],
+      [1.8, 0.25, 0.7, 1.88], [2.12, 0.27, 0.6, 1.78], [2.3, 0.3, 0.52, 1.62], [2.38, 0.36, 0.46, 1.46]];
+    P.push(loft(prof.map(([x, b, t, w]) => yzRing(x, b, t, w, 20, 3.6)), color, { amt: 0.025, smooth: true }));
+    const BLK = [10, 10, 11], TRIM = [24, 22, 22], LEATH = [112, 72, 44], LEATH_D = [86, 54, 32], CHROME = [170, 172, 178];
+    // aero: splitter, grille, diffuser with fins, side skirts, exhausts
+    P.push(box(2.18, 2.46, 0.19, 0.23, -0.78, 0.78, BLK, 0.02));
+    P.push(box(2.32, 2.4, 0.27, 0.41, -0.52, 0.52, BLK, 0.02));
+    P.push(box(-2.34, -2.04, 0.17, 0.29, -0.72, 0.72, BLK, 0.02));
+    for (const z of [-0.45, -0.15, 0.15, 0.45]) P.push(box(-2.36, -2.06, 0.17, 0.3, z - 0.012, z + 0.012, TRIM, 0.02));
     for (const e of [-1, 1]) {
-      L.push(box(1.92, 2.14, 0.6, 0.67, e * 0.62 - 0.22, e * 0.62 + 0.22, head, 0));
-      L.push(box(-2.24, -2.18, 0.72, 0.8, e * 0.58 - 0.24, e * 0.58 + 0.24, tail, 0));
+      P.push(box(-1.0, 0.95, 0.19, 0.27, e * 0.86 - 0.05, e * 0.86 + 0.05, BLK, 0.02));
+      P.push(cyl(V(-2.24, 0.3, e * 0.55), V(-2.4, 0.3, e * 0.55), 0.048, 0.048, CHROME, { n: 8, amt: 0.02 }));
+      P.push(cyl(V(-2.395, 0.3, e * 0.55), V(-2.405, 0.3, e * 0.55), 0.034, 0.034, [6, 6, 6], { n: 8, amt: 0 }));
+      // mirrors on stalks
+      P.push(cyl(V(0.55, 0.9, e * 0.84), V(0.5, 0.98, e * 0.96), 0.012, 0.012, BLK, { n: 4 }));
+      P.push(box(0.42, 0.56, 0.95, 1.04, e * 0.95 - 0.07, e * 0.95 + 0.07, color, 0.03));
+      // slim headlights, a full-width light bar at the back
+      L.push(box(1.98, 2.24, 0.57, 0.62, e * 0.62 - 0.17, e * 0.62 + 0.17, head, 0));
+      L.push(box(2.18, 2.3, 0.49, 0.52, e * 0.55 - 0.15, e * 0.55 + 0.15, [255, 250, 240], 0));
     }
-    carWheels(P, [-1.35, 1.38], 1.68, 0.34, 0.26);
+    L.push(box(-2.3, -2.25, 0.74, 0.78, -0.74, 0.74, tail, 0));
+    for (const e of [-1, 1]) L.push(box(-2.29, -2.24, 0.62, 0.74, e * 0.66 - 0.06, e * 0.66 + 0.06, tail, 0));
+    // ducktail wing on two posts
+    P.push(box(-2.2, -1.92, 1.02, 1.05, -0.8, 0.8, BLK, 0.02));
+    for (const e of [-1, 1]) P.push(box(-2.1, -2.02, 0.92, 1.02, e * 0.55 - 0.02, e * 0.55 + 0.02, BLK, 0.02));
+    // open cockpit: tub, dash, seats, steering wheel, roll hoops and the folded top
+    P.push(box(-1.3, 0.56, 0.88, 0.957, -0.72, 0.72, [20, 16, 14], 0.03));
+    P.push(box(0.4, 0.62, 0.88, 1.03, -0.72, 0.72, TRIM, 0.03));
+    for (const e of [-1, 1]) {
+      const z = e * 0.4;
+      P.push(box(-0.5, 0.05, 0.95, 1.02, z - 0.22, z + 0.22, LEATH, 0.04));
+      P.push(box(-0.64, -0.5, 0.95, 1.32, z - 0.22, z + 0.22, LEATH, 0.04));
+      P.push(box(-0.63, -0.53, 1.32, 1.43, z - 0.12, z + 0.12, LEATH_D, 0.04));
+      P.push(tube([V(-0.7, 0.95, z - 0.2), V(-0.7, 1.3, z - 0.18), V(-0.7, 1.36, z), V(-0.7, 1.3, z + 0.18), V(-0.7, 0.95, z + 0.2)], [0.02, 0.02, 0.02, 0.02, 0.02], CHROME, { n: 5 }));
+    }
+    P.push(box(-1.2, -0.86, 0.95, 1.0, -0.62, 0.62, LEATH_D, 0.04));
+    P.push(box(-1.3, -1.2, 0.95, 1.18, -0.62, 0.62, LEATH_D, 0.04));
+    P.push(box(-1.68, -1.32, 0.93, 1.01, -0.7, 0.7, BLK, 0.03));
+    {
+      const ring = [];
+      for (let k = 0; k <= 14; k++) { const a = 2 * Math.PI * k / 14; ring.push(V(0.3 + Math.sin(a) * 0.03, 1.07 + Math.cos(a) * 0.16, -0.4 + Math.sin(a) * 0.16)); }
+      P.push(tube(ring, ring.map(() => 0.016), BLK, { n: 5 }));
+      P.push(cyl(V(0.3, 1.07, -0.4), V(0.5, 0.99, -0.4), 0.02, 0.02, BLK, { n: 5 }));
+    }
+    // raked windscreen in a thin frame
+    const ws = (x0, y0, x1, y1, t) => [V(x0, y0, -0.72), V(x0, y0, 0.72), V(x0 + t, y0, 0.72), V(x0 + t, y0, -0.72), V(x1, y1, -0.68), V(x1, y1, 0.68), V(x1 + t, y1, 0.68), V(x1 + t, y1, -0.68)];
+    { const q = ws(0.6, 0.92, 0.32, 1.22, 0.02); P.push(loft([q.slice(0, 4), q.slice(4)], [44, 56, 68], { amt: 0.02 })); }
+    for (const e of [-1, 1]) P.push(cyl(V(0.62, 0.9, e * 0.74), V(0.33, 1.23, e * 0.7), 0.018, 0.018, BLK, { n: 5 }));
+    P.push(cyl(V(0.33, 1.23, -0.7), V(0.33, 1.23, 0.7), 0.018, 0.018, BLK, { n: 5 }));
+    // spoked wheels, the fronts turned in
+    const steer = (opts && opts.steer) || 0;
+    for (const [x, front] of [[-1.35, false], [1.38, true]]) for (const e of [-1, 1]) {
+      const W = [], r = 0.35, zc = e * 0.85, zo = zc + e * 0.135, zi = zc - e * 0.135;
+      W.push(cyl(V(x, r, zi), V(x, r, zo), r, r, RUBBER, { n: 16, amt: 0.03 }));
+      W.push(cyl(V(x, r, zo), V(x, r, zo + e * 0.004), r * 0.7, r * 0.7, [36, 36, 40], { n: 14, amt: 0.02 }));
+      W.push(box(x - 0.16, x - 0.04, r + 0.02, r + 0.16, zo - e * 0.05 - 0.025, zo - e * 0.05 + 0.025, [200, 160, 40], 0.02));
+      for (let k = 0; k < 5; k++) {
+        const a = k * 2 * Math.PI / 5;
+        W.push(cyl(V(x, r, zo + e * 0.012), V(x + Math.cos(a) * r * 0.66, r + Math.sin(a) * r * 0.66, zo + e * 0.012), 0.022, 0.016, [150, 152, 158], { n: 4, amt: 0.02 }));
+      }
+      W.push(cyl(V(x, r, zo + e * 0.006), V(x, r, zo + e * 0.025), 0.045, 0.04, [150, 152, 158], { n: 8, amt: 0.02 }));
+      if (front && steer) placeParts(W.map((w) => { w.tris = w.tris.map((t) => t.map((v) => [v[0] - x, v[1], v[2] - zc])); return w; }), x, zc, steer, 0);
+      P.push(...W);
+    }
   }
   return { P, L };
 }
-function parkCar(kind, color, x, z, yaw, y) {
-  const c = carParts(kind, color);
+function parkCar(kind, color, x, z, yaw, y, opts) {
+  const c = carParts(kind, color, opts);
   S.push(...placeParts(c.P, x, z, yaw, y)); G.push(...placeParts(c.L, x, z, yaw, y));
 }
 
@@ -1539,9 +1593,12 @@ G.push(box(GAR.x0 + 0.4, GAR.x1 - 0.4, GAR.h - 0.05, GAR.h - 0.02, -16.4, -16.2,
 // tool wall and a tyre stack at the back of the garage
 S.push(box(GAR.x0 + 0.05, GAR.x1 - 0.05, 0.9, 1.8, GAR.z0 + 0.02, GAR.z0 + 0.06, [60, 56, 50], 0.05));
 for (let k = 0; k < 3; k++) S.push(cyl(V(GAR.x1 - 0.45, 0.02 + k * 0.24, GAR.z0 + 0.5), V(GAR.x1 - 0.45, 0.24 + k * 0.24, GAR.z0 + 0.5), 0.32, 0.32, RUBBER, { n: 10, amt: 0.03 }));
-const COUPE = { x: (GAR.x0 + GAR.x1) / 2, z: -16.6 };
-parkCar('coupe', [176, 18, 24], COUPE.x, COUPE.z, -Math.PI / 2, 0);
-const garageLight = pLight(0xffe8e0, 1.4, 6, COUPE.x, 2.4, -15.6);
+const garageLight = pLight(0xffe8e0, 1.0, 6, (GAR.x0 + GAR.x1) / 2, 2.4, -15.6);
+// the red open-top coupe, pulled up right by the back door (driver's side to the door, wheels still turned)
+const COUPE = { x: -0.7, z: -12.62, yaw: Math.PI + 0.05 };
+parkCar('coupe', [176, 18, 24], COUPE.x, COUPE.z, COUPE.yaw, 0, { steer: 0.32 });
+// car-local point -> world [x, z]
+function coupeAt(lx, lz) { const c = Math.cos(COUPE.yaw), s = Math.sin(COUPE.yaw); return [lx * c + lz * s + COUPE.x, -lx * s + lz * c + COUPE.z]; }
 // back door: steps and a caged lamp over it
 S.push(box(-4.6, -3.0, 0, 0.16, -11.6, -11.02, [50, 50, 54], 0.03));
 S.push(box(-4.05, -3.55, 2.56, 2.66, -11.24, -11.02, [30, 30, 34], 0.03));
@@ -1717,7 +1774,15 @@ const standHit = (x, z) => hitBox(x, 0.9, z, 0.45, 1.8, 0.45);
 [[-3.9, 4.4, 0.35], [3.9, 4.4, -0.35], [-7.8, 4.4, 0.2], [7.8, 4.4, -0.2]].forEach(([x, z, yaw], i) => addSpot('street-wall-' + i, 6, 'lean', x, z, yaw, 'Lean on the wall outside', standHit(x, z)));
 PARKED.forEach((x, i) => addSpot('street-suv-' + i, 6, 'lean', x + 0.6, ST.curb0 - 0.32, Math.PI, 'Lean on the SUV', standHit(x + 0.6, ST.curb0 - 0.32)));
 // the backstreet: by the coupe, at the back door, on the crates
-[[GAR.x0 + 0.42, -15.0, 0.3], [GAR.x1 - 0.42, -15.0, -0.3], [COUPE.x - 0.7, -13.4, Math.PI], [COUPE.x + 0.7, -13.4, Math.PI]].forEach(([x, z, yaw], i) => addSpot('alley-car-' + i, 7, 'lean', x, z, yaw, 'Check out the car', standHit(x, z)));
+[[-1.4, -13.95, 0], [0.4, -13.95, 0], [-1.2, -11.32, Math.PI], [-3.4, -13.2, Math.PI / 2 + 0.3], [GAR.x0 + 0.6, -15.0, 0.3]].forEach(([x, z, yaw], i) => addSpot('alley-car-' + i, 7, 'lean', x, z, yaw, i === 4 ? 'Hang out in the garage' : 'Check out the car', standHit(x, z)));
+{
+  // sitting in the coupe: the driver's seat is the host's, anyone can ride along
+  const fwd = Math.atan2(Math.cos(COUPE.yaw), -Math.sin(COUPE.yaw));
+  [[-0.4, 'alley-car-drive', "Sh1den's seat", true], [0.4, 'alley-car-ride', 'Ride along', false]].forEach(([lz, id, label, hostOnly]) => {
+    const [x, z] = coupeAt(-0.24, lz);
+    addSpot(id, 7, 'sitlow', x, z, fwd, label, hitBox(x, 0.95, z, 0.5, 0.8, 0.5), { y: 0.57, hostOnly, lockText: "Sh1den's seat" });
+  });
+}
 addSpot('alley-door-0', 7, 'lean', -3.9, -11.85, Math.PI - 0.3, 'Step out back', standHit(-3.9, -11.85));
 CRATES.forEach(([x, z], i) => addSpot('alley-crate-' + i, 7, 'sitlow', x, z, Math.PI / 2, 'Sit on a crate', hitBox(x, 0.4, z, 0.65, 0.8, 0.65)));
 [[2.6, -11.45, Math.PI], [-8.6, -12.7, Math.PI - 0.4], [3.6, -12.4, Math.PI + 0.5]].forEach(([x, z, yaw], i) => addSpot('alley-wall-' + i, 7, 'lean', x, z, yaw, 'Hang out in the backstreet', standHit(x, z)));
@@ -1743,7 +1808,7 @@ function overflowSpot(idx) {
 
 function putAt(ch, s) {
   ch.act = s.act; ch.spot = s.id;
-  ch.root.position.set(s.x, 0, s.z); ch.root.rotation.y = s.yaw;
+  ch.root.position.set(s.x, s.y || 0, s.z); ch.root.rotation.y = s.yaw;
   setCue(ch, ch.act === 'pool');
 }
 const spotOwner = new Map(); // spot id -> character, refreshed by placeAll
@@ -2257,7 +2322,7 @@ function describe(tg) {
   }
   const s = tg.s, owner = spotOwner.get(s.id);
   if (owner && owner.mine) return { ok: false, text: "You're here" };
-  if (s.hostOnly) return { ok: !!(myChar() && myChar().host) && !owner, text: owner ? (owner.name || 'Taken') + "'s spot" : "The host's chair" };
+  if (s.hostOnly) return { ok: !!(myChar() && myChar().host) && !owner, text: owner ? (owner.name || 'Taken') + "'s spot" : (s.lockText || "The host's chair") };
   if (s.cat === 4 && !isMod) return { ok: false, text: 'Mods only' };
   if (owner) return { ok: false, text: 'Taken by ' + (owner.name || 'someone') };
   return { ok: true, text: s.label };
