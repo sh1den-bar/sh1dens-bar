@@ -151,11 +151,12 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
   <div class="hud top">
     <div class="brand"><h1>SH1DEN'S</h1><span class="stat" id="count">0 regulars</span><span class="stat" id="roomStatus">Connecting…</span></div>
     <div class="group" role="group" aria-label="Camera">
-      <button id="v-room" type="button">Room</button>
       <button id="v-bar" type="button">Bar</button>
-      <button id="v-dance" type="button">Dance floor</button>
-      <button id="v-lounge" type="button">Lounge</button>
-      <button id="v-tv" type="button">TV</button>
+      <button id="v-dance" type="button">Dance</button>
+      <button id="v-tv" type="button">Cinema</button>
+      <button id="v-pool" type="button">Billiards</button>
+      <button id="v-vip" type="button">VIP</button>
+      <button id="v-map" type="button">Map</button>
     </div>
   </div>
 
@@ -253,9 +254,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=3"></script>
-<script src="net.js?v=3"></script>
-<script src="bar.js?v=3"></script>
+<script src="config.js?v=4"></script>
+<script src="net.js?v=4"></script>
+<script src="bar.js?v=4"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };
