@@ -143,19 +143,27 @@ const charOverMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true, poly
 
 // ---------------------------------------------------------------- character looks
 const LOOK = {
-  jacket: [['Black', [30, 30, 32]], ['Olive', [54, 58, 38]], ['Charcoal', [56, 56, 58]], ['Brown', [64, 44, 30]], ['Navy', [30, 35, 48]], ['Oxblood', [62, 26, 24]]],
-  pants: [['Black cargo', [44, 44, 43]], ['Jet black', [24, 24, 24]], ['Olive cargo', [62, 64, 44]], ['Urban gray', [78, 78, 78]]],
+  jacket: [['Black', [30, 30, 32]], ['Olive', [54, 58, 38]], ['Charcoal', [56, 56, 58]], ['Brown', [64, 44, 30]], ['Navy', [30, 35, 48]], ['Oxblood', [62, 26, 24]], ['Ivory', [196, 192, 182]], ['Camel', [150, 110, 70]]],
+  pants: [['Washed black', [44, 44, 43]], ['Jet black', [24, 24, 24]], ['Olive', [62, 64, 44]], ['Urban gray', [78, 78, 78]], ['Denim', [52, 70, 104]], ['Khaki', [132, 114, 82]], ['Navy', [30, 34, 50]]],
   skin: [['Pale', [232, 192, 164]], ['Light', [210, 162, 126]], ['Tan', [150, 102, 78]], ['Brown', [112, 74, 54]], ['Deep', [76, 50, 38]]],
-  head: [['Shaved', 0], ['Short hair', 1], ['Beanie', 2], ['Cap', 3]],
+  head: [['Shaved', 0], ['Short hair', 1], ['Beanie', 2], ['Cap', 3], ['Long hair', 4], ['Ponytail', 5], ['Bob', 6]],
   hair: [['Dark brown', [40, 28, 22]], ['Black', [18, 16, 16]], ['Blond', [170, 136, 80]], ['Ginger', [128, 60, 30]], ['Gray', [120, 118, 114]]],
   beard: [['None', 0], ['Stubble', 1], ['Full beard', 2]],
   eyes: [['Bare eyes', 0], ['Round glasses', 1], ['Shades', 2]],
   smoke: [['No smoke', 0], ['Cigarette', 1], ['Cigar', 2]],
   dance: [['Bounce', 0], ['Two-step', 1], ['Hands up', 2], ['Head nod', 3]],
-  spot: [['Dance room', 0], ['Main bar', 1], ['TV room', 2], ['Billiards', 3], ['VIP lounge (mods)', 4], ['Pool lounge', 5]]
+  spot: [['Dance room', 0], ['Main bar', 1], ['TV room', 2], ['Billiards', 3], ['VIP lounge (mods)', 4], ['Pool lounge', 5]],
+  body: [['Male', 0], ['Female', 1]],
+  top: [['Bomber jacket', 0], ['Suit', 1], ['Suit, dark shirt', 2], ['Hoodie', 3], ['Leather jacket', 4], ['Tank top', 5], ['Turtleneck', 6]],
+  bottom: [['Cargo pants', 0], ['Jeans', 1], ['Trousers', 2], ['Skirt', 3]],
+  shoes: [['Combat boots', 0], ['Sneakers', 1], ['Dress shoes', 2]]
 };
-const KEYS = ['jacket', 'pants', 'skin', 'head', 'hair', 'beard', 'eyes', 'smoke', 'dance', 'spot'];
-const LABELS = { jacket: 'Jacket', pants: 'Pants', skin: 'Skin', head: 'Head', hair: 'Hair color', beard: 'Beard', eyes: 'Eyes', smoke: 'Smoke', dance: 'Dance move', spot: 'Hangout' };
+// the save code is one digit per option in this order (new options go on the end so older codes still work)
+const KEYS = ['jacket', 'pants', 'skin', 'head', 'hair', 'beard', 'eyes', 'smoke', 'dance', 'spot', 'body', 'top', 'bottom', 'shoes'];
+// the order the creator shows them in
+const UI_KEYS = ['body', 'skin', 'head', 'hair', 'beard', 'eyes', 'top', 'jacket', 'bottom', 'pants', 'shoes', 'smoke', 'dance', 'spot'];
+const LABELS = { body: 'Body', jacket: 'Top color', pants: 'Bottom color', top: 'Top', bottom: 'Bottom', shoes: 'Shoes', skin: 'Skin', head: 'Hair / hat', hair: 'Hair color', beard: 'Beard', eyes: 'Eyes', smoke: 'Smoke', dance: 'Dance move', spot: 'Hangout' };
+const CODE_RE = /^\d{10,16}$/;
 
 function lookToCode(l) { return KEYS.map((k) => l[k]).join(''); }
 function codeToLook(c) {
@@ -163,7 +171,12 @@ function codeToLook(c) {
   KEYS.forEach((k, i) => { const d = parseInt(c[i], 10); l[k] = isNaN(d) ? 0 : d % LOOK[k].length; });
   return l;
 }
-function randomLook(r) { const l = {}; KEYS.forEach((k) => { l[k] = Math.floor(r() * LOOK[k].length); }); if (l.spot === 4) l.spot = 1; return l; }
+function randomLook(r) {
+  const l = {}; KEYS.forEach((k) => { l[k] = Math.floor(r() * LOOK[k].length); });
+  if (l.spot === 4) l.spot = 1;
+  if (l.body === 1) { if (r() < 0.85) l.beard = 0; if (r() < 0.7) l.head = 4 + Math.floor(r() * 3); }
+  return l;
+}
 const NAME_RE = /^[A-Za-z0-9_]{3,25}$/;
 function parseBarCode(text) {
   const m = String(text).trim().replace(/^!bar\s+/i, '').match(/^([A-Za-z0-9_]{3,25})-(\d{10})$/);
@@ -223,11 +236,12 @@ function buildParts(look, seed) {
   const O = (k, p) => B2[k].push(p);
   const SKIN = LOOK.skin[look.skin][1];
   const SKIN_SHAD = SKIN.map((v) => v * 0.83);
-  const LIP = SKIN.map((v) => v * 0.72);
+  const F = look.body === 1;
+  const LIP = F ? SKIN.map((v, i) => v * 0.62 + [70, 22, 30][i]) : SKIN.map((v) => v * 0.72);
   const HAIR = LOOK.hair[look.hair][1];
   // swimwear in the pool lounge: bare top and feet, swim shorts in a colour picked from the jacket choice
   const SWIM = look.outfit === 'swim';
-  const SHORTS = [[30, 110, 120], [170, 40, 50], [30, 50, 110], [24, 24, 28], [220, 214, 200], [190, 140, 40]][look.jacket] || [30, 110, 120];
+  const SHORTS = [[30, 110, 120], [170, 40, 50], [30, 50, 110], [24, 24, 28], [220, 214, 200], [190, 140, 40], [200, 60, 120], [40, 130, 80]][look.jacket] || [30, 110, 120];
   const JACKET = look.outfit === 'barman' ? [222, 218, 208] : SWIM ? SKIN : LOOK.jacket[look.jacket][1];
   const RIB = look.outfit === 'barman' ? [206, 202, 192] : JACKET.map((v) => v * 0.6);
   const CARGO = LOOK.pants[look.pants][1];
@@ -236,35 +250,52 @@ function buildParts(look, seed) {
   const RIM = [18, 18, 20], LENS = look.eyes === 2 ? [14, 14, 16] : [96, 108, 108], LENS_HI = look.eyes === 2 ? [70, 72, 80] : [170, 182, 180];
   const hc = [0, 1.69, 0];
 
-  // head
-  P('head', loft(PROFILE.map((p) => headRing(p)), SKIN, { amt: 0.04, smooth: true, center: hc,
-    colfn: (ri, i) => { const h = PROFILE[ri][0], t = 2 * Math.PI * i / HS + Math.PI / HS; return (h < 1.57 || (Math.abs(Math.cos(t)) > 0.8 && h > 1.73)) ? SKIN_SHAD : SKIN; } }));
+  // head: a softer, narrower jaw for the female body
+  const PROF = F ? PROFILE.map((p) => (p[0] < 1.645 ? [p[0], p[1] * (0.9 + 0.1 * (p[0] - 1.546) / 0.1), p[2] * 0.96, p[3] * 0.96, p[4]] : p)) : PROFILE;
+  P('head', loft(PROF.map((p) => headRing(p)), SKIN, { amt: 0.04, smooth: true, center: hc,
+    colfn: (ri, i) => { const h = PROF[ri][0], t = 2 * Math.PI * i / HS + Math.PI / HS; return (h < 1.57 || (Math.abs(Math.cos(t)) > 0.8 && h > 1.73)) ? SKIN_SHAD : SKIN; } }));
   const clamp = { 1.640: -0.07, 1.662: -0.062, 1.680: -0.052, 1.697: -0.04, 1.716: -0.022, 1.738: 0.048, 1.762: 0.079 };
-  const upper = PROFILE.slice(5);
+  const upper = PROF.slice(5);
+  const c2 = Object.assign({}, clamp, { 1.738: 0.06, 1.762: 0.095 });
   if (look.head === 0) {
     const stub = [SKIN[0] * 0.44 + HAIR[0] * 0.2, SKIN[1] * 0.44 + HAIR[1] * 0.2, SKIN[2] * 0.44 + HAIR[2] * 0.2];
     O('head', loft(upper.map((p) => headRing(p, 0.0018, clamp[p[0]])), stub, { amt: 0.06, smooth: true, center: hc }));
   } else if (look.head === 1) {
-    const c2 = Object.assign({}, clamp, { 1.738: 0.06, 1.762: 0.095 });
     O('head', loft(upper.map((p) => headRing(p, 0.008, c2[p[0]])), HAIR, { amt: 0.08, smooth: true, center: hc }));
   } else if (look.head === 2) {
     const BEANIE = JACKET.map((v, i) => Math.min(255, v * 1.25 + [8, 6, 4][i]));
-    const rings = PROFILE.slice(9).map((p) => headRing(p, 0.013, p[0] < 1.72 ? -0.02 : null));
+    const rings = PROF.slice(9).map((p) => headRing(p, 0.013, p[0] < 1.72 ? -0.02 : null));
     rings.push(headRing([1.848, 0.012, 0.01, 0.014, -0.016], 0));
     P('head', loft(rings, BEANIE, { amt: 0.05, smooth: true, center: hc }));
-    P('head', loft([headRing(PROFILE[10], 0.017), headRing(PROFILE[11], 0.016)], BEANIE.map((v) => v * 0.8), { amt: 0.04, smooth: true, center: hc }));
+    P('head', loft([headRing(PROF[10], 0.017), headRing(PROF[11], 0.016)], BEANIE.map((v) => v * 0.8), { amt: 0.04, smooth: true, center: hc }));
     O('head', loft(upper.slice(0, 5).map((p) => headRing(p, 0.0018, clamp[p[0]])), SKIN.map((v) => v * 0.5), { amt: 0.05, smooth: true, center: hc }));
-  } else {
+  } else if (look.head === 3) {
     const CAP = JACKET.map((v) => Math.min(255, v * 1.3));
-    P('head', loft(PROFILE.slice(10).map((p) => headRing(p, 0.01)), CAP, { amt: 0.05, smooth: true, center: hc }));
+    P('head', loft(PROF.slice(10).map((p) => headRing(p, 0.01)), CAP, { amt: 0.05, smooth: true, center: hc }));
     P('head', loft([rring(1.755, 0.15, 0.09, 0, 0.125, 10, 2.4), rring(1.762, 0.15, 0.09, 0, 0.13, 10, 2.4)], CAP.map((v) => v * 0.85), { amt: 0.04 }));
     O('head', loft(upper.slice(0, 5).map((p) => headRing(p, 0.0018, clamp[p[0]])), HAIR, { amt: 0.06, smooth: true, center: hc }));
+  } else {
+    // longer styles: a fuller crown, hair down the sides to the jaw, then the style's own shape
+    O('head', loft(upper.map((p) => headRing(p, 0.01, c2[p[0]])), HAIR, { amt: 0.07, smooth: true, center: hc }));
+    if (look.head === 4 || look.head === 6) {
+      // sides and back, open at the face
+      const sideClamp = (h) => (h < 1.74 ? 0.035 : null);
+      P('head', loft(PROF.slice(3, 11).map((p) => headRing(p, 0.016, sideClamp(p[0]))), HAIR.map((v) => v * 0.92), { amt: 0.06, smooth: true, center: hc }));
+    }
+    if (look.head === 4) {
+      // long hair falling down the back
+      P('head', loft([rring(1.66, 0.2, 0.09, 0, -0.085, 10, 2.6), rring(1.5, 0.23, 0.08, 0, -0.115, 10, 2.6), rring(1.36, 0.22, 0.06, 0, -0.13, 10, 2.6), rring(1.3, 0.18, 0.04, 0, -0.13, 10, 2.4)], HAIR.map((v) => v * 0.9), { amt: 0.06, smooth: true }));
+    } else if (look.head === 5) {
+      // ponytail with a band
+      P('head', tube([V(0, 1.75, -0.108), V(0, 1.68, -0.15), V(0, 1.56, -0.16), V(0, 1.46, -0.15)], [0.032, 0.036, 0.028, 0.012], HAIR.map((v) => v * 0.92), { n: 8 }));
+      O('head', cyl(V(0, 1.735, -0.118), V(0, 1.72, -0.128), 0.026, 0.026, [20, 20, 22], { n: 8, amt: 0.02 }));
+    }
   }
   if (look.beard === 2) {
-    O('head', loft(PROFILE.slice(0, 6).map((p, i) => headRing(p, 0.0075 * (1 - 0.7 * i / 5))), HAIR.map((v) => v * 1.1 + 4), { amt: 0.05, smooth: true, center: hc }));
+    O('head', loft(PROF.slice(0, 6).map((p, i) => headRing(p, 0.0075 * (1 - 0.7 * i / 5))), HAIR.map((v) => v * 1.1 + 4), { amt: 0.05, smooth: true, center: hc }));
     O('head', loft([rring(1.622, 0.07, 0.016, 0, 0.098, 8), rring(1.636, 0.05, 0.014, 0, 0.104, 8)], HAIR, { amt: 0.03, smooth: true }));
   } else if (look.beard === 1) {
-    O('head', loft(PROFILE.slice(0, 6).map((p) => headRing(p, 0.0016)), SKIN.map((v, i) => v * 0.55 + HAIR[i] * 0.15), { amt: 0.05, smooth: true, center: hc }));
+    O('head', loft(PROF.slice(0, 6).map((p) => headRing(p, 0.0016)), SKIN.map((v, i) => v * 0.55 + HAIR[i] * 0.15), { amt: 0.05, smooth: true, center: hc }));
   }
   O('head', loft([rring(1.606, 0.04, 0.012, 0, 0.099, 8), rring(1.613, 0.044, 0.012, 0, 0.101, 8)], LIP, { amt: 0.03, smooth: true }));
   P('head', loft([rring(1.722, 0.020, 0.014, 0, 0.100, 8), rring(1.700, 0.022, 0.020, 0, 0.108, 8), rring(1.676, 0.026, 0.028, 0, 0.114, 8),
@@ -297,86 +328,163 @@ function buildParts(look, seed) {
     ember.push(cyl(add(m, mul(d, 0.084)), add(m, mul(d, 0.093)), 0.0057, 0.0045, [255, 104, 28], { amt: 0 }));
   }
 
-  // pelvis, belt
-  P('hips', loft([rring(0.84, 0.30, 0.20, 0, 0.005, 14), rring(0.92, 0.345, 0.222, 0, 0, 14), rring(1.0, 0.34, 0.22, 0, 0, 14)], SWIM ? SHORTS : CARGO, { smooth: true }));
-  if (!SWIM) {
-    O('hips', loft([rring(0.945, 0.352, 0.232, 0, 0, 14), rring(0.99, 0.355, 0.234, 0, 0, 14)], WEB, { amt: 0.03 }));
-    O('hips', box(-0.032, 0.032, 0.94, 0.995, 0.112, 0.124, GUN, 0.03));
-  } else O('hips', loft([rring(0.975, 0.345, 0.225, 0, 0, 14), rring(1.0, 0.342, 0.222, 0, 0, 14)], SHORTS.map((v) => v * 0.7), { amt: 0.03 }));
+  // ---- body: shape, top, bottom and shoes ----
+  const TOP = look.outfit === 'barman' ? 'barman' : SWIM ? 'swim' : ['bomber', 'suit', 'suitdark', 'hoodie', 'leather', 'tank', 'turtle'][look.top || 0] || 'bomber';
+  const BOTTOM = SWIM ? 'swim' : look.outfit === 'barman' ? 'trousers' : ['cargo', 'jeans', 'trousers', 'skirt'][look.bottom || 0] || 'cargo';
+  const SHOE = SWIM ? 'bare' : look.outfit === 'barman' ? 'dress' : ['boots', 'sneakers', 'dress'][look.shoes || 0] || 'boots';
+  const TOPC = look.outfit === 'barman' ? JACKET : LOOK.jacket[look.jacket][1];
+  const BOTC = CARGO;
+  const hW = F ? 1.06 : 1, lW = F ? 0.88 : 1, sX = F ? 0.9 : 1;
+  const SHIRT = TOP === 'suitdark' ? [22, 22, 26] : [226, 222, 212];
+  const TIE = TOP === 'suitdark' ? [10, 10, 12] : [110, 26, 32];
 
-  // legs
+  // pelvis and belt
+  const pelvisCol = SWIM ? SHORTS : BOTC;
+  P('hips', loft([rring(0.84, 0.30 * hW, 0.20, 0, 0.005, 14), rring(0.92, 0.345 * hW, 0.222, 0, 0, 14), rring(1.0, 0.34 * (F ? 0.98 : 1), 0.22, 0, 0, 14)], pelvisCol, { smooth: true }));
+  if (SWIM) O('hips', loft([rring(0.975, 0.345 * hW, 0.225, 0, 0, 14), rring(1.0, 0.342 * hW, 0.222, 0, 0, 14)], SHORTS.map((v) => v * 0.7), { amt: 0.03 }));
+  else if (BOTTOM === 'skirt') {
+    // a skirt to just above the knee
+    P('hips', loft([rring(1.0, 0.35 * hW, 0.228, 0, 0, 14), rring(0.8, 0.42 * hW, 0.29, 0, 0.004, 14), rring(0.6, 0.48 * hW, 0.33, 0, 0.008, 14)], BOTC, { smooth: true, cap: false }));
+  } else {
+    const BELT = BOTTOM === 'cargo' ? WEB : BOTTOM === 'jeans' ? [70, 44, 26] : [12, 12, 14];
+    O('hips', loft([rring(0.945, 0.352 * hW, 0.232, 0, 0, 14), rring(0.99, 0.355 * hW, 0.234, 0, 0, 14)], BELT, { amt: 0.03 }));
+    O('hips', box(-0.032, 0.032, 0.94, 0.995, 0.112, 0.124, BOTTOM === 'cargo' ? GUN : [150, 140, 120], 0.03));
+  }
+
+  // legs and shoes
   for (const s of [-1, 1]) {
     const th = s > 0 ? 'thL' : 'thR', kn = s > 0 ? 'knL' : 'knR';
-    if (SWIM) {
-      // swim shorts to mid-thigh, then bare legs and feet
-      P(th, tube([V(s * 0.10, 0.97, 0), V(s * 0.104, 0.72, 0.004)], [0.082, 0.078], SHORTS, { n: 10 }));
-      P(th, tube([V(s * 0.104, 0.74, 0.004), V(s * 0.106, 0.48, 0.008)], [0.064, 0.056], SKIN, { n: 10 }));
-      P(kn, tube([V(s * 0.106, 0.52, 0.008), V(s * 0.108, 0.32, 0), V(s * 0.11, 0.07, 0)], [0.056, 0.05, 0.04], SKIN, { n: 10 }));
-      P(kn, loft([rring(0.0, 0.085, 0.22, s * 0.11, 0.045, 10, 3), rring(0.04, 0.09, 0.22, s * 0.11, 0.045, 10, 3), rring(0.08, 0.07, 0.12, s * 0.11, 0.01, 10, 2.5)], SKIN_SHAD, { smooth: true }));
-      continue;
+    const lx = (v) => s * v * (F ? 0.96 : 1);
+    if (BOTTOM === 'swim' || BOTTOM === 'skirt') {
+      // bare legs: swim shorts (or a one-piece) at the top, skin below
+      if (BOTTOM === 'swim' && !F) P(th, tube([V(lx(0.10), 0.97, 0), V(lx(0.104), 0.72, 0.004)], [0.082, 0.078], SHORTS, { n: 10 }));
+      if (BOTTOM === 'swim' && F) P(th, tube([V(lx(0.10), 0.97, 0), V(lx(0.102), 0.9, 0.002)], [0.08 * lW, 0.076 * lW], SHORTS, { n: 10 }));
+      P(th, tube([V(lx(0.10), 0.95, 0.002), V(lx(0.104), 0.74, 0.004), V(lx(0.106), 0.48, 0.008)], [0.07 * lW, 0.064 * lW, 0.056 * lW], SKIN, { n: 10 }));
+      P(kn, tube([V(lx(0.106), 0.52, 0.008), V(lx(0.108), 0.32, 0), V(lx(0.11), SHOE === 'bare' ? 0.07 : 0.1, 0)], [0.056 * lW, 0.05 * lW, 0.04 * lW], SKIN, { n: 10 }));
+    } else {
+      const R = BOTTOM === 'cargo' ? [0.08, 0.076, 0.066, 0.066, 0.063, 0.062] : BOTTOM === 'jeans' ? [0.074, 0.068, 0.058, 0.058, 0.053, 0.05] : [0.076, 0.07, 0.061, 0.061, 0.057, 0.056];
+      const lowY = SHOE === 'boots' ? 0.22 : 0.1;
+      P(th, tube([V(lx(0.10), 0.97, 0), V(lx(0.104), 0.72, 0.004), V(lx(0.106), 0.48, 0.008)], R.slice(0, 3).map((r) => r * lW), BOTC, { n: 10 }));
+      P(kn, tube([V(lx(0.106), 0.52, 0.008), V(lx(0.108), 0.32, 0), V(lx(0.11), lowY, 0)], R.slice(3).map((r) => r * lW), BOTC, { n: 10 }));
+      if (BOTTOM === 'cargo') {
+        O(th, box(lx(0.176) - 0.011, lx(0.176) + 0.011, 0.60, 0.73, -0.042, 0.042, CARGO_D, 0.04));
+        O(th, box(lx(0.178) - 0.013, lx(0.178) + 0.013, 0.715, 0.75, -0.046, 0.046, CARGO, 0.04));
+        O(kn, box(lx(0.106) - 0.045, lx(0.106) + 0.045, 0.44, 0.56, 0.05, 0.073, CARGO_D, 0.04));
+        if (SHOE === 'boots') O(kn, cyl(V(lx(0.11), 0.23, 0), V(lx(0.11), 0.29, 0), 0.072, 0.066, CARGO_D, { n: 10, smooth: true }));
+      } else if (BOTTOM === 'jeans') {
+        O(kn, cyl(V(lx(0.11), lowY, 0), V(lx(0.11), lowY + 0.035, 0), 0.054 * lW, 0.054 * lW, BOTC.map((v) => Math.min(255, v * 1.35)), { n: 10, smooth: true }));
+      } else {
+        O(th, tube([V(lx(0.106), 0.94, 0.07), V(lx(0.106), 0.5, 0.068)], [0.004, 0.004], BOTC.map((v) => v * 0.7), { n: 4, smooth: false }));
+        O(kn, tube([V(lx(0.108), 0.5, 0.066), V(lx(0.11), lowY + 0.02, 0.058)], [0.004, 0.004], BOTC.map((v) => v * 0.7), { n: 4, smooth: false }));
+      }
     }
-    P(th, tube([V(s * 0.10, 0.97, 0), V(s * 0.104, 0.72, 0.004), V(s * 0.106, 0.48, 0.008)], [0.08, 0.076, 0.066], CARGO, { n: 10 }));
-    O(th, box(s * 0.176 - 0.011, s * 0.176 + 0.011, 0.60, 0.73, -0.042, 0.042, CARGO_D, 0.04));
-    O(th, box(s * 0.178 - 0.013, s * 0.178 + 0.013, 0.715, 0.75, -0.046, 0.046, CARGO, 0.04));
-    P(kn, tube([V(s * 0.106, 0.52, 0.008), V(s * 0.108, 0.32, 0), V(s * 0.11, 0.22, 0)], [0.066, 0.063, 0.062], CARGO, { n: 10 }));
-    O(kn, box(s * 0.106 - 0.045, s * 0.106 + 0.045, 0.44, 0.56, 0.05, 0.073, CARGO_D, 0.04));
-    O(kn, cyl(V(s * 0.11, 0.23, 0), V(s * 0.11, 0.29, 0), 0.072, 0.066, CARGO_D, { n: 10, smooth: true }));
-    P(kn, cyl(V(s * 0.11, 0.07, 0), V(s * 0.11, 0.25, 0), 0.068, 0.065, BOOT, { n: 10 }));
-    P(kn, loft([rring(0.022, 0.118, 0.29, s * 0.11, 0.035, 12, 3.5), rring(0.07, 0.122, 0.285, s * 0.11, 0.037, 12, 3.5),
-      rring(0.105, 0.112, 0.22, s * 0.11, 0.012, 12, 3), rring(0.13, 0.10, 0.15, s * 0.11, -0.002, 12, 2.6)], BOOT));
-    P(kn, loft([rring(0.0, 0.124, 0.298, s * 0.11, 0.035, 12, 3.5), rring(0.024, 0.124, 0.298, s * 0.11, 0.035, 12, 3.5)], SOLE, { amt: 0.03 }));
-    O(kn, box(s * 0.11 - 0.016, s * 0.11 + 0.016, 0.10, 0.24, 0.06, 0.07, WEB, 0.04));
+    // shoes
+    const fx = lx(0.11);
+    if (SHOE === 'boots') {
+      P(kn, cyl(V(fx, 0.07, 0), V(fx, 0.25, 0), 0.068 * lW, 0.065 * lW, BOOT, { n: 10 }));
+      P(kn, loft([rring(0.022, 0.118 * lW, 0.29, fx, 0.035, 12, 3.5), rring(0.07, 0.122 * lW, 0.285, fx, 0.037, 12, 3.5),
+        rring(0.105, 0.112 * lW, 0.22, fx, 0.012, 12, 3), rring(0.13, 0.10 * lW, 0.15, fx, -0.002, 12, 2.6)], BOOT));
+      P(kn, loft([rring(0.0, 0.124 * lW, 0.298, fx, 0.035, 12, 3.5), rring(0.024, 0.124 * lW, 0.298, fx, 0.035, 12, 3.5)], SOLE, { amt: 0.03 }));
+      O(kn, box(fx - 0.016, fx + 0.016, 0.10, 0.24, 0.06, 0.07, WEB, 0.04));
+    } else if (SHOE === 'sneakers') {
+      P(kn, loft([rring(0.025, 0.11 * lW, 0.28, fx, 0.04, 12, 3.2), rring(0.075, 0.108 * lW, 0.26, fx, 0.03, 12, 3), rring(0.11, 0.09 * lW, 0.15, fx, 0.0, 12, 2.6)], [226, 224, 218]));
+      P(kn, loft([rring(0.0, 0.116 * lW, 0.29, fx, 0.04, 12, 3.4), rring(0.028, 0.116 * lW, 0.29, fx, 0.04, 12, 3.4)], [240, 238, 232], { amt: 0.02 }));
+      for (const e of [-1, 1]) O(kn, box(fx + e * 0.056 * lW - 0.003, fx + e * 0.056 * lW + 0.003, 0.04, 0.085, -0.03, 0.09, [30, 30, 34], 0.03));
+    } else if (SHOE === 'dress') {
+      P(kn, loft([rring(0.012, 0.1 * lW, 0.28, fx, 0.045, 12, 2.6), rring(0.06, 0.1 * lW, 0.26, fx, 0.035, 12, 2.6), rring(0.1, 0.085 * lW, 0.14, fx, 0.0, 12, 2.4)], [14, 14, 16]));
+      P(kn, loft([rring(0.0, 0.104 * lW, 0.285, fx, 0.045, 12, 2.6), rring(0.014, 0.104 * lW, 0.285, fx, 0.045, 12, 2.6)], [8, 8, 9], { amt: 0.02 }));
+    } else {
+      P(kn, loft([rring(0.0, 0.085 * lW, 0.22, fx, 0.045, 10, 3), rring(0.04, 0.09 * lW, 0.22, fx, 0.045, 10, 3), rring(0.08, 0.07 * lW, 0.12, fx, 0.01, 10, 2.5)], SKIN_SHAD, { smooth: true }));
+    }
   }
 
   // torso
-  P('spine', cyl(V(0, 1.43, -0.006), V(0, 1.585, -0.01), 0.056, 0.054, SKIN_SHAD, { n: 12, smooth: true }));
-  if (SWIM) {
-    // bare torso, a little slimmer than the jacket
-    P('spine', loft([rring(0.98, 0.33, 0.212, 0, 0, 14), rring(1.10, 0.31, 0.2, 0, 0.004, 14), rring(1.22, 0.34, 0.21, 0, 0.008, 14),
+  P('spine', cyl(V(0, 1.43, -0.006), V(0, 1.585, -0.01), 0.056 * (F ? 0.92 : 1), 0.054 * (F ? 0.92 : 1), SKIN_SHAD, { n: 12, smooth: true }));
+  // the torso shape: narrower shoulders and waist and a fuller chest for the female body
+  const torso = (col, bulk, y0, opts) => loft([
+    rring(y0, (F ? 0.31 : 0.356) + bulk, (F ? 0.214 : 0.234) + bulk, 0, 0.002, 14),
+    rring(1.10, (F ? 0.3 : 0.368) + bulk, (F ? 0.205 : 0.238) + bulk, 0, 0.004, 14),
+    rring(1.20, (F ? 0.32 : 0.38) + bulk, (F ? 0.225 : 0.24) + bulk, 0, F ? 0.012 : 0.005, 14),
+    rring(1.29, (F ? 0.35 : 0.41) + bulk, (F ? 0.275 : 0.24) + bulk, 0, F ? 0.028 : 0, 14),
+    rring(1.36, (F ? 0.37 : 0.435) + bulk, (F ? 0.24 : 0.238) + bulk, 0, F ? 0.012 : -0.003, 14),
+    rring(1.44, (F ? 0.34 : 0.40) + bulk, (F ? 0.2 : 0.222) + bulk * 0.6, 0, -0.006, 14),
+    rring(1.475, F ? 0.21 : 0.25, F ? 0.15 : 0.17, 0, -0.01, 14)], col, Object.assign({ smooth: true }, opts || {}));
+  const ribCol = TOPC.map((v) => v * 0.6);
+  if (TOP === 'swim') {
+    P('spine', F ? torso(SHORTS, -0.012, 0.98) : loft([rring(0.98, 0.33, 0.212, 0, 0, 14), rring(1.10, 0.31, 0.2, 0, 0.004, 14), rring(1.22, 0.34, 0.21, 0, 0.008, 14),
       rring(1.32, 0.38, 0.22, 0, 0.004, 14), rring(1.40, 0.4, 0.21, 0, -0.004, 14), rring(1.45, 0.3, 0.17, 0, -0.008, 14),
       rring(1.48, 0.16, 0.13, 0, -0.01, 14)], SKIN, { smooth: true, amt: 0.03 }));
-  } else {
+    if (F) P('spine', loft([rring(1.4, (0.34 - 0.012), 0.19, 0, -0.006, 14), rring(1.44, 0.326, 0.19, 0, -0.006, 14), rring(1.475, 0.2, 0.14, 0, -0.01, 14)], SKIN, { smooth: true, amt: 0.03 }));
+  } else if (TOP === 'barman') {
     P('spine', loft([rring(0.985, 0.336, 0.218, 0, 0, 14), rring(1.04, 0.342, 0.222, 0, 0, 14)], RIB, { amt: 0.03, smooth: true }));
-    P('spine', loft([rring(1.035, 0.356, 0.234, 0, 0.002, 14), rring(1.10, 0.368, 0.238, 0, 0.004, 14), rring(1.20, 0.38, 0.24, 0, 0.005, 14),
-      rring(1.30, 0.41, 0.24, 0, 0, 14), rring(1.38, 0.435, 0.238, 0, -0.003, 14), rring(1.44, 0.40, 0.222, 0, -0.006, 14),
-      rring(1.475, 0.25, 0.17, 0, -0.01, 14)], JACKET, { smooth: true }));
-    P('spine', loft([rring(1.44, 0.17, 0.152, 0, -0.008, 14), rring(1.475, 0.165, 0.148, 0, -0.009, 14), rring(1.51, 0.152, 0.138, 0, -0.01, 14)], RIB, { cap: false, amt: 0.03, smooth: true }));
-  }
-  if (SWIM) { /* no zipper or pockets on bare skin */ } else if (look.outfit === 'barman') {
+    P('spine', torso(JACKET, 0, 1.035));
     // classic hotel bartender: black waistcoat over a white shirt, black bow tie
     const VEST = [20, 20, 24], VEST_L = [34, 34, 40], BRASS_B = [170, 130, 64];
     O('spine', loft([rring(0.975, 0.35, 0.232, 0, 0.002, 14), rring(1.10, 0.38, 0.25, 0, 0.004, 14), rring(1.20, 0.392, 0.252, 0, 0.005, 14),
       rring(1.29, 0.418, 0.252, 0, 0, 14), rring(1.34, 0.43, 0.25, 0, -0.002, 14)], VEST, { smooth: true }));
-    // the V neckline: two lapel edges rising from the top button toward the shoulders
     for (const s of [-1, 1]) O('spine', tube([V(s * 0.012, 1.2, 0.128), V(s * 0.075, 1.33, 0.118), V(s * 0.11, 1.42, 0.09)], [0.012, 0.012, 0.01], VEST_L, { n: 4, smooth: false }));
     for (const y of [1.04, 1.1, 1.16]) O('spine', cyl(V(0, y, 0.124), V(0, y, 0.132), 0.008, 0.008, BRASS_B, { n: 6, amt: 0.02 }));
-    // shirt collar and bow tie
     O('spine', loft([rring(1.445, 0.15, 0.135, 0, -0.004, 12), rring(1.5, 0.142, 0.128, 0, -0.006, 12)], [228, 224, 214], { cap: false, smooth: true, amt: 0.02 }));
     for (const s of [-1, 1]) O('spine', loft([[V(0, 1.462, 0.064), V(s * 0.05, 1.484, 0.062), V(s * 0.05, 1.444, 0.062)], [V(0, 1.462, 0.072), V(s * 0.05, 1.484, 0.07), V(s * 0.05, 1.444, 0.07)]], [12, 12, 14], { amt: 0.02 }));
     O('spine', box(-0.012, 0.012, 1.452, 1.472, 0.06, 0.078, [12, 12, 14], 0.02));
+  } else if (TOP === 'suit' || TOP === 'suitdark') {
+    // tailored jacket over a shirt and tie, with a short skirt of jacket over the hips
+    P('spine', torso(TOPC, 0.006, 1.0));
+    P('spine', loft([rring(1.04, (F ? 0.33 : 0.37) * 1, (F ? 0.235 : 0.245), 0, 0.004, 14), rring(0.9, (F ? 0.37 : 0.38), 0.25, 0, 0.006, 14), rring(0.82, (F ? 0.39 : 0.385), 0.255, 0, 0.006, 14)], TOPC, { smooth: true, cap: false }));
+    const fz = F ? 0.14 : 0.128;
+    O('spine', loft([[V(-0.045, 1.46, 0.1), V(0.045, 1.46, 0.1), V(0, 1.19, fz - 0.002)], [V(-0.045, 1.46, 0.106), V(0.045, 1.46, 0.106), V(0, 1.19, fz + 0.004)]], SHIRT, { amt: 0.02 }));
+    O('spine', loft([[V(-0.014, 1.44, 0.108), V(0.014, 1.44, 0.108), V(0.016, 1.22, fz + 0.006), V(0, 1.2, fz + 0.007), V(-0.016, 1.22, fz + 0.006)], [V(-0.014, 1.44, 0.113), V(0.014, 1.44, 0.113), V(0.016, 1.22, fz + 0.011), V(0, 1.2, fz + 0.012), V(-0.016, 1.22, fz + 0.011)]], TIE, { amt: 0.03 }));
+    for (const s of [-1, 1]) O('spine', tube([V(s * 0.01, 1.17, fz + 0.002), V(s * 0.07, 1.33, fz - 0.006), V(s * 0.115, 1.44, 0.088)], [0.015, 0.015, 0.012], TOPC.map((v) => v * 0.72), { n: 4, smooth: false }));
+    for (const y of [1.08, 1.15]) O('spine', cyl(V(0, y, fz - 0.002), V(0, y, fz + 0.006), 0.008, 0.008, [10, 10, 12], { n: 6, amt: 0.02 }));
+    O('spine', loft([rring(1.445, 0.15, 0.135, 0, -0.004, 12), rring(1.5, 0.142, 0.128, 0, -0.006, 12)], SHIRT, { cap: false, smooth: true, amt: 0.02 }));
+    if (TOP === 'suit') O('spine', box(0.1, 0.15, 1.33, 1.36, fz - 0.01, fz + 0.002, [235, 232, 222], 0.02));
+  } else if (TOP === 'hoodie') {
+    P('spine', loft([rring(0.975, 0.35, 0.228, 0, 0, 14), rring(1.035, 0.356, 0.232, 0, 0, 14)], ribCol, { amt: 0.03, smooth: true }));
+    P('spine', torso(TOPC, 0.014, 1.03));
+    O('spine', box(-0.13, 0.13, 1.04, 1.17, F ? 0.118 : 0.126, F ? 0.132 : 0.14, TOPC.map((v) => v * 0.85), 0.03));
+    P('spine', loft([rring(1.43, 0.27, 0.23, 0, -0.03, 14), rring(1.5, 0.24, 0.21, 0, -0.05, 14), rring(1.56, 0.19, 0.17, 0, -0.07, 14)], TOPC.map((v) => v * 0.9), { cap: false, smooth: true }));
+    for (const s of [-1, 1]) O('spine', tube([V(s * 0.04, 1.47, 0.098), V(s * 0.045, 1.36, F ? 0.13 : 0.122), V(s * 0.046, 1.3, F ? 0.13 : 0.124)], [0.005, 0.005, 0.005], [226, 224, 218], { n: 4, smooth: false }));
+  } else if (TOP === 'leather') {
+    const LC = TOPC.map((v) => v * 0.8);
+    P('spine', torso(LC, 0.004, 1.0));
+    O('spine', loft([rring(0.99, 0.37, 0.25, 0, 0, 14), rring(1.035, 0.372, 0.252, 0, 0, 14)], LC.map((v) => v * 0.7), { amt: 0.03, smooth: true }));
+    for (const s of [-1, 1]) O('spine', loft([[V(s * 0.04, 1.32, F ? 0.142 : 0.13), V(s * 0.15, 1.42, 0.1), V(s * 0.06, 1.46, 0.09)], [V(s * 0.04, 1.32, F ? 0.15 : 0.138), V(s * 0.15, 1.42, 0.108), V(s * 0.06, 1.46, 0.098)]], LC.map((v) => v * 0.7), { amt: 0.03 }));
+    O('spine', tube([V(0.07, 1.0, 0.125), V(0.02, 1.2, F ? 0.135 : 0.125), V(-0.05, 1.4, 0.115)], [0.005, 0.005, 0.005], [150, 150, 156], { n: 4, smooth: false }));
+  } else if (TOP === 'tank') {
+    P('spine', torso(TOPC, -0.008, 0.99, { colfn: (ri) => (ri >= 5 ? SKIN : TOPC) }));
+  } else if (TOP === 'turtle') {
+    P('spine', torso(TOPC, -0.006, 0.99));
+    P('spine', cyl(V(0, 1.42, -0.006), V(0, 1.6, -0.01), 0.066 * (F ? 0.94 : 1), 0.062 * (F ? 0.94 : 1), TOPC.map((v) => v * 0.92), { n: 12, smooth: true }));
   } else {
-    O('spine', tube([V(0, 0.99, 0.113), V(0, 1.05, 0.12), V(0, 1.15, 0.122), V(0, 1.27, 0.123), V(0, 1.37, 0.12), V(0, 1.445, 0.106), V(0, 1.49, 0.07)], [0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005], ZIP, { n: 4, smooth: false }));
-    for (const s of [-1, 1]) O('spine', box(s * 0.11 - 0.006, s * 0.11 + 0.006, 1.08, 1.17, 0.112, 0.124, RIB, 0.03));
+    // bomber jacket
+    P('spine', loft([rring(0.985, 0.336, 0.218, 0, 0, 14), rring(1.04, 0.342, 0.222, 0, 0, 14)], ribCol, { amt: 0.03, smooth: true }));
+    P('spine', torso(TOPC, 0, 1.035));
+    P('spine', loft([rring(1.44, 0.17, 0.152, 0, -0.008, 14), rring(1.475, 0.165, 0.148, 0, -0.009, 14), rring(1.51, 0.152, 0.138, 0, -0.01, 14)], ribCol, { cap: false, amt: 0.03, smooth: true }));
+    O('spine', tube([V(0, 0.99, 0.113), V(0, 1.05, 0.12), V(0, 1.15, 0.122), V(0, 1.27, F ? 0.14 : 0.123), V(0, 1.37, 0.12), V(0, 1.445, 0.106), V(0, 1.49, 0.07)], [0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005], ZIP, { n: 4, smooth: false }));
+    for (const s of [-1, 1]) O('spine', box(s * 0.11 - 0.006, s * 0.11 + 0.006, 1.08, 1.17, 0.112, 0.124, ribCol, 0.03));
   }
 
   // arms
+  const bareArms = TOP === 'tank' || TOP === 'swim';
+  const sleeveCol = bareArms ? SKIN : TOP === 'leather' ? TOPC.map((v) => v * 0.8) : TOP === 'barman' ? JACKET : TOPC;
+  const aw = (TOP === 'hoodie' ? 1.05 : TOP === 'suit' || TOP === 'suitdark' ? 0.94 : TOP === 'turtle' ? 0.86 : bareArms ? 0.78 : 1) * lW;
   for (const s of [-1, 1]) {
     const shK = s > 0 ? 'shL' : 'shR', elK = s > 0 ? 'elL' : 'elR';
-    const sh = V(s * 0.232, 1.40, -0.005), el = V(s * 0.305, 1.12, -0.012), wr = V(s * 0.35, 0.89, 0.03);
+    const ax = (v) => s * v * sX;
+    const sh = V(ax(0.232), 1.40, -0.005), el = V(ax(0.305), 1.12, -0.012), wr = V(s * 0.35 * (F ? 0.93 : 1), 0.89, 0.03);
     const cuff0 = add(wr, mul(sub(el, wr), 0.16));
-    const aw = SWIM ? 0.78 : 1;
-    P(shK, tube([V(s * 0.19, 1.445, -0.005), sh, V(s * 0.272, 1.26, -0.01), el], [0.068 * aw, 0.076 * aw, 0.07 * aw, 0.064 * aw], JACKET, { n: 10 }));
-    P(elK, tube([add(el, V(0, 0.03, 0)), el, V(s * 0.33, 1.0, 0.01), SWIM ? wr : cuff0], [0.06 * aw, 0.064 * aw, 0.064 * aw, 0.062 * aw], JACKET, { n: 10 }));
-    if (!SWIM) P(elK, cyl(cuff0, wr, 0.055, 0.05, RIB, { n: 10, smooth: true }));
-    const hx = wr[0] + s * 0.004, hz = wr[2] + 0.008;
-    P(elK, loft([rring(0.895, 0.036, 0.074, hx, hz, 10), rring(0.845, 0.038, 0.086, hx, hz + 0.004, 10),
-      rring(0.80, 0.034, 0.084, hx - s * 0.002, hz + 0.008, 10), rring(0.76, 0.026, 0.066, hx - s * 0.006, hz + 0.01, 10)], SKIN, { smooth: true }));
-    P(elK, tube([V(hx - s * 0.012, 0.86, hz + 0.035), V(hx - s * 0.02, 0.825, hz + 0.05), V(hx - s * 0.022, 0.805, hz + 0.052)], [0.011, 0.01, 0.008], SKIN_SHAD, { n: 6 }));
+    const cuffCol = TOP === 'barman' ? RIB : TOP === 'bomber' || TOP === 'hoodie' ? ribCol : TOP === 'suit' || TOP === 'suitdark' ? SHIRT : null;
+    P(shK, tube([V(ax(0.19), 1.445, -0.005), sh, V(ax(0.272), 1.26, -0.01), el], [0.068 * aw, 0.076 * aw, 0.07 * aw, 0.064 * aw], sleeveCol, { n: 10 }));
+    P(elK, tube([add(el, V(0, 0.03, 0)), el, V(ax(0.33), 1.0, 0.01), cuffCol ? cuff0 : wr], [0.06 * aw, 0.064 * aw, 0.064 * aw, 0.062 * aw], sleeveCol, { n: 10 }));
+    if (cuffCol) P(elK, cyl(cuff0, wr, 0.055 * (TOP === 'suit' || TOP === 'suitdark' ? 0.9 : 1) * lW, 0.05 * lW, cuffCol, { n: 10, smooth: true }));
+    const hx = wr[0] + s * 0.004, hz = wr[2] + 0.008, hs = F ? 0.88 : 1;
+    P(elK, loft([rring(0.895, 0.036 * hs, 0.074 * hs, hx, hz, 10), rring(0.845, 0.038 * hs, 0.086 * hs, hx, hz + 0.004, 10),
+      rring(0.80, 0.034 * hs, 0.084 * hs, hx - s * 0.002, hz + 0.008, 10), rring(0.76, 0.026 * hs, 0.066 * hs, hx - s * 0.006, hz + 0.01, 10)], SKIN, { smooth: true }));
+    P(elK, tube([V(hx - s * 0.012, 0.86, hz + 0.035), V(hx - s * 0.02, 0.825, hz + 0.05), V(hx - s * 0.022, 0.805, hz + 0.052)], [0.011 * hs, 0.01 * hs, 0.008 * hs], SKIN_SHAD, { n: 6 }));
   }
-  if (look.outfit === 'barman') {
-    // sleeve garters on the white shirt sleeves
+  if (TOP === 'barman') {
     for (const s of [-1, 1]) O(s > 0 ? 'shL' : 'shR', cyl(V(s * 0.262, 1.3, -0.008), V(s * 0.268, 1.27, -0.009), 0.074, 0.073, [24, 24, 28], { n: 10, smooth: true, amt: 0.02 }));
-  } else if (!SWIM) O('shL', box(0.333, 0.35, 1.215, 1.30, -0.032, 0.018, RIB, 0.03));
+  } else if (TOP === 'bomber') O('shL', box(0.333 * sX, 0.35 * sX, 1.215, 1.30, -0.032, 0.018, ribCol, 0.03));
   return { B, B2, ember };
 }
 
@@ -431,7 +539,10 @@ function makeCharacter(look, name, seed) {
   // name tags are crisp HTML labels laid over the 3D view (see placeLabels), not pixelated sprites
   let label = null;
   if (name) { label = document.createElement('div'); label.className = 'nametag'; label.textContent = name; label.hidden = true; labelLayer.appendChild(label); }
-  return { root, bones, ember, label, look, name, seed };
+  // the female body is a touch shorter
+  const baseScale = look.body === 1 ? 0.96 : 1;
+  root.scale.setScalar(baseScale);
+  return { root, bones, ember, label, look, name, seed, baseScale };
 }
 
 // name tags
@@ -1234,7 +1345,7 @@ const smoke = new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0x8c8780,
 smoke.frustumCulled = false; scene.add(smoke);
 
 // ---------------------------------------------------------------- crowd
-const HOST_LOOK = { jacket: 0, pants: 0, skin: 2, head: 0, hair: 0, beard: 2, eyes: 1, smoke: 2, dance: 3, spot: 1 };
+const HOST_LOOK = { jacket: 0, pants: 1, skin: 2, head: 0, hair: 0, beard: 2, eyes: 1, smoke: 2, dance: 3, spot: 1, body: 0, top: 2, bottom: 2, shoes: 2 };
 const BARTENDER_LOOK = { jacket: 2, pants: 1, skin: 4, head: 1, hair: 1, beard: 1, eyes: 0, smoke: 0, dance: 3, spot: 1, outfit: 'barman' };
 const DJ_LOOK = { jacket: 4, pants: 1, skin: 3, head: 3, hair: 1, beard: 1, eyes: 2, smoke: 0, dance: 3, spot: 0 };
 const crowd = [];
@@ -1967,7 +2078,7 @@ function tick() {
     if (ch.pop !== undefined && ch.pop < 1) {
       ch.pop = Math.min(1, ch.pop + dt * 3.2);
       const p = ch.pop - 1, sc = 1 + 2.2 * p * p * p + 1.2 * p * p; // ease out with a little overshoot
-      ch.root.scale.setScalar(Math.max(0.02, sc));
+      ch.root.scale.setScalar(Math.max(0.02, sc) * (ch.baseScale || 1));
     }
   }
   if (ring.visible) ringMat.opacity = 0.55 + 0.3 * Math.sin(t * 5);
@@ -2077,11 +2188,11 @@ function expireBubbles() { /* handled in placeLabels */ }
 
 // creator
 let draft = null, draftChar = null;
-function loadMine() { try { const s = localStorage.getItem('sh1den-bar-me'); if (s) { const e = JSON.parse(s); if (e && NAME_RE.test(e.name) && /^\d{10}$/.test(e.code)) return e; } } catch (e) { } return null; }
+function loadMine() { try { const s = localStorage.getItem('sh1den-bar-me'); if (s) { const e = JSON.parse(s); if (e && NAME_RE.test(e.name) && CODE_RE.test(e.code)) return e; } } catch (e) { } return null; }
 function saveMine(e) { try { localStorage.setItem('sh1den-bar-me', JSON.stringify(e)); } catch (err) { } }
 function renderOptions() {
   const box = $('opts'); box.textContent = '';
-  for (const k of KEYS) {
+  for (const k of UI_KEYS) {
     if (k === 'hair' && draft.head === 0 && draft.beard === 0) continue;
     const row = document.createElement('div'); row.className = 'opt';
     const lab = document.createElement('span'); lab.className = 'lab'; lab.textContent = LABELS[k];
@@ -2170,14 +2281,15 @@ $('pix').onclick = () => { pixels = !pixels; snapOn.value = pixels ? 1 : 0; $('p
 
 // ---------------------------------------------------------------- API for the room layer (net.js)
 window.BAR = {
-  setRegulars(list) { roster = Array.isArray(list) ? list.filter((e) => e && NAME_RE.test(e.name) && /^\d{10}$/.test(e.code)) : []; rebuild(); },
+  setRegulars(list) { roster = Array.isArray(list) ? list.filter((e) => e && NAME_RE.test(e.name) && CODE_RE.test(e.code)) : []; rebuild(); },
   setMyUid(uid) { myUid = uid; rebuild(); },
-  setMine(entry) { if (entry && NAME_RE.test(entry.name) && /^\d{10}$/.test(entry.code)) { myEntry = entry; saveMine(entry); $('createBtn').textContent = 'Edit my character'; rebuild(); } },
+  setMine(entry) { if (entry && NAME_RE.test(entry.name) && CODE_RE.test(entry.code)) { myEntry = entry; saveMine(entry); $('createBtn').textContent = 'Edit my character'; rebuild(); } },
   getMine() { return myEntry; },
   bubble: showBubble,
   setDucked,
   setTvOn(on) { tvOn = !!on; },
   getMyState() { return myState; },
+  _parts(look) { const r = buildParts(Object.assign(randomLook(Math.random), look), 1); return { B: r.B, B2: r.B2 }; },
   setJukebox(i, by, fresh) {
     if (!(i >= 0 && i < TRACKS.length)) return;
     if (i !== trackIdx) pickTrack(i);
