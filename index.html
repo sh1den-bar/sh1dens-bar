@@ -36,6 +36,9 @@ canvas:active { cursor: grabbing; }
 #labels { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .nametag { position: absolute; left: 0; top: 0; font: 500 12px/1 var(--mono); color: #ece6da; background: rgba(6, 7, 10, 0.72);
   border: 1px solid rgba(226, 180, 103, 0.25); padding: 3px 7px; border-radius: 3px; white-space: nowrap; will-change: transform; }
+.bubble { position: absolute; left: 0; top: 0; max-width: 220px; font: 400 13px/1.35 var(--mono); color: #17110a; background: #efe7d8;
+  padding: 6px 9px; border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.45); white-space: normal; overflow-wrap: anywhere; will-change: transform, opacity; }
+.bubble::after { content: ""; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #efe7d8; }
 .nametag.mine { color: #ffd28a; border-color: rgba(255, 210, 138, 0.6); }
 .nametag.host { color: var(--neon); border-color: rgba(226, 180, 103, 0.7); }
 #hint { position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none; font: 500 12px/1.2 var(--mono); color: #1a1206;
@@ -279,9 +282,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=9"></script>
-<script src="net.js?v=9"></script>
-<script src="bar.js?v=9"></script>
+<script src="config.js?v=10"></script>
+<script src="net.js?v=10"></script>
+<script src="bar.js?v=10"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

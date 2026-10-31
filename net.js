@@ -98,7 +98,7 @@ function joined() {
   NET.setActivity = function (spot, drink) {
     const moved = (spot || '') !== myAct.s;
     myAct = { s: spot || '', d: drink || '', t: moved ? 0 : myAct.t };
-    pres.set(myPresence()).catch((e) => window.BAR.toast(friendly(e)));
+    pres.set(myPresence()).catch(() => window.BAR.toast(banned ? "You're banned from this room." : "Couldn't move there. The room's Firebase rules may need updating."));
   };
   db.ref('presence').on('value', (s) => {
     const n = s.numChildren();

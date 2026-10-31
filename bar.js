@@ -1162,7 +1162,7 @@ function setCue(ch, on) {
   else if (!on && ch.cue) { ch.bones.spine.remove(ch.cue); ch.cue = null; }
 }
 
-function dropLabel(ch) { if (ch && ch.label) { ch.label.remove(); ch.label = null; } }
+function dropLabel(ch) { if (!ch) return; if (ch.label) { ch.label.remove(); ch.label = null; } if (ch.bubbleEl) { ch.bubbleEl.remove(); ch.bubbleEl = null; } }
 function clearCrowd() { for (const ch of crowd) { scene.remove(ch.root); if (ch !== draftChar) dropLabel(ch); } crowd.length = 0; }
 function addChar(look, name, opts) {
   opts = opts || {};
@@ -1477,19 +1477,29 @@ function placeLabels() {
   const here = camT.free ? null : roomAt(cam.tx, cam.tz);
   camera.updateMatrixWorld();
   for (const ch of crowd) {
-    const el = ch.label; if (!el) continue;
-    if (!ch.root.visible) { if (!el.hidden) el.hidden = true; continue; }
-    ch.root.updateMatrixWorld(true);
-    labelV.set(0, 0.42, 0); ch.bones.head.localToWorld(labelV);
-    const dist = labelV.distanceTo(camera.position);
-    labelV.project(camera);
-    if (labelV.z > 1 || labelV.z < -1 || Math.abs(labelV.x) > 1.1 || Math.abs(labelV.y) > 1.1 || dist > 40) { if (!el.hidden) el.hidden = true; continue; }
-    if (el.hidden) el.hidden = false;
-    const x = Math.round((labelV.x + 1) / 2 * w), y = Math.round((1 - labelV.y) / 2 * h);
-    el.style.transform = 'translate(' + x + 'px,' + y + 'px) translate(-50%,-100%)';
-    const r = roomAt(ch.root.position.x, ch.root.position.z);
-    el.style.opacity = here && r !== here ? '0.45' : '1';
-    el.style.zIndex = String(1000 - Math.round(dist * 10));
+    const el = ch.label;
+    if (!el && !ch.bubbleEl && !bubbleStore.has(bubbleKey(ch))) continue;
+    let show = ch.root.visible, x = 0, y = 0, op = 1, dist = 0;
+    if (show) {
+      ch.root.updateMatrixWorld(true);
+      labelV.set(0, 0.42, 0); ch.bones.head.localToWorld(labelV);
+      dist = labelV.distanceTo(camera.position);
+      labelV.project(camera);
+      if (labelV.z > 1 || labelV.z < -1 || Math.abs(labelV.x) > 1.1 || Math.abs(labelV.y) > 1.1 || dist > 40) show = false;
+      x = Math.round((labelV.x + 1) / 2 * w); y = Math.round((1 - labelV.y) / 2 * h);
+      const r = roomAt(ch.root.position.x, ch.root.position.z);
+      op = here && r !== here ? 0.45 : 1;
+    }
+    if (el) {
+      if (el.hidden === show) el.hidden = !show;
+      if (show) {
+        el.style.transform = 'translate(' + x + 'px,' + y + 'px) translate(-50%,-100%)';
+        el.style.opacity = String(op);
+        el.style.zIndex = String(1000 - Math.round(dist * 10));
+      }
+    }
+    syncBubble(ch, x, y, show, op);
+    if (ch.bubbleEl && show) ch.bubbleEl.style.zIndex = String(2000 - Math.round(dist * 10));
   }
 }
 function updateCamera(dt, t) {
@@ -1841,47 +1851,36 @@ function updateRosterUI() {
   }
 }
 
-// speech bubbles over characters
-function makeBubble(text) {
-  const words = String(text).replace(/\s+/g, ' ').trim().split(' ');
-  const lines = []; let cur = '';
-  for (const w of words) {
-    const nxt = cur ? cur + ' ' + w : w;
-    if (nxt.length > 24 && cur) { lines.push(cur); cur = w; } else cur = nxt;
-    if (lines.length === 2) break;
-  }
-  if (lines.length < 2 && cur) lines.push(cur);
-  if (lines.length === 2 && words.join(' ').length > lines.join(' ').length) lines[1] = lines[1].slice(0, 22) + '…';
-  for (let i = 0; i < lines.length; i++) if (lines[i].length > 26) lines[i] = lines[i].slice(0, 25) + '…';
-  const c = document.createElement('canvas'), x = c.getContext('2d');
-  x.font = '26px ' + tagFont;
-  const w = Math.ceil(Math.max(...lines.map((l) => x.measureText(l).width))) + 20, h = lines.length * 26 + 16;
-  c.width = w; c.height = h + 8;
-  x.fillStyle = 'rgba(236,228,214,0.95)'; x.fillRect(0, 0, w, h);
-  x.beginPath(); x.moveTo(w / 2 - 7, h); x.lineTo(w / 2 + 7, h); x.lineTo(w / 2, h + 8); x.fill();
-  x.font = '26px ' + tagFont; x.fillStyle = '#140f0c'; x.textBaseline = 'top';
-  lines.forEach((l, i) => x.fillText(l, 10, 8 + i * 26));
-  const tex = new THREE.CanvasTexture(c); tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, fog: false }));
-  sp.scale.set(w / (h + 8) * (0.12 * (h + 8) / 36), 0.12 * (h + 8) / 36, 1);
-  return sp;
-}
+// speech bubbles: crisp HTML over the 3D view like the name tags; they survive the crowd being rebuilt
+const bubbleStore = new Map(); // character key -> { text, until }
+const bubbleKey = (ch) => ch.uid || (ch.npc ? 'npc-' + ch.seed : ch.name) || '';
 function showBubble(uid, text) {
   const ch = crowd.find((c) => c.uid && c.uid === uid);
   if (ch) showBubbleOn(ch, text);
 }
 function showBubbleOn(ch, text) {
-  if (ch.bubble) { ch.bones.head.remove(ch.bubble); ch.bubble.material.map.dispose(); ch.bubble.material.dispose(); }
-  ch.bubble = makeBubble(text);
-  ch.bubble.position.set(0, 0.6, 0);
-  ch.bones.head.add(ch.bubble);
-  ch.bubbleUntil = clock.elapsedTime + 7;
+  let t = String(text).replace(/\s+/g, ' ').trim();
+  if (t.length > 90) t = t.slice(0, 88) + '…';
+  bubbleStore.set(bubbleKey(ch), { text: t, until: performance.now() + 7000 });
+  if (ch.bubbleEl) { ch.bubbleEl.remove(); ch.bubbleEl = null; }
 }
-function expireBubbles() {
-  for (const ch of crowd) if (ch.bubble && clock.elapsedTime > ch.bubbleUntil) {
-    ch.bones.head.remove(ch.bubble); ch.bubble.material.map.dispose(); ch.bubble.material.dispose(); ch.bubble = null;
+function syncBubble(ch, x, y, visible, opacity) {
+  const b = bubbleStore.get(bubbleKey(ch));
+  const live = b && b.until > performance.now();
+  if (!live) {
+    if (b) bubbleStore.delete(bubbleKey(ch));
+    if (ch.bubbleEl) { ch.bubbleEl.remove(); ch.bubbleEl = null; }
+    return;
   }
+  if (!ch.bubbleEl) { ch.bubbleEl = document.createElement('div'); ch.bubbleEl.className = 'bubble'; ch.bubbleEl.textContent = b.text; labelLayer.appendChild(ch.bubbleEl); }
+  ch.bubbleEl.hidden = !visible;
+  if (!visible) return;
+  // fade out over the last second
+  const left = b.until - performance.now();
+  ch.bubbleEl.style.opacity = String(Math.min(opacity, left < 1000 ? left / 1000 : 1));
+  ch.bubbleEl.style.transform = 'translate(' + x + 'px,' + y + 'px) translate(-50%,-100%) translateY(' + (ch.label ? -26 : -6) + 'px)';
 }
+function expireBubbles() { /* handled in placeLabels */ }
 
 // creator
 let draft = null, draftChar = null;
