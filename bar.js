@@ -1586,7 +1586,11 @@ function focusChar(ch) {
   });
 }
 let drag = null;
-canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, t: performance.now() }; velYaw = velPitch = 0; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse') return; // with a mouse the camera moves with WASD only; clicks are for picking spots
+  drag = { x: e.clientX, y: e.clientY, t: performance.now() }; velYaw = velPitch = 0; canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 canvas.addEventListener('pointermove', (e) => {
   if (!drag) return;
   const now = performance.now(), edt = Math.max(1 / 240, (now - drag.t) / 1000);
@@ -1816,7 +1820,7 @@ function pickTarget(clientX, clientY) {
 }
 function showHover(tg, x, y, touch) {
   hovered = tg;
-  if (!tg) { ring.visible = false; hintEl.hidden = true; canvas.style.cursor = drag ? 'grabbing' : 'grab'; return; }
+  if (!tg) { ring.visible = false; hintEl.hidden = true; canvas.style.cursor = 'default'; return; }
   const info = describe(tg);
   if (tg.kind === 'spot') { ring.position.set(tg.s.hit.x, 0.03, tg.s.hit.z); ring.scale.setScalar(Math.max(tg.s.hit.sx, tg.s.hit.sz) * 0.55); }
   else { ring.position.set(tg.o.floor[0], 0.03, tg.o.floor[1]); ring.scale.setScalar(tg.o.size); }
@@ -1839,6 +1843,7 @@ canvas.addEventListener('pointerleave', () => { if (!armed) showHover(null); });
 canvas.addEventListener('pointerdown', () => { closeDrinkMenu(); });
 canvas.addEventListener('pointerup', (e) => {
   const d0 = upInfo; upInfo = null;
+  if (e.button !== 0) return; // only the left button picks a spot
   if (!d0 || Math.abs(e.clientX - d0.x0) > 6 || Math.abs(e.clientY - d0.y0) > 6 || performance.now() - d0.t0 > 600) return;
   const tg = pickTarget(e.clientX, e.clientY);
   if (e.pointerType === 'touch') {

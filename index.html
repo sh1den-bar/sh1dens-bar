@@ -28,8 +28,7 @@ html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 13px; overflow: hidden; }
 [hidden] { display: none !important; }
 #stage { position: fixed; inset: 0; }
-canvas { position: relative; z-index: 1; width: 100%; height: 100%; display: block; image-rendering: pixelated; cursor: grab; touch-action: none; }
-canvas:active { cursor: grabbing; }
+canvas { position: relative; z-index: 1; width: 100%; height: 100%; display: block; image-rendering: pixelated; cursor: default; touch-action: none; }
 .css3d { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.17s ease; z-index: 1; }
 @media (prefers-reduced-motion: reduce) { #fade { transition: none; } }
@@ -197,7 +196,7 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
     <button id="track" type="button" title="Next track">Jukebox</button>
     <button id="pix" type="button" aria-pressed="true">PS1 mode</button>
     <button id="mute" type="button" aria-pressed="false">Sound on</button>
-    <span class="keyhint">WASD move · Q/E turn · Shift faster</span>
+    <span class="keyhint">WASD move · Q/E turn · Shift faster · scroll zoom · click a spot to go there</span>
   </div>
 
   <section class="panel" id="whoPanel" hidden aria-label="Who's here">
@@ -283,9 +282,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=15"></script>
-<script src="net.js?v=15"></script>
-<script src="bar.js?v=15"></script>
+<script src="config.js?v=16"></script>
+<script src="net.js?v=16"></script>
+<script src="bar.js?v=16"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };
