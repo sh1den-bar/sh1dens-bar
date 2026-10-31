@@ -385,33 +385,50 @@ function syncTv(force) {
     db.ref('tv/dur/' + id).once('value', (s) => { if (s.exists() && current && current.id === id) { curDur = s.val(); durWritten = true; } });
   }
 }
+// the video's length, read while it is actually playing (during an ad YouTube may report the ad instead)
+function noteDuration() {
+  if (!current || !playerReady) return;
+  const d = player.getDuration();
+  if (!(d > 0)) return;
+  if (!curDur) curDur = d;
+  if (durWritten) return;
+  durWritten = true;
+  const id = current.id;
+  db.ref('tv/dur/' + id).set(Math.round(d)).catch(() => {
+    // usually someone else already saved it; only a genuinely too-long video gets skipped
+    db.ref('tv/dur/' + id).once('value', (s) => {
+      if (s.exists()) { if (current && current.id === id) curDur = s.val(); return; }
+      if (current && current.id === id) { tooLong = true; tvMsg('This video is longer than the room allows. It will be skipped.'); }
+    });
+  });
+}
 function onState(e) {
   if (!current) return;
   if (e.data === 1) {
-    const d = player.getDuration();
-    if (d > 0 && !curDur) curDur = d;
-    if (d > 0 && !durWritten) {
-      durWritten = true;
-      db.ref('tv/dur/' + current.id).set(Math.round(d)).catch(() => {
-        // too long for the room's limit: the rules then let anyone skip it after 30 seconds
-        tooLong = true;
-        tvMsg('This video is longer than the room allows. It will be skipped.');
-      });
-    }
+    noteDuration();
     renderNow();
   } else if (e.data === 0) {
-    advance(current.id);
+    // YouTube can report "ended" when an ad finishes, so only move on when the video itself is really over
+    const ct = player.getCurrentTime ? player.getCurrentTime() : 0;
+    if ((curDur && (ct >= curDur - 3 || expected() >= curDur - 3)) || errored) advance(current.id);
+    else player.playVideo();
   }
 }
+let lastSeek = 0;
 function driftCheck() {
   if (!current || !playerReady || !entered) return;
   const exp = expected();
+  if (player.getPlayerState() === 1) noteDuration();
   if (curDur && exp > curDur + 2) { advance(current.id); return; }
-  if (exp > 31 && (errored || tooLong || !curDur)) { const st = player.getPlayerState(); if (errored || tooLong || st !== 1) { advance(current.id); return; } }
+  // broken videos: skip only on a real error or a too-long video, or if nothing has loaded for a long time
+  // (ads can easily take 30+ seconds before the video starts, so "not playing yet" is not a reason to skip)
+  if (exp > 31 && (errored || tooLong)) { advance(current.id); return; }
+  if (exp > 180 && !curDur) { advance(current.id); return; }
   const st = player.getPlayerState();
-  if (st === 1 || st === 2 || st === 3) {
+  if (st === 1) {
     const ct = player.getCurrentTime();
-    if (Math.abs(ct - exp) > 2.5 && (!curDur || exp < curDur - 1)) player.seekTo(exp, true);
+    // only correct drift while the actual video is playing, at most every 10 seconds
+    if (Math.abs(ct - exp) > 3 && (!curDur || exp < curDur - 1) && Date.now() - lastSeek > 10000) { lastSeek = Date.now(); player.seekTo(exp, true); }
   }
   if (st === 2 || st === 5 || st === -1) player.playVideo();
 }
