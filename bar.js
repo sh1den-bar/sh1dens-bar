@@ -2630,7 +2630,8 @@ function refreshDraft() {
   focusChar(draftChar);
 }
 function openCreator() {
-  draft = myEntry ? codeToLook(myEntry.code) : randomLook(Math.random);
+  // new characters start without a cigarette; they can pick one in the Smoke option
+  draft = myEntry ? codeToLook(myEntry.code) : Object.assign(randomLook(Math.random), { smoke: 0 });
   if (draft.spot === 4 && !isMod) draft.spot = 1;
   $('nm').value = myEntry ? myEntry.name : '';
   $('nmErr').hidden = true;
@@ -2642,7 +2643,7 @@ function closeCreator() {
   $('creator').hidden = true; setView('room');
 }
 $('nm').addEventListener('input', () => { if (draftChar) refreshDraft(); });
-$('rand').onclick = () => { draft = randomLook(Math.random); refreshDraft(); };
+$('rand').onclick = () => { draft = Object.assign(randomLook(Math.random), { smoke: draft ? draft.smoke : 0 }); refreshDraft(); };
 let saving = false;
 $('form').addEventListener('submit', async (e) => {
   e.preventDefault();
