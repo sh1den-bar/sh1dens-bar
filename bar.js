@@ -510,7 +510,7 @@ function pose(ch, act, beat, t) {
 //   [ TV room   ][ Main bar   ][ Dance room ]
 const canvas = document.getElementById('c');
 const stage = document.getElementById('stage');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true });
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.setClearColor(0x04060a, 1);
 const scene = new THREE.Scene();
@@ -1011,7 +1011,9 @@ doorSign('BILLIARDS', -9.2, -3.97, 0); doorSign('CINEMA', -9.2, -4.03, Math.PI);
 doorSign('VIP', -5.03, -7.75, -Math.PI / 2); doorSign('BILLIARDS', -4.97, -7.75, Math.PI / 2);
 
 // the TV: a black screen in 3D, with the YouTube player laid over it in CSS 3D
-const tvGlass = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), decal({ color: 0x050506 }));
+// the screen punches a see-through hole in the 3D picture; the video sits behind the canvas and shows only through it,
+// so walls and people in front of the TV hide it properly
+const tvGlass = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), decal({ color: 0x000000, opacity: 0, blending: THREE.NoBlending, fog: false }));
 tvGlass.position.set(TV.x, TV.y, TV.z); tvGlass.rotation.y = Math.PI / 2; scene.add(tvGlass);
 const tvLight = new THREE.PointLight(0x9aa6ff, 0, 6, 1.5); tvLight.position.set(-11.6, TV.y, TV.z); scene.add(tvLight);
 let tvOn = false, cssRenderer = null, cssScene = null;
@@ -1019,7 +1021,7 @@ if (THREE.CSS3DRenderer && document.getElementById('tvScreen')) {
   cssScene = new THREE.Scene();
   cssRenderer = new THREE.CSS3DRenderer();
   cssRenderer.domElement.className = 'css3d';
-  stage.insertBefore(cssRenderer.domElement, canvas.nextSibling);
+  stage.insertBefore(cssRenderer.domElement, canvas);
   const el = document.getElementById('tvScreen');
   const obj = new THREE.CSS3DObject(el);
   el.style.pointerEvents = 'none';
