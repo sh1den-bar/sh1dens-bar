@@ -82,7 +82,7 @@ function joined() {
   $('myId').textContent = NET.uid;
   window.BAR.setMyUid(NET.uid);
   db.ref('.info/serverTimeOffset').on('value', (s) => { offset = s.val() || 0; });
-  db.ref('admins/' + NET.uid).on('value', (s) => { NET.isAdmin = s.exists(); $('adminBox').hidden = !NET.isAdmin; renderChat(); renderQueue(); renderNow(); });
+  db.ref('admins/' + NET.uid).on('value', (s) => { NET.isAdmin = s.exists(); $('adminBox').hidden = !NET.isAdmin; window.BAR.setMod(NET.isAdmin); renderChat(); renderQueue(); renderNow(); });
   db.ref('bans/' + NET.uid).on('value', (s) => { banned = s.exists(); updateComposer(); });
 
   const pres = db.ref('presence/' + NET.uid);

@@ -1,0 +1,96 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "admins": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid"
+      }
+    },
+    "bans": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || root.child('admins').child(auth.uid).exists())",
+        ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+        ".validate": "newData.isBoolean()"
+      }
+    },
+    "presence": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && auth.uid == $uid",
+        ".validate": "newData.isBoolean()"
+      }
+    },
+    "last": {
+      "$uid": {
+        ".write": "auth != null && auth.uid == $uid",
+        ".validate": "newData.val() == now && (!data.exists() || data.val() < now - 3000 || root.child('admins').child(auth.uid).exists())"
+      }
+    },
+    "names": {
+      ".read": true,
+      "$name": {
+        ".write": "auth != null && ((!root.child('bans').child(auth.uid).exists() && (!data.exists() || data.val() == auth.uid)) || root.child('admins').child(auth.uid).exists())",
+        ".validate": "newData.isString() && newData.val() == auth.uid && $name.matches(/^[a-z0-9_]{3,25}$/) && ($name != 'sh1denfps' || root.child('admins').child(auth.uid).exists())"
+      }
+    },
+    "chars": {
+      ".read": true,
+      ".indexOn": [
+        "t"
+      ],
+      "$uid": {
+        ".write": "auth != null && ((auth.uid == $uid && !root.child('bans').child(auth.uid).exists()) || root.child('admins').child(auth.uid).exists())",
+        ".validate": "newData.hasChildren(['name', 'code', 't']) && newData.child('name').isString() && newData.child('name').val().matches(/^[A-Za-z0-9_]{3,25}$/) && newData.child('code').isString() && (newData.child('code').val().matches(/^[0-9]{9}[0-3]$/) || (newData.child('code').val().matches(/^[0-9]{10}$/) && root.child('admins').child(auth.uid).exists())) && newData.child('t').val() == now && newData.parent().parent().child('names').child(newData.child('name').val().toLowerCase()).val() == $uid",
+        "$other": {
+          ".validate": "$other == 'name' || $other == 'code' || $other == 't'"
+        }
+      }
+    },
+    "chat": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists() && !newData.exists()",
+      "$id": {
+        ".write": "auth != null && ((!data.exists() && !root.child('bans').child(auth.uid).exists()) || root.child('admins').child(auth.uid).exists())",
+        ".validate": "newData.hasChildren(['uid', 'name', 'text', 't']) && newData.child('uid').val() == auth.uid && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 200 && newData.child('t').val() == now && newData.parent().parent().child('last').child(auth.uid).val() == now && root.child('names').child(newData.child('name').val().toLowerCase()).val() == auth.uid",
+        "$other": {
+          ".validate": "$other == 'uid' || $other == 'name' || $other == 'text' || $other == 't'"
+        }
+      }
+    },
+    "tv": {
+      ".read": true,
+      "queue": {
+        "$id": {
+          ".write": "auth != null && ((!data.exists() && !root.child('bans').child(auth.uid).exists()) || (!newData.exists() && (data.child('uid').val() == auth.uid || root.child('admins').child(auth.uid).exists() || newData.parent().parent().child('current').child('id').val() == $id)))",
+          ".validate": "newData.hasChildren(['v', 'uid', 'name', 't']) && newData.child('v').isString() && newData.child('v').val().matches(/^[A-Za-z0-9_-]{11}$/) && newData.child('uid').val() == auth.uid && newData.child('t').val() == now && newData.parent().parent().parent().child('last').child(auth.uid).val() == now && root.child('names').child(newData.child('name').val().toLowerCase()).val() == auth.uid",
+          "title": {
+            ".validate": "newData.isString() && newData.val().length <= 150"
+          },
+          "$other": {
+            ".validate": "$other == 'v' || $other == 'uid' || $other == 'name' || $other == 't' || $other == 'title'"
+          }
+        }
+      },
+      "current": {
+        ".write": "auth != null && !root.child('bans').child(auth.uid).exists() && (root.child('admins').child(auth.uid).exists() || !data.exists() || (root.child('tv/dur').child(data.child('id').val()).exists() && data.child('at').val() + root.child('tv/dur').child(data.child('id').val()).val() * 1000 - 4000 < now) || (!root.child('tv/dur').child(data.child('id').val()).exists() && data.child('at').val() + 30000 < now))",
+        ".validate": "!newData.exists() || (newData.hasChildren(['v', 'id', 'uid', 'name', 'at']) && newData.child('at').val() == now && root.child('tv/queue').child(newData.child('id').val()).child('v').val() == newData.child('v').val() && root.child('tv/queue').child(newData.child('id').val()).child('uid').val() == newData.child('uid').val())",
+        "title": {
+          ".validate": "newData.isString() && newData.val().length <= 150"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length <= 25"
+        },
+        "$other": {
+          ".validate": "$other == 'v' || $other == 'id' || $other == 'uid' || $other == 'name' || $other == 'at' || $other == 'title'"
+        }
+      },
+      "dur": {
+        "$id": {
+          ".write": "auth != null && !data.exists() && root.child('tv/current/id').val() == $id",
+          ".validate": "newData.isNumber() && newData.val() > 0 && (newData.val() <= 900 || root.child('admins').child(root.child('tv/current/uid').val()).exists())"
+        }
+      }
+    }
+  }
+}

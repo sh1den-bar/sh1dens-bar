@@ -139,6 +139,7 @@ function ps1(mat) {
   return mat;
 }
 const charMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true }));
+const charOverMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -6 }));
 
 // ---------------------------------------------------------------- character looks
 const LOOK = {
@@ -151,7 +152,7 @@ const LOOK = {
   eyes: [['Bare eyes', 0], ['Round glasses', 1], ['Shades', 2]],
   smoke: [['No smoke', 0], ['Cigarette', 1], ['Cigar', 2]],
   dance: [['Bounce', 0], ['Two-step', 1], ['Hands up', 2], ['Head nod', 3]],
-  spot: [['Dance room', 0], ['Main bar', 1], ['TV room', 2], ['Pool room', 3]]
+  spot: [['Dance room', 0], ['Main bar', 1], ['TV room', 2], ['Pool room', 3], ['VIP lounge (mods)', 4]]
 };
 const KEYS = ['jacket', 'pants', 'skin', 'head', 'hair', 'beard', 'eyes', 'smoke', 'dance', 'spot'];
 const LABELS = { jacket: 'Jacket', pants: 'Pants', skin: 'Skin', head: 'Head', hair: 'Hair color', beard: 'Beard', eyes: 'Eyes', smoke: 'Smoke', dance: 'Dance move', spot: 'Hangout' };
@@ -162,7 +163,7 @@ function codeToLook(c) {
   KEYS.forEach((k, i) => { const d = parseInt(c[i], 10); l[k] = isNaN(d) ? 0 : d % LOOK[k].length; });
   return l;
 }
-function randomLook(r) { const l = {}; KEYS.forEach((k) => { l[k] = Math.floor(r() * LOOK[k].length); }); return l; }
+function randomLook(r) { const l = {}; KEYS.forEach((k) => { l[k] = Math.floor(r() * LOOK[k].length); }); if (l.spot === 4) l.spot = 1; return l; }
 const NAME_RE = /^[A-Za-z0-9_]{3,25}$/;
 function parseBarCode(text) {
   const m = String(text).trim().replace(/^!bar\s+/i, '').match(/^([A-Za-z0-9_]{3,25})-(\d{10})$/);
@@ -217,6 +218,9 @@ function buildParts(look, seed) {
   RNG = rngFrom(seed);
   const B = {}; for (const k in PIV) B[k] = [];
   const P = (k, p) => B[k].push(p);
+  // thin layers that sit millimetres above another surface (stubble, beard, pockets, zipper) get drawn with a depth bias
+  const B2 = {}; for (const k in PIV) B2[k] = [];
+  const O = (k, p) => B2[k].push(p);
   const SKIN = LOOK.skin[look.skin][1];
   const SKIN_SHAD = SKIN.map((v) => v * 0.83);
   const LIP = SKIN.map((v) => v * 0.72);
@@ -236,41 +240,41 @@ function buildParts(look, seed) {
   const upper = PROFILE.slice(5);
   if (look.head === 0) {
     const stub = [SKIN[0] * 0.44 + HAIR[0] * 0.2, SKIN[1] * 0.44 + HAIR[1] * 0.2, SKIN[2] * 0.44 + HAIR[2] * 0.2];
-    P('head', loft(upper.map((p) => headRing(p, 0.0018, clamp[p[0]])), stub, { amt: 0.06, smooth: true, center: hc }));
+    O('head', loft(upper.map((p) => headRing(p, 0.0018, clamp[p[0]])), stub, { amt: 0.06, smooth: true, center: hc }));
   } else if (look.head === 1) {
     const c2 = Object.assign({}, clamp, { 1.738: 0.06, 1.762: 0.095 });
-    P('head', loft(upper.map((p) => headRing(p, 0.008, c2[p[0]])), HAIR, { amt: 0.08, smooth: true, center: hc }));
+    O('head', loft(upper.map((p) => headRing(p, 0.008, c2[p[0]])), HAIR, { amt: 0.08, smooth: true, center: hc }));
   } else if (look.head === 2) {
     const BEANIE = JACKET.map((v, i) => Math.min(255, v * 1.25 + [8, 6, 4][i]));
     const rings = PROFILE.slice(9).map((p) => headRing(p, 0.013, p[0] < 1.72 ? -0.02 : null));
     rings.push(headRing([1.848, 0.012, 0.01, 0.014, -0.016], 0));
     P('head', loft(rings, BEANIE, { amt: 0.05, smooth: true, center: hc }));
     P('head', loft([headRing(PROFILE[10], 0.017), headRing(PROFILE[11], 0.016)], BEANIE.map((v) => v * 0.8), { amt: 0.04, smooth: true, center: hc }));
-    P('head', loft(upper.slice(0, 5).map((p) => headRing(p, 0.0018, clamp[p[0]])), SKIN.map((v) => v * 0.5), { amt: 0.05, smooth: true, center: hc }));
+    O('head', loft(upper.slice(0, 5).map((p) => headRing(p, 0.0018, clamp[p[0]])), SKIN.map((v) => v * 0.5), { amt: 0.05, smooth: true, center: hc }));
   } else {
     const CAP = JACKET.map((v) => Math.min(255, v * 1.3));
     P('head', loft(PROFILE.slice(10).map((p) => headRing(p, 0.01)), CAP, { amt: 0.05, smooth: true, center: hc }));
     P('head', loft([rring(1.755, 0.15, 0.09, 0, 0.125, 10, 2.4), rring(1.762, 0.15, 0.09, 0, 0.13, 10, 2.4)], CAP.map((v) => v * 0.85), { amt: 0.04 }));
-    P('head', loft(upper.slice(0, 5).map((p) => headRing(p, 0.0018, clamp[p[0]])), HAIR, { amt: 0.06, smooth: true, center: hc }));
+    O('head', loft(upper.slice(0, 5).map((p) => headRing(p, 0.0018, clamp[p[0]])), HAIR, { amt: 0.06, smooth: true, center: hc }));
   }
   if (look.beard === 2) {
-    P('head', loft(PROFILE.slice(0, 6).map((p, i) => headRing(p, 0.0075 * (1 - 0.7 * i / 5))), HAIR.map((v) => v * 1.1 + 4), { amt: 0.05, smooth: true, center: hc }));
-    P('head', loft([rring(1.622, 0.07, 0.016, 0, 0.098, 8), rring(1.636, 0.05, 0.014, 0, 0.104, 8)], HAIR, { amt: 0.03, smooth: true }));
+    O('head', loft(PROFILE.slice(0, 6).map((p, i) => headRing(p, 0.0075 * (1 - 0.7 * i / 5))), HAIR.map((v) => v * 1.1 + 4), { amt: 0.05, smooth: true, center: hc }));
+    O('head', loft([rring(1.622, 0.07, 0.016, 0, 0.098, 8), rring(1.636, 0.05, 0.014, 0, 0.104, 8)], HAIR, { amt: 0.03, smooth: true }));
   } else if (look.beard === 1) {
-    P('head', loft(PROFILE.slice(0, 6).map((p) => headRing(p, 0.0016)), SKIN.map((v, i) => v * 0.55 + HAIR[i] * 0.15), { amt: 0.05, smooth: true, center: hc }));
+    O('head', loft(PROFILE.slice(0, 6).map((p) => headRing(p, 0.0016)), SKIN.map((v, i) => v * 0.55 + HAIR[i] * 0.15), { amt: 0.05, smooth: true, center: hc }));
   }
-  P('head', loft([rring(1.606, 0.04, 0.012, 0, 0.099, 8), rring(1.613, 0.044, 0.012, 0, 0.101, 8)], LIP, { amt: 0.03, smooth: true }));
+  O('head', loft([rring(1.606, 0.04, 0.012, 0, 0.099, 8), rring(1.613, 0.044, 0.012, 0, 0.101, 8)], LIP, { amt: 0.03, smooth: true }));
   P('head', loft([rring(1.722, 0.020, 0.014, 0, 0.100, 8), rring(1.700, 0.022, 0.020, 0, 0.108, 8), rring(1.676, 0.026, 0.028, 0, 0.114, 8),
     rring(1.658, 0.034, 0.034, 0, 0.117, 8), rring(1.646, 0.044, 0.032, 0, 0.114, 8), rring(1.639, 0.030, 0.020, 0, 0.108, 8)], SKIN, { amt: 0.03, smooth: true }));
   for (const s of [-1, 1]) P('head', tube([V(s * 0.093, 1.682, 0.004), V(s * 0.110, 1.684, -0.004)], [0.026, 0.022], SKIN_SHAD, { n: 10 }));
   if (look.eyes === 0) {
-    for (const s of [-1, 1]) P('head', box(s * 0.042 - 0.011, s * 0.042 + 0.011, 1.684, 1.695, 0.088, 0.0985, [14, 11, 10], 0.02));
+    for (const s of [-1, 1]) O('head', box(s * 0.042 - 0.011, s * 0.042 + 0.011, 1.684, 1.695, 0.088, 0.0985, [14, 11, 10], 0.02));
   } else {
     for (const s of [-1, 1]) {
       const cx = s * 0.043;
       P('head', cyl(V(cx, 1.69, 0.108), V(cx, 1.69, 0.1135), 0.034, 0.034, RIM, { n: 14, amt: 0.02 }));
       P('head', cyl(V(cx, 1.69, 0.109), V(cx, 1.69, 0.1165), 0.0285, 0.0285, LENS, { n: 14, amt: 0.03 }));
-      P('head', box(cx - 0.016 + s * 0.004, cx - 0.004 + s * 0.004, 1.698, 1.708, 0.1165, 0.1172, LENS_HI, 0.02));
+      O('head', box(cx - 0.016 + s * 0.004, cx - 0.004 + s * 0.004, 1.698, 1.708, 0.1165, 0.1172, LENS_HI, 0.02));
       P('head', box(s * 0.077 - 0.004, s * 0.077 + 0.004, 1.692, 1.699, 0.06, 0.112, RIM, 0.02));
       P('head', box(s * 0.1015 - 0.003, s * 0.1015 + 0.003, 1.692, 1.699, -0.03, 0.065, RIM, 0.02));
     }
@@ -292,23 +296,23 @@ function buildParts(look, seed) {
 
   // pelvis, belt
   P('hips', loft([rring(0.84, 0.30, 0.20, 0, 0.005, 14), rring(0.92, 0.345, 0.222, 0, 0, 14), rring(1.0, 0.34, 0.22, 0, 0, 14)], CARGO, { smooth: true }));
-  P('hips', loft([rring(0.945, 0.352, 0.232, 0, 0, 14), rring(0.99, 0.355, 0.234, 0, 0, 14)], WEB, { amt: 0.03 }));
-  P('hips', box(-0.032, 0.032, 0.94, 0.995, 0.112, 0.124, GUN, 0.03));
+  O('hips', loft([rring(0.945, 0.352, 0.232, 0, 0, 14), rring(0.99, 0.355, 0.234, 0, 0, 14)], WEB, { amt: 0.03 }));
+  O('hips', box(-0.032, 0.032, 0.94, 0.995, 0.112, 0.124, GUN, 0.03));
 
   // legs
   for (const s of [-1, 1]) {
     const th = s > 0 ? 'thL' : 'thR', kn = s > 0 ? 'knL' : 'knR';
     P(th, tube([V(s * 0.10, 0.97, 0), V(s * 0.104, 0.72, 0.004), V(s * 0.106, 0.48, 0.008)], [0.08, 0.076, 0.066], CARGO, { n: 10 }));
-    P(th, box(s * 0.176 - 0.011, s * 0.176 + 0.011, 0.60, 0.73, -0.042, 0.042, CARGO_D, 0.04));
-    P(th, box(s * 0.178 - 0.013, s * 0.178 + 0.013, 0.715, 0.75, -0.046, 0.046, CARGO, 0.04));
+    O(th, box(s * 0.176 - 0.011, s * 0.176 + 0.011, 0.60, 0.73, -0.042, 0.042, CARGO_D, 0.04));
+    O(th, box(s * 0.178 - 0.013, s * 0.178 + 0.013, 0.715, 0.75, -0.046, 0.046, CARGO, 0.04));
     P(kn, tube([V(s * 0.106, 0.52, 0.008), V(s * 0.108, 0.32, 0), V(s * 0.11, 0.22, 0)], [0.066, 0.063, 0.062], CARGO, { n: 10 }));
-    P(kn, box(s * 0.106 - 0.045, s * 0.106 + 0.045, 0.44, 0.56, 0.05, 0.073, CARGO_D, 0.04));
-    P(kn, cyl(V(s * 0.11, 0.23, 0), V(s * 0.11, 0.29, 0), 0.072, 0.066, CARGO_D, { n: 10, smooth: true }));
+    O(kn, box(s * 0.106 - 0.045, s * 0.106 + 0.045, 0.44, 0.56, 0.05, 0.073, CARGO_D, 0.04));
+    O(kn, cyl(V(s * 0.11, 0.23, 0), V(s * 0.11, 0.29, 0), 0.072, 0.066, CARGO_D, { n: 10, smooth: true }));
     P(kn, cyl(V(s * 0.11, 0.07, 0), V(s * 0.11, 0.25, 0), 0.068, 0.065, BOOT, { n: 10 }));
     P(kn, loft([rring(0.022, 0.118, 0.29, s * 0.11, 0.035, 12, 3.5), rring(0.07, 0.122, 0.285, s * 0.11, 0.037, 12, 3.5),
       rring(0.105, 0.112, 0.22, s * 0.11, 0.012, 12, 3), rring(0.13, 0.10, 0.15, s * 0.11, -0.002, 12, 2.6)], BOOT));
     P(kn, loft([rring(0.0, 0.124, 0.298, s * 0.11, 0.035, 12, 3.5), rring(0.024, 0.124, 0.298, s * 0.11, 0.035, 12, 3.5)], SOLE, { amt: 0.03 }));
-    P(kn, box(s * 0.11 - 0.016, s * 0.11 + 0.016, 0.10, 0.24, 0.06, 0.07, WEB, 0.04));
+    O(kn, box(s * 0.11 - 0.016, s * 0.11 + 0.016, 0.10, 0.24, 0.06, 0.07, WEB, 0.04));
   }
 
   // torso
@@ -318,8 +322,8 @@ function buildParts(look, seed) {
     rring(1.30, 0.41, 0.24, 0, 0, 14), rring(1.38, 0.435, 0.238, 0, -0.003, 14), rring(1.44, 0.40, 0.222, 0, -0.006, 14),
     rring(1.475, 0.25, 0.17, 0, -0.01, 14)], JACKET, { smooth: true }));
   P('spine', loft([rring(1.44, 0.17, 0.152, 0, -0.008, 14), rring(1.475, 0.165, 0.148, 0, -0.009, 14), rring(1.51, 0.152, 0.138, 0, -0.01, 14)], RIB, { cap: false, amt: 0.03, smooth: true }));
-  P('spine', tube([V(0, 0.99, 0.113), V(0, 1.05, 0.12), V(0, 1.15, 0.122), V(0, 1.27, 0.123), V(0, 1.37, 0.12), V(0, 1.445, 0.106), V(0, 1.49, 0.07)], [0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005], ZIP, { n: 4, smooth: false }));
-  for (const s of [-1, 1]) P('spine', box(s * 0.11 - 0.006, s * 0.11 + 0.006, 1.08, 1.17, 0.112, 0.124, RIB, 0.03));
+  O('spine', tube([V(0, 0.99, 0.113), V(0, 1.05, 0.12), V(0, 1.15, 0.122), V(0, 1.27, 0.123), V(0, 1.37, 0.12), V(0, 1.445, 0.106), V(0, 1.49, 0.07)], [0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005], ZIP, { n: 4, smooth: false }));
+  for (const s of [-1, 1]) O('spine', box(s * 0.11 - 0.006, s * 0.11 + 0.006, 1.08, 1.17, 0.112, 0.124, RIB, 0.03));
 
   // arms
   for (const s of [-1, 1]) {
@@ -334,16 +338,18 @@ function buildParts(look, seed) {
       rring(0.80, 0.034, 0.084, hx - s * 0.002, hz + 0.008, 10), rring(0.76, 0.026, 0.066, hx - s * 0.006, hz + 0.01, 10)], SKIN, { smooth: true }));
     P(elK, tube([V(hx - s * 0.012, 0.86, hz + 0.035), V(hx - s * 0.02, 0.825, hz + 0.05), V(hx - s * 0.022, 0.805, hz + 0.052)], [0.011, 0.01, 0.008], SKIN_SHAD, { n: 6 }));
   }
-  P('shL', box(0.333, 0.35, 1.215, 1.30, -0.032, 0.018, RIB, 0.03));
-  return { B, ember };
+  O('shL', box(0.333, 0.35, 1.215, 1.30, -0.032, 0.018, RIB, 0.03));
+  return { B, B2, ember };
 }
 
 function getGeos(look, seed) {
   const key = lookToCode(look) + ':' + seed;
   if (geoCache.has(key)) return geoCache.get(key);
-  const { B, ember } = buildParts(look, seed);
-  const geos = {};
+  const { B, B2, ember } = buildParts(look, seed);
+  const geos = {}, over = {};
   for (const k in B) geos[k] = toGeometry(B[k], PIV[k]);
+  for (const k in B2) if (B2[k].length) over[k] = toGeometry(B2[k], PIV[k]);
+  geos.over = over;
   geos.ember = ember.length ? toGeometry(ember, PIV.head) : null;
   geoCache.set(key, geos);
   return geos;
@@ -360,6 +366,7 @@ function makeCharacter(look, name, seed) {
     const pp = par ? PIV[par] : [0, 0, 0];
     g.position.set(p[0] - pp[0], p[1] - pp[1], p[2] - pp[2]);
     g.add(new THREE.Mesh(geos[k], charMat));
+    if (geos.over[k]) g.add(new THREE.Mesh(geos.over[k], charOverMat));
     bones[k] = g;
     (par ? bones[par] : root).add(g);
   }
@@ -619,8 +626,10 @@ const redWallTex = canvasTex(32, 64, (x, w, h) => {
 });
 redWallTex.wrapS = redWallTex.wrapT = THREE.RepeatWrapping;
 
-const roomMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true }));
-const glowMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+// furniture and glowing bits get a depth bias so they always win against the floor and walls they touch
+const roomMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -3 }));
+const glowMat = new THREE.MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 });
+const decal = (opts) => new THREE.MeshBasicMaterial(Object.assign({ polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 }, opts));
 function addStatic(parts, mat) { const m = new THREE.Mesh(toGeometry(parts), mat || roomMat); scene.add(m); return m; }
 function scaleUV(geo, su, sv) { const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv); uv.needsUpdate = true; }
 
@@ -712,7 +721,7 @@ doorFrame(5, -1, 5, 1); doorFrame(-5, 0.5, -5, 2.5); doorFrame(-10, -4, -8.4, -4
 // ===== MAIN BAR =====
 // counter: lacquered front with brass fluting, black marble top, brass foot rail
 S.push(box(-3, 3, 0, 1.0, -3.0, -2.6, LACQUER));
-for (let x = -2.85; x <= 2.86; x += 0.3) S.push(box(x - 0.012, x + 0.012, 0.08, 0.96, -2.605, -2.59, BRASS_D, 0.04));
+for (let x = -2.85; x <= 2.86; x += 0.3) S.push(box(x - 0.012, x + 0.012, 0.08, 0.96, -2.61, -2.572, BRASS_D, 0.04));
 S.push(box(-3.1, 3.1, 0, 0.06, -3.02, -2.57, BRASS_D, 0.03));
 S.push(box(-3.12, 3.12, 1.0, 1.06, -3.06, -2.48, MARBLE, 0.05));
 S.push(box(-3.12, 3.12, 1.0, 1.012, -2.49, -2.47, BRASS, 0.03));
@@ -739,7 +748,7 @@ const archGlow = canvasTex(16, 32, (x, w, h) => {
     x.fillStyle = `rgb(${Math.round(18 + 170 * k)},${Math.round(12 + 100 * k)},${Math.round(8 + 40 * k)})`; x.fillRect(i, j, 1, 1);
   }
 });
-const archMat = new THREE.MeshBasicMaterial({ map: archGlow });
+const archMat = decal({ map: archGlow });
 for (let a = 0; a < 5; a++) {
   const cx = -2.2 + a * 1.1, y0 = 1.03, y1 = 2.25, r = 0.46;
   const pts = [V(cx - r, y0, -3.96), V(cx - r, y1, -3.96)];
@@ -754,7 +763,7 @@ for (let a = 0; a < 5; a++) {
 for (const x of [-3.45, 3.45]) {
   S.push(box(x - 0.18, x + 0.18, 0, 3.2, -3.4, -3.04, LACQUER));
   for (const y of [0.1, 1.05, 2.9]) S.push(box(x - 0.19, x + 0.19, y, y + 0.04, -3.41, -3.03, BRASS, 0.03));
-  for (let k = -1; k <= 1; k++) S.push(box(x + k * 0.09 - 0.008, x + k * 0.09 + 0.008, 0.15, 2.88, -3.035, -3.03, BRASS_D, 0.03));
+  for (let k = -1; k <= 1; k++) S.push(box(x + k * 0.09 - 0.008, x + k * 0.09 + 0.008, 0.15, 2.88, -3.05, -3.018, BRASS_D, 0.03));
 }
 // stools
 const STOOLS = [];
@@ -803,8 +812,8 @@ for (const x of [-2, 0, 2]) {
 // entrance: double doors in the front wall with a canopy light
 S.push(box(-0.9, -0.02, 0, 2.4, 3.94, 3.99, [28, 18, 14]));
 S.push(box(0.02, 0.9, 0, 2.4, 3.94, 3.99, [28, 18, 14]));
-for (const x of [-0.12, 0.12]) S.push(box(x - 0.015, x + 0.015, 0.9, 1.4, 3.9, 3.94, BRASS, 0.02));
-for (const [x0, x1] of [[-0.8, -0.12], [0.12, 0.8]]) S.push(box(x0, x1, 1.5, 2.25, 3.935, 3.94, [60, 50, 40], 0.05));
+for (const x of [-0.12, 0.12]) S.push(box(x - 0.015, x + 0.015, 0.9, 1.4, 3.89, 3.945, BRASS, 0.02));
+for (const [x0, x1] of [[-0.8, -0.12], [0.12, 0.8]]) S.push(box(x0, x1, 1.5, 2.25, 3.915, 3.945, [60, 50, 40], 0.05));
 doorFrame(-0.9, 4, 0.9, 4);
 G.push(cyl(V(0, 2.62, 3.95), V(0, 2.62, 3.8), 0.09, 0.07, [255, 210, 150], { n: 8, amt: 0 }));
 // sconces
@@ -837,7 +846,7 @@ for (const [x, z] of [[13.4, -3.3], [13.4, 3.3], [5.6, -3.4], [5.6, 3.4]]) {
   const f = x > 9 ? -1 : 1;
   for (const [y, r] of [[0.45, 0.22], [1.1, 0.13]]) {
     S.push(cyl(V(x + f * 0.36, y, z), V(x + f * 0.37, y, z), r + 0.02, r + 0.02, BRASS_D, { n: 12 }));
-    S.push(cyl(V(x + f * 0.365, y, z), V(x + f * 0.375, y, z), r, r, [24, 24, 28], { n: 12 }));
+    S.push(cyl(V(x + f * 0.365, y, z), V(x + f * 0.39, y, z), r, r, [24, 24, 28], { n: 12 }));
   }
 }
 // light rig bar across the ceiling
@@ -848,7 +857,10 @@ S.push(box(9.25, 9.35, 3.05, 3.12, -3.6, 3.6, [30, 30, 34], 0.03));
 // big screen on the left wall (x = -13), facing the couches
 const TV = { x: -12.93, y: 1.75, z: 0, w: 3.6, h: 2.02 };
 S.push(box(-13.0, -12.95, TV.y - TV.h / 2 - 0.1, TV.y + TV.h / 2 + 0.1, TV.z - TV.w / 2 - 0.1, TV.z + TV.w / 2 + 0.1, [12, 12, 16], 0.03));
-S.push(box(-12.96, -12.94, TV.y - TV.h / 2 - 0.12, TV.y + TV.h / 2 + 0.12, TV.z - TV.w / 2 - 0.12, TV.z + TV.w / 2 + 0.12, BRASS_D, 0.03));
+for (const [y0, y1, z0, z1] of [[TV.y - TV.h / 2 - 0.12, TV.y - TV.h / 2 - 0.04, TV.z - TV.w / 2 - 0.12, TV.z + TV.w / 2 + 0.12],
+  [TV.y + TV.h / 2 + 0.04, TV.y + TV.h / 2 + 0.12, TV.z - TV.w / 2 - 0.12, TV.z + TV.w / 2 + 0.12],
+  [TV.y - TV.h / 2 - 0.12, TV.y + TV.h / 2 + 0.12, TV.z - TV.w / 2 - 0.12, TV.z - TV.w / 2 - 0.04],
+  [TV.y - TV.h / 2 - 0.12, TV.y + TV.h / 2 + 0.12, TV.z + TV.w / 2 + 0.04, TV.z + TV.w / 2 + 0.12]]) S.push(box(-12.97, -12.92, y0, y1, z0, z1, BRASS_D, 0.03));
 S.push(box(-12.95, -12.4, 0, 0.45, -1.4, 1.4, LACQUER));
 S.push(box(-12.95, -12.38, 0.45, 0.47, -1.42, 1.42, BRASS, 0.03));
 // two rows of couches facing the screen, three seats each
@@ -878,7 +890,7 @@ for (const e of [-1, 1]) {
   S.push(box(PT.x - PT.l / 2, PT.x + PT.l / 2, 0.78, 0.84, PT.z + e * (PT.w / 2 - 0.06) - 0.06, PT.z + e * (PT.w / 2 - 0.06) + 0.06, [44, 26, 16]));
   S.push(box(PT.x + e * (PT.l / 2 - 0.06) - 0.06, PT.x + e * (PT.l / 2 - 0.06) + 0.06, 0.78, 0.84, PT.z - PT.w / 2, PT.z + PT.w / 2, [44, 26, 16]));
 }
-for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1]]) S.push(cyl(V(PT.x + dx * (PT.l / 2 - 0.14), 0.781, PT.z + dz * (PT.w / 2 - 0.14)), V(PT.x + dx * (PT.l / 2 - 0.14), 0.782, PT.z + dz * (PT.w / 2 - 0.14)), 0.05, 0.05, [6, 6, 6], { n: 8, amt: 0 }));
+for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1]]) S.push(cyl(V(PT.x + dx * (PT.l / 2 - 0.14), 0.77, PT.z + dz * (PT.w / 2 - 0.14)), V(PT.x + dx * (PT.l / 2 - 0.14), 0.792, PT.z + dz * (PT.w / 2 - 0.14)), 0.05, 0.05, [6, 6, 6], { n: 8, amt: 0 }));
 const BALLS = [[230, 220, 200], [210, 170, 40], [40, 60, 170], [180, 40, 40], [90, 40, 120], [220, 110, 30], [30, 110, 60], [110, 30, 30], [14, 14, 14]];
 BALLS.forEach((c, i) => {
   const bx = i === 0 ? PT.x - 0.75 : PT.x + 0.45 + Math.floor((i - 1) / 3) * 0.07, bz = i === 0 ? PT.z : PT.z + (((i - 1) % 3) - 1) * 0.07;
@@ -911,7 +923,7 @@ sconceZ(-6.2, -10.97, 1); sconceZ(-12.0, -10.97, 1);
 // deco fireplace on the back wall
 S.push(box(-2.7, -0.3, 0, 1.3, -10.98, -10.6, MARBLE_L));
 S.push(box(-2.85, -0.15, 1.3, 1.38, -10.98, -10.5, MARBLE));
-S.push(box(-2.0, -1.0, 0.1, 0.85, -10.62, -10.6, [6, 4, 4], 0.02));
+S.push(box(-2.0, -1.0, 0.1, 0.85, -10.62, -10.585, [6, 4, 4], 0.02));
 tubeB([V(-2.05, 0.1, -10.58), V(-2.05, 0.85, -10.58), V(-1.5, 1.05, -10.58), V(-0.95, 0.85, -10.58), V(-0.95, 0.1, -10.58)], 0.02, BRASS);
 const fireMat = new THREE.MeshBasicMaterial({ color: 0xff7a2a, transparent: true, opacity: 0.85 });
 const flames = [];
@@ -941,13 +953,13 @@ function armchair(x, z, yaw) {
 armchair(-1.5, -8.4, 0); armchair(-3.0, -6.9, Math.PI / 2); armchair(0.0, -6.9, -Math.PI / 2); armchair(-1.5, -5.4, Math.PI);
 S.push(cyl(V(-1.5, 0, -6.9), V(-1.5, 0.4, -6.9), 0.12, 0.12, BRASS_D, { n: 8 }));
 S.push(cyl(V(-1.5, 0.4, -6.9), V(-1.5, 0.45, -6.9), 0.55, 0.55, MARBLE, { n: 14 }));
-S.push(cyl(V(-1.5, 0.445, -6.9), V(-1.5, 0.452, -6.9), 0.555, 0.555, BRASS, { n: 14, amt: 0.03 }));
+S.push(cyl(V(-1.5, 0.405, -6.9), V(-1.5, 0.44, -6.9), 0.56, 0.56, BRASS, { n: 14, amt: 0.03 }));
 S.push(cyl(V(-1.3, 0.45, -7.1), V(-1.3, 0.48, -7.1), 0.08, 0.07, [40, 40, 44], { n: 8 }));
 S.push(cyl(V(-1.7, 0.45, -6.7), V(-1.7, 0.55, -6.7), 0.035, 0.04, [170, 120, 60], { n: 6 }));
 S.push(box(-1.85, -1.55, 0.45, 0.53, -7.15, -6.95, [70, 40, 22], 0.04));
 // humidor and a reading lamp
 S.push(box(0.9, 1.9, 0, 1.6, -10.98, -10.5, [44, 26, 16]));
-S.push(box(0.95, 1.85, 0.9, 1.5, -10.5, -10.49, [90, 70, 50], 0.05));
+S.push(box(0.95, 1.85, 0.9, 1.5, -10.52, -10.475, [90, 70, 50], 0.05));
 S.push(box(0.95, 1.85, 1.6, 1.65, -11, -10.48, BRASS, 0.03));
 S.push(cyl(V(1.2, 0, -5.2), V(1.2, 0.03, -5.2), 0.18, 0.16, BRASS_D, { n: 8 }));
 S.push(cyl(V(1.2, 0.03, -5.2), V(1.2, 1.5, -5.2), 0.015, 0.015, BRASS, { n: 4 }));
@@ -959,12 +971,12 @@ addStatic(S);
 addStatic(G, glowMat);
 
 // jukebox face and the gold sign (unlit, glowing)
-const jukeFace = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.7), new THREE.MeshBasicMaterial({ map: canvasTex(16, 18, (x) => {
+const jukeFace = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.7), decal({ map: canvasTex(16, 18, (x) => {
   x.fillStyle = '#1a120a'; x.fillRect(0, 0, 16, 18);
   for (let i = 0; i < 7; i++) { x.fillStyle = i % 2 ? '#ffc060' : '#d48a2a'; x.fillRect(2 + i * 2, 2, 1, 13); }
   x.fillStyle = '#ffe0a0'; x.fillRect(3, 16, 10, 1);
 }) }));
-jukeFace.position.set(-4.44, 0.8, -1.6); jukeFace.rotation.y = Math.PI / 2; scene.add(jukeFace);
+jukeFace.position.set(-4.43, 0.8, -1.6); jukeFace.rotation.y = Math.PI / 2; scene.add(jukeFace);
 
 const signFont = '"Limelight", "Poiret One", Georgia, serif';
 function goldSign(text, w, h, px) {
@@ -985,12 +997,12 @@ function goldSign(text, w, h, px) {
 const mainSign = goldSign("SH1DEN'S", 320, 64, 46);
 function drawNeon() { for (const s of SIGNS) s.draw(); }
 const SIGNS = [mainSign];
-const neon = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.52), new THREE.MeshBasicMaterial({ map: mainSign.tex, transparent: true }));
+const neon = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.52), decal({ map: mainSign.tex, transparent: true }));
 neon.position.set(0, 2.92, -3.95); scene.add(neon);
 // small signs over each doorway, on both sides
 function doorSign(text, x, z, rotY) {
   const s = goldSign(text, 256, 40, 28); SIGNS.push(s);
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.24), new THREE.MeshBasicMaterial({ map: s.tex, transparent: true }));
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.24), decal({ map: s.tex, transparent: true }));
   m.position.set(x, 2.72, z); m.rotation.y = rotY; scene.add(m);
 }
 doorSign('DANCE', 4.97, 0, -Math.PI / 2); doorSign('BAR', 5.03, 0, Math.PI / 2);
@@ -999,7 +1011,7 @@ doorSign('BILLIARDS', -9.2, -3.97, 0); doorSign('CINEMA', -9.2, -4.03, Math.PI);
 doorSign('VIP', -5.03, -7.75, -Math.PI / 2); doorSign('BILLIARDS', -4.97, -7.75, Math.PI / 2);
 
 // the TV: a black screen in 3D, with the YouTube player laid over it in CSS 3D
-const tvGlass = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), new THREE.MeshBasicMaterial({ color: 0x050506 }));
+const tvGlass = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), decal({ color: 0x050506 }));
 tvGlass.position.set(TV.x, TV.y, TV.z); tvGlass.rotation.y = Math.PI / 2; scene.add(tvGlass);
 const tvLight = new THREE.PointLight(0x9aa6ff, 0, 6, 1.5); tvLight.position.set(-11.6, TV.y, TV.z); scene.add(tvLight);
 let tvOn = false, cssRenderer = null, cssScene = null;
@@ -1060,7 +1072,10 @@ const SPOTS = {
     [['lean', -5.4, -3.3, -Math.PI / 2 - 0.4], ['lean', -5.4, 3.3, -Math.PI / 2 + 0.4], ['lean', -6.2, -0.2, -Math.PI / 2]]),
   3: [['pool', PT.x - PT.l / 2 - 0.55, PT.z - 0.25, Math.PI / 2], ['pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 2],
     ['sit', -12.25, -9.6, -Math.PI / 2], ['sit', -12.25, -8.2, -Math.PI / 2],
-    ['lean', -9.0, -5.2, Math.PI], ['lean', -7.2, -5.0, Math.PI + 0.5], ['lean', -10.8, -5.0, Math.PI - 0.5], ['lean', -6.0, -9.8, -Math.PI / 2 - 0.5], ['lean', -9.0, -10.3, 0]]
+    ['lean', -9.0, -5.2, Math.PI], ['lean', -7.2, -5.0, Math.PI + 0.5], ['lean', -10.8, -5.0, Math.PI - 0.5], ['lean', -6.0, -9.8, -Math.PI / 2 - 0.5], ['lean', -9.0, -10.3, 0]],
+  // VIP lounge, mods only: the three free armchairs, then standing room
+  4: VIP_CHAIRS.slice(1).map(([x, z, yaw]) => ['sitlow', x - Math.sin(yaw) * 0.05, z - Math.cos(yaw) * 0.05, yaw]).concat(
+    [['lean', -4.6, -9.9, Math.PI / 4], ['lean', 1.5, -9.7, -Math.PI / 4], ['lean', -4.5, -4.6, Math.PI * 0.8], ['lean', 1.5, -6.6, -Math.PI / 2]])
 };
 {
   const r = rngFrom(5);
@@ -1076,13 +1091,14 @@ function overflowSpot(idx) {
 }
 
 function placeAll() {
-  const used = { 0: 0, 1: 0, 2: 0, 3: 0 };
+  const used = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
   let over = 0;
   for (const ch of crowd) {
     if (ch.npc || ch.host || ch === draftChar) continue;
     let spot = ch.look.spot;
     let s = SPOTS[spot] && SPOTS[spot][used[spot]];
     if (s) used[spot]++;
+    else if (spot === 4 && (s = SPOTS[1][used[1]])) used[1]++;
     else if ((s = SPOTS[0][used[0]])) used[0]++;
     else s = overflowSpot(over++);
     ch.act = s[0]; ch.root.position.set(s[1], 0, s[2]); ch.root.rotation.y = s[3];
@@ -1292,19 +1308,53 @@ const VIEWS = {
 };
 for (const k in VIEWS) VIEWS[k].free = !!VIEWS[k].free;
 let cam = Object.assign({}, VIEWS.bar), camT = Object.assign({}, VIEWS.bar), follow = null;
-function setView(name) { follow = null; Object.assign(camT, VIEWS[name]); }
-function focusChar(ch) { follow = ch; camT.free = false; camT.d = 2.3; camT.pitch = 0.15; camT.yaw = ch.root.rotation.y + (/sit|lounge/.test(ch.act) ? 0.6 : 0); }
+let camDist = cam.d, velYaw = 0, velPitch = 0, lastMoveT = 0, idleT = 0;
+let isMod = false;
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fadeEl = document.getElementById('fade');
+// moving to a different room cuts through a quick fade instead of flying through the walls
+function cutTo(apply) {
+  const before = camT.free ? null : roomAt(camT.tx, camT.tz);
+  apply();
+  const after = camT.free ? null : roomAt(camT.tx, camT.tz);
+  if (!before || !after || before === after) return;
+  const snapNow = () => { Object.assign(cam, camT); camDist = camT.d; };
+  if (reducedMotion || !fadeEl) { snapNow(); return; }
+  fadeEl.style.opacity = '1';
+  setTimeout(() => { snapNow(); fadeEl.style.opacity = '0'; }, 170);
+}
+function setView(name) {
+  if (name === 'vip' && !isMod) return;
+  follow = null; velYaw = velPitch = 0;
+  cutTo(() => Object.assign(camT, VIEWS[name]));
+}
+function inVip(ch) { return roomAt(ch.root.position.x, ch.root.position.z) === ROOMS.vip; }
+function focusChar(ch) {
+  if (inVip(ch) && !isMod && !ch.mine) return;
+  velYaw = velPitch = 0;
+  cutTo(() => {
+    follow = ch; camT.free = false; camT.d = 2.4; camT.pitch = 0.18;
+    camT.yaw = ch.root.rotation.y + (/sit|lounge/.test(ch.act) ? 0.6 : 0.3);
+    ch.bones.head.getWorldPosition(tmpV); camT.tx = tmpV.x; camT.ty = tmpV.y - 0.25; camT.tz = tmpV.z;
+  });
+}
 let drag = null;
-canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, t: performance.now() }; velYaw = velPitch = 0; canvas.setPointerCapture(e.pointerId); });
 canvas.addEventListener('pointermove', (e) => {
   if (!drag) return;
-  camT.yaw -= (e.clientX - drag.x) * 0.006;
-  camT.pitch = Math.max(0.02, Math.min(camT.free ? 1.5 : 1.2, camT.pitch + (e.clientY - drag.y) * 0.004));
-  drag = { x: e.clientX, y: e.clientY };
+  const now = performance.now(), edt = Math.max(1 / 240, (now - drag.t) / 1000);
+  const dyaw = -(e.clientX - drag.x) * 0.006, dpitch = (e.clientY - drag.y) * 0.004;
+  camT.yaw += dyaw;
+  camT.pitch = Math.max(0.02, Math.min(camT.free ? 1.5 : 1.25, camT.pitch + dpitch));
+  // remember how fast you were dragging, so the camera glides on after you let go
+  velYaw = velYaw * 0.6 + (dyaw / edt) * 0.4; velPitch = velPitch * 0.6 + (dpitch / edt) * 0.4;
+  drag = { x: e.clientX, y: e.clientY, t: now }; lastMoveT = now;
 });
-canvas.addEventListener('pointerup', () => { drag = null; });
+const endDrag = () => { if (drag && performance.now() - lastMoveT > 90) velYaw = velPitch = 0; drag = null; };
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
 const maxD = () => (camT.free ? 40 : 14);
-canvas.addEventListener('wheel', (e) => { e.preventDefault(); camT.d = Math.max(1.2, Math.min(maxD(), camT.d * (1 + Math.sign(e.deltaY) * 0.1))); }, { passive: false });
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); camT.d = Math.max(1.2, Math.min(maxD(), camT.d * (1 + Math.sign(e.deltaY) * 0.12))); }, { passive: false });
 let pinch = null;
 canvas.addEventListener('touchmove', (e) => {
   if (e.touches.length !== 2) { pinch = null; return; }
@@ -1312,6 +1362,44 @@ canvas.addEventListener('touchmove', (e) => {
   if (pinch) camT.d = Math.max(1.2, Math.min(maxD(), camT.d * pinch / dd));
   pinch = dd;
 });
+// how far the camera can back away from the target before leaving the room
+function roomReach(r, ox, oz, dx, dz) {
+  let t = 99; const m = 0.3;
+  if (dx > 1e-4) t = Math.min(t, (r.x1 - m - ox) / dx); else if (dx < -1e-4) t = Math.min(t, (r.x0 + m - ox) / dx);
+  if (dz > 1e-4) t = Math.min(t, (r.z1 - m - oz) / dz); else if (dz < -1e-4) t = Math.min(t, (r.z0 + m - oz) / dz);
+  return Math.max(0.35, t);
+}
+function updateCamera(dt, t) {
+  if (!drag) {
+    camT.yaw += velYaw * dt;
+    camT.pitch = Math.max(0.02, Math.min(camT.free ? 1.5 : 1.25, camT.pitch + velPitch * dt));
+    const decay = Math.exp(-dt * 3.2); velYaw *= decay; velPitch *= decay;
+  }
+  if (follow) {
+    follow.bones.head.getWorldPosition(tmpV);
+    camT.tx = tmpV.x; camT.ty = tmpV.y - 0.25; camT.tz = tmpV.z;
+  }
+  // smooth, frame-rate independent easing; turning responds faster while you drag
+  const kPos = 1 - Math.exp(-dt * 5), kRot = 1 - Math.exp(-dt * (drag ? 16 : 7)), kZoom = 1 - Math.exp(-dt * 6);
+  for (const key of ['tx', 'ty', 'tz']) cam[key] += (camT[key] - cam[key]) * kPos;
+  cam.pitch += (camT.pitch - cam.pitch) * kRot;
+  let dy = camT.yaw - cam.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); cam.yaw += dy * kRot;
+  camDist += (camT.d - camDist) * kZoom;
+  // a slow, barely-there drift so the room never looks frozen
+  idleT = drag || Math.abs(velYaw) > 0.01 ? 0 : idleT + dt;
+  const drift = reducedMotion ? 0 : Math.min(1, idleT / 4) * 0.025 * Math.sin(t * 0.21);
+  const yaw = cam.yaw + drift, cp = Math.cos(cam.pitch);
+  const dx = Math.sin(yaw) * cp, dyv = Math.sin(cam.pitch), dz = Math.cos(yaw) * cp;
+  let d = camDist;
+  if (!camT.free) {
+    // near a wall the camera moves in closer along its line of sight instead of sliding sideways
+    const r = roomAt(cam.tx, cam.tz);
+    if (r) d = Math.min(d, roomReach(r, cam.tx, cam.tz, dx, dz));
+  }
+  camera.position.set(cam.tx + dx * d, Math.max(0.4, cam.ty + dyv * d), cam.tz + dz * d);
+  scene.fog.near = camDist > 12 ? 30 : 7; scene.fog.far = camDist > 12 ? 70 : 17;
+  camera.lookAt(cam.tx, cam.ty, cam.tz);
+}
 
 // ---------------------------------------------------------------- render loop
 let pixels = true;
@@ -1381,25 +1469,7 @@ function tick() {
   for (let k = si; k < sHead; k++) sPos[k * 3 + 1] = -99;
   sHead = si; sGeo.attributes.position.needsUpdate = true;
 
-  // camera
-  if (follow) {
-    follow.bones.head.getWorldPosition(tmpV);
-    camT.tx = tmpV.x; camT.ty = tmpV.y - 0.25; camT.tz = tmpV.z;
-  }
-  const k = Math.min(1, dt * 4);
-  for (const key of ['tx', 'ty', 'tz', 'd', 'pitch']) cam[key] += (camT[key] - cam[key]) * k;
-  let dy = camT.yaw - cam.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); cam.yaw += dy * k;
-  camera.position.set(cam.tx + Math.sin(cam.yaw) * cam.d * Math.cos(cam.pitch), cam.ty + Math.sin(cam.pitch) * cam.d, cam.tz + Math.cos(cam.yaw) * cam.d * Math.cos(cam.pitch));
-  if (!camT.free) {
-    const r = roomAt(cam.tx, cam.tz);
-    if (r) {
-      camera.position.x = Math.max(r.x0 + 0.25, Math.min(r.x1 - 0.25, camera.position.x));
-      camera.position.z = Math.max(r.z0 + 0.25, Math.min(r.z1 - 0.25, camera.position.z));
-    }
-  }
-  camera.position.y = Math.max(0.4, camera.position.y);
-  scene.fog.near = cam.d > 12 ? 30 : 7; scene.fog.far = cam.d > 12 ? 70 : 17;
-  camera.lookAt(cam.tx, cam.ty, cam.tz);
+  updateCamera(dt, t);
   renderer.render(scene, camera);
   if (cssRenderer) cssRenderer.render(cssScene, camera);
   requestAnimationFrame(tick);
@@ -1415,7 +1485,9 @@ function updateRosterUI() {
     if (ch === draftChar || ch.npc) continue;
     const li = document.createElement('li');
     const b = document.createElement('button'); b.type = 'button';
-    b.textContent = ch.name + (ch.host ? ' · host' : ch.mine ? ' · you' : '');
+    const vip = inVip(ch);
+    b.textContent = ch.name + (ch.host ? ' · host' : ch.mine ? ' · you' : '') + (vip ? ' · VIP' : '');
+    if (vip && !isMod && !ch.mine) b.disabled = true;
     b.onclick = () => focusChar(ch);
     li.appendChild(b); ul.appendChild(li);
   }
@@ -1474,8 +1546,10 @@ function renderOptions() {
     const prev = document.createElement('button'); prev.type = 'button'; prev.textContent = '‹'; prev.setAttribute('aria-label', 'Previous ' + LABELS[k]);
     const val = document.createElement('span'); val.className = 'val'; val.textContent = LOOK[k][draft[k]][0];
     const next = document.createElement('button'); next.type = 'button'; next.textContent = '›'; next.setAttribute('aria-label', 'Next ' + LABELS[k]);
-    prev.onclick = () => { draft[k] = (draft[k] + LOOK[k].length - 1) % LOOK[k].length; refreshDraft(); };
-    next.onclick = () => { draft[k] = (draft[k] + 1) % LOOK[k].length; refreshDraft(); };
+    const allowed = (v) => !(k === 'spot' && v === 4 && !isMod);
+    const step = (dir) => { let v = draft[k]; do { v = (v + dir + LOOK[k].length) % LOOK[k].length; } while (!allowed(v)); draft[k] = v; refreshDraft(); };
+    prev.onclick = () => step(-1);
+    next.onclick = () => step(1);
     row.append(lab, prev, val, next); box.appendChild(row);
   }
 }
@@ -1495,6 +1569,7 @@ function refreshDraft() {
 }
 function openCreator() {
   draft = myEntry ? codeToLook(myEntry.code) : randomLook(Math.random);
+  if (draft.spot === 4 && !isMod) draft.spot = 1;
   $('nm').value = myEntry ? myEntry.name : '';
   $('nmErr').hidden = true;
   $('creator').hidden = false; $('done').hidden = true; $('form').hidden = false;
@@ -1560,6 +1635,13 @@ window.BAR = {
   bubble: showBubble,
   setDucked,
   setTvOn(on) { tvOn = !!on; },
+  setMod(on) {
+    isMod = !!on;
+    $('v-vip').hidden = !isMod;
+    if (!isMod && roomAt(camT.tx, camT.tz) === ROOMS.vip && !(follow && follow.mine)) setView('bar');
+    updateRosterUI();
+    if (!creatorEl.hidden && !formEl.hidden) renderOptions();
+  },
   focusTv() { setView('tv'); },
   openCreator
 };
