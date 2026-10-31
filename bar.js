@@ -545,6 +545,17 @@ function pose(ch, act, beat, t) {
     b.shL.rotation.x = -1.25; b.elL.rotation.x = -0.25; b.shL.rotation.z = -0.25;
     b.shR.rotation.x = -0.35 - 0.25 * aim; b.elR.rotation.x = -1.35 + 0.45 * aim; b.shR.rotation.z = 0.15;
     if (ch.cue) ch.cue.position.z = -0.08 + 0.12 * aim;
+  } else if (act === 'soak') {
+    // sitting in the water, back against the side, arms stretched out along the rim
+    const k = Math.abs(Math.sin(PI * beat));
+    b.hips.position.y = 0.95 - 0.76;
+    b.thL.rotation.x = b.thR.rotation.x = -1.42;
+    b.knL.rotation.x = 0.25 + 0.08 * Math.sin(t * 0.7 + ph * 3); b.knR.rotation.x = 0.35;
+    b.thL.rotation.z = 0.12; b.thR.rotation.z = -0.12;
+    b.spine.rotation.x = -0.22;
+    b.shL.rotation.z = 1.25; b.shR.rotation.z = -1.25; b.shL.rotation.x = b.shR.rotation.x = 0.55;
+    b.elL.rotation.x = b.elR.rotation.x = -0.2;
+    b.head.rotation.x = -0.1 + 0.06 * k; b.head.rotation.y = 0.45 * Math.sin(t * 0.19 + ph * 4);
   } else if (act === 'wade') {
     // standing in the water: arms floating out, a slow sway with the music
     const sw = Math.sin(t * 0.9 + ph * 6), k = Math.abs(Math.sin(PI * beat));
@@ -1264,8 +1275,11 @@ VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'l
 [[-4.6, -9.9, Math.PI / 4], [1.5, -9.7, -Math.PI / 4], [-4.5, -4.6, Math.PI * 0.8], [1.5, -6.6, -Math.PI / 2]].forEach(([x, z, yaw], i) =>
   addSpot('vip-stand-' + i, 4, 'lean', x, z, yaw, 'Hang out by the fire', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // pool lounge: wading in the water, daybeds, and standing room around the edge
-for (const [i, x] of [8.0, 9.0, 10.0, 11.0].entries()) for (const [j, z] of [-8.6, -7.4].entries())
-  addSpot('swim-water-' + i + j, 5, 'wade', x, z, (j ? Math.PI : 0) + (i - 1.5) * 0.3, 'Get in the pool', hitBox(x, 0.3, z, 0.9, 0.6, 1.1));
+// seats in the water: backs against the long sides of the pool, facing the middle
+for (const [i, x] of [8.0, 9.0, 10.0, 11.0].entries()) {
+  addSpot('swim-water-' + i + '0', 5, 'soak', x, SW.z0 + 0.24, 0, 'Get in the pool', hitBox(x, 0.3, SW.z0 + 0.45, 0.9, 0.6, 0.9));
+  addSpot('swim-water-' + i + '1', 5, 'soak', x, SW.z1 - 0.24, Math.PI, 'Get in the pool', hitBox(x, 0.3, SW.z1 - 0.45, 0.9, 0.6, 0.9));
+}
 DAYBEDS.forEach(([x, z], i) => addSpot('swim-bed-' + i, 5, 'sitlow', x, z + 0.15, 0, 'Lie back on a daybed', hitBox(x, 0.45, z, 0.85, 0.9, 1.7)));
 [[6.4, -8.0, Math.PI / 2], [12.6, -8.0, -Math.PI / 2], [6.6, -6.2, 2.2], [12.4, -6.2, -2.2], [8.0, -5.0, Math.PI], [11.0, -5.0, Math.PI]].forEach(([x, z, yaw], i) =>
   addSpot('swim-side-' + i, 5, 'lean', x, z, yaw, 'Hang out by the pool', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
