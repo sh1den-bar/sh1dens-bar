@@ -183,6 +183,8 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
       <button id="v-tv" type="button">Cinema</button>
       <button id="v-pool" type="button">Billiards</button>
       <button id="v-vip" type="button" hidden>VIP</button>
+      <button id="v-street" type="button">Street</button>
+      <button id="v-alley" type="button">Backstreet</button>
       <button id="v-map" type="button">Map</button>
     </div>
   </div>
@@ -282,9 +284,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=18"></script>
-<script src="net.js?v=18"></script>
-<script src="bar.js?v=18"></script>
+<script src="config.js?v=19"></script>
+<script src="net.js?v=19"></script>
+<script src="bar.js?v=19"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

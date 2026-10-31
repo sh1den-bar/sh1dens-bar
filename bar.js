@@ -152,7 +152,7 @@ const LOOK = {
   eyes: [['Bare eyes', 0], ['Round glasses', 1], ['Shades', 2]],
   smoke: [['No smoke', 0], ['Cigarette', 1], ['Cigar', 2]],
   dance: [['Bounce', 0], ['Two-step', 1], ['Hands up', 2], ['Head nod', 3]],
-  spot: [['Dance room', 0], ['Main bar', 1], ['TV room', 2], ['Billiards', 3], ['VIP lounge (mods)', 4], ['Pool lounge', 5]],
+  spot: [['Dance room', 0], ['Main bar', 1], ['TV room', 2], ['Billiards', 3], ['VIP lounge (mods)', 4], ['Pool lounge', 5], ['Street', 6], ['Backstreet', 7]],
   body: [['Male', 0], ['Female', 1]],
   top: [['Bomber jacket', 0], ['Suit', 1], ['Suit, dark shirt', 2], ['Hoodie', 3], ['Leather jacket', 4], ['Tank top', 5], ['Turtleneck', 6]],
   bottom: [['Cargo pants', 0], ['Jeans', 1], ['Trousers', 2], ['Skirt', 3]],
@@ -720,7 +720,9 @@ const ROOMS = {
   tv: { x0: -13, x1: -5, z0: -4, z1: 4, name: 'TV room' },
   pool: { x0: -13, x1: -5, z0: -11, z1: -4, name: 'Pool room' },
   vip: { x0: -5, x1: 2, z0: -11, z1: -4, name: 'VIP lounge' },
-  swim: { x0: 5, x1: 14, z0: -12, z1: -4, name: 'Pool lounge' }
+  swim: { x0: 5, x1: 14, z0: -12, z1: -4, name: 'Pool lounge' },
+  street: { x0: -26, x1: 28, z0: 4, z1: 15.4, name: 'Street', outside: true },
+  alley: { x0: -14, x1: 15, z0: -19, z1: -11, name: 'Backstreet', outside: true }
 };
 function roomAt(x, z) {
   for (const k in ROOMS) { const r = ROOMS[k]; if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r; }
@@ -892,6 +894,7 @@ function wallPlane(ax, az, bx, bz, nx, nz, y0, y1, mat, texW) {
   m.position.set((ax + bx) / 2, (y0 + y1) / 2, (az + bz) / 2);
   m.rotation.y = Math.atan2(nx, nz);
   scene.add(m);
+  return m;
 }
 function wallLine(ax, az, bx, bz, nx, nz, gaps, mat, texW) {
   const len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len;
@@ -923,7 +926,7 @@ roomWalls(ROOMS.dance, { left: [DOOR.barDance], back: [[3.6, 5.4]] }, wallMats.d
 roomWalls(ROOMS.swim, { front: [[3.6, 5.4]] }, wallMats.brick);
 roomWalls(ROOMS.tv, { right: [DOOR.barTv], back: [DOOR.tvPool] }, wallMats.deco);
 roomWalls(ROOMS.pool, { front: [DOOR.tvPool], right: [DOOR.poolVip] }, wallMats.green);
-roomWalls(ROOMS.vip, { left: [DOOR.poolVip] }, wallMats.red);
+roomWalls(ROOMS.vip, { left: [DOOR.poolVip], back: [[0.6, 1.8]] }, wallMats.red);
 
 RNG = rngFrom(7);
 const LACQUER = [16, 17, 22], MARBLE = [26, 27, 32], MARBLE_L = [58, 58, 64], BRASS = [150, 112, 54], BRASS_D = [96, 72, 36];
@@ -941,7 +944,7 @@ function doorFrame(x0, z0, x1, z1) {
   if (alongX) S.push(box(Math.min(x0, x1), Math.max(x0, x1), DOOR_H, DOOR_H + 0.08, z0 - 0.08, z0 + 0.08, BRASS, 0.03));
   else S.push(box(x0 - 0.08, x0 + 0.08, DOOR_H, DOOR_H + 0.08, Math.min(z0, z1), Math.max(z0, z1), BRASS, 0.03));
 }
-doorFrame(8.6, -4, 10.4, -4); doorFrame(5, -1, 5, 1); doorFrame(-5, 0.5, -5, 2.5); doorFrame(-10, -4, -8.4, -4); doorFrame(-5, -8.5, -5, -7);
+doorFrame(8.6, -4, 10.4, -4); doorFrame(5, -1, 5, 1); doorFrame(-5, 0.5, -5, 2.5); doorFrame(-10, -4, -8.4, -4); doorFrame(-5, -8.5, -5, -7); doorFrame(-4.4, -11, -3.2, -11);
 
 // ===== MAIN BAR =====
 // counter: lacquered front with brass fluting, black marble top, brass foot rail
@@ -1189,7 +1192,7 @@ S.push(box(0.95, 1.85, 1.6, 1.65, -11, -10.48, BRASS, 0.03));
 S.push(cyl(V(1.2, 0, -5.2), V(1.2, 0.03, -5.2), 0.18, 0.16, BRASS_D, { n: 8 }));
 S.push(cyl(V(1.2, 0.03, -5.2), V(1.2, 1.5, -5.2), 0.015, 0.015, BRASS, { n: 4 }));
 S.push(cyl(V(1.2, 1.45, -5.2), V(1.2, 1.7, -5.2), 0.22, 0.12, [120, 96, 60], { n: 8 }));
-sconce(1.97, -8.0, -1); sconceZ(-4.0, -10.97, 1);
+sconce(1.97, -8.0, -1);
 succulent(1.5, 0, -4.5, 2.2);
 
 // ===== POOL LOUNGE (behind the dance room): magenta light, dark brick, candles, a glowing shallow pool =====
@@ -1250,6 +1253,276 @@ for (let x = SW.x0 - 0.1; x <= SW.x1 + 0.1; x += 0.6) for (const z of [SW.z0 - 0
   G.push(cyl(V(x, 0.62, z), V(x, 0.645, z), 0.01, 0.003, [255, 200, 120], { n: 4, amt: 0 }));
 }
 
+// ===== OUTSIDE: the street in front of the entrance and the backstreet behind the VIP =====
+// generic low-poly vehicles, built facing +x, then turned and placed (y offset for the road surface)
+function placeParts(parts, px, pz, yaw, py) {
+  const c = Math.cos(yaw), s = Math.sin(yaw); py = py || 0;
+  for (const p of parts) p.tris = p.tris.map((t) => t.map((v) => [v[0] * c + v[2] * s + px, v[1] + py, -v[0] * s + v[2] * c + pz]));
+  return parts;
+}
+// a rounded cross-section in the y-z plane at position x, for shaping car bodies along their length
+function yzRing(x, yb, yt, w, n, pw) {
+  n = n || 12; pw = pw || 3;
+  const pts = [], cy = (yb + yt) / 2, hy = (yt - yb) / 2;
+  for (let k = 0; k < n; k++) {
+    const t = 2 * Math.PI * (k + 0.5) / n, c = Math.cos(t), s = Math.sin(t);
+    pts.push(V(x, cy + Math.sign(s) * Math.pow(Math.abs(s), 2 / pw) * hy, Math.sign(c) * Math.pow(Math.abs(c), 2 / pw) * w / 2));
+  }
+  return pts;
+}
+const GLASS_D = [16, 20, 26], RUBBER = [12, 12, 13], RIM_C = [120, 122, 128];
+function carWheels(P, xs, track, r, w) {
+  for (const x of xs) for (const e of [-1, 1]) {
+    const zi = e * (track / 2 - w / 2), zo = e * (track / 2 + w / 2);
+    P.push(cyl(V(x, r, zi), V(x, r, zo), r, r, RUBBER, { n: 10, amt: 0.03 }));
+    P.push(cyl(V(x, r, zo), V(x, r, zo + e * 0.012), r * 0.62, r * 0.62, RIM_C, { n: 8, amt: 0.03 }));
+  }
+}
+function carParts(kind, color) {
+  const P = [], L = [];
+  const dark = color.map((v) => Math.round(v * 0.6));
+  const head = [255, 244, 220], tail = [210, 22, 22];
+  if (kind === 'suv') {
+    P.push(loft([yzRing(-2.45, 0.38, 1.0, 1.9, 12, 4), yzRing(-2.3, 0.32, 1.1, 1.96, 12, 4), yzRing(2.2, 0.32, 1.1, 1.96, 12, 4), yzRing(2.45, 0.42, 1.0, 1.9, 12, 4)], color, { amt: 0.03 }));
+    P.push(loft([yzRing(-2.25, 1.0, 1.82, 1.8, 12, 4), yzRing(0.75, 1.0, 1.82, 1.76, 12, 4), yzRing(1.3, 1.0, 1.3, 1.82, 12, 4)], GLASS_D, { amt: 0.03 }));
+    P.push(box(-2.2, 0.7, 1.8, 1.86, -0.84, 0.84, color, 0.03));
+    for (const x of [-1.0, 0.25]) P.push(box(x - 0.05, x + 0.05, 1.0, 1.81, -0.91, 0.91, color, 0.03));
+    P.push(box(2.4, 2.5, 0.5, 0.88, -0.55, 0.55, [10, 10, 11], 0.03));
+    for (const e of [-1, 1]) {
+      L.push(box(2.38, 2.49, 0.9, 0.98, e * 0.66 - 0.2, e * 0.66 + 0.2, head, 0));
+      L.push(box(-2.5, -2.4, 0.8, 0.96, e * 0.74 - 0.13, e * 0.74 + 0.13, tail, 0));
+    }
+    carWheels(P, [-1.55, 1.55], 1.86, 0.42, 0.3);
+    P.push(box(-2.3, 2.3, 0.28, 0.34, -1.0, 1.0, dark, 0.03));
+  } else if (kind === 'sedan') {
+    P.push(loft([yzRing(-2.3, 0.35, 0.86, 1.72, 12, 3.5), yzRing(-2.1, 0.28, 0.92, 1.8, 12, 3.5), yzRing(2.05, 0.28, 0.86, 1.8, 12, 3.5), yzRing(2.3, 0.36, 0.72, 1.72, 12, 3.5)], color, { amt: 0.03 }));
+    P.push(loft([yzRing(-1.7, 0.86, 0.95, 1.7, 12, 3.5), yzRing(-1.15, 0.86, 1.42, 1.56, 12, 3.5), yzRing(0.35, 0.86, 1.42, 1.56, 12, 3.5), yzRing(1.05, 0.86, 0.93, 1.7, 12, 3.5)], GLASS_D, { amt: 0.03 }));
+    P.push(box(-1.1, 0.3, 1.4, 1.46, -0.74, 0.74, color, 0.03));
+    for (const e of [-1, 1]) {
+      L.push(box(2.2, 2.33, 0.62, 0.72, e * 0.58 - 0.18, e * 0.58 + 0.18, head, 0));
+      L.push(box(-2.33, -2.24, 0.68, 0.8, e * 0.6 - 0.16, e * 0.6 + 0.16, tail, 0));
+    }
+    carWheels(P, [-1.4, 1.4], 1.66, 0.34, 0.24);
+  } else {
+    // an original sports coupe: long low hood, a short glasshouse set well back, a stubby tail with a lip spoiler
+    const prof = [[-2.2, 0.32, 0.86, 1.72], [-1.95, 0.27, 0.93, 1.8], [-1.0, 0.25, 0.96, 1.84], [1.2, 0.24, 0.8, 1.84], [1.95, 0.27, 0.66, 1.78], [2.22, 0.33, 0.56, 1.66]];
+    P.push(loft(prof.map(([x, b, t, w]) => yzRing(x, b, t, w, 14, 3.4)), color, { amt: 0.03, smooth: true }));
+    P.push(loft([yzRing(-1.75, 0.9, 0.96, 1.66, 14, 3.4), yzRing(-1.2, 0.9, 1.26, 1.5, 14, 3.4), yzRing(-0.1, 0.88, 1.3, 1.5, 14, 3.4), yzRing(0.75, 0.82, 0.86, 1.66, 14, 3.4)], GLASS_D, { amt: 0.03, smooth: true }));
+    P.push(loft([yzRing(-1.1, 1.22, 1.29, 1.42, 12, 3), yzRing(-0.2, 1.25, 1.33, 1.42, 12, 3)], color, { amt: 0.03 }));
+    P.push(box(-2.24, -2.06, 0.93, 0.98, -0.8, 0.8, dark, 0.03));
+    for (const e of [-1, 1]) P.push(box(-2.12, -2.08, 0.86, 0.93, e * 0.7 - 0.03, e * 0.7 + 0.03, dark, 0.03));
+    P.push(box(2.12, 2.24, 0.3, 0.42, -0.6, 0.6, [10, 10, 11], 0.03));
+    for (const e of [-1, 1]) {
+      L.push(box(1.92, 2.14, 0.6, 0.67, e * 0.62 - 0.22, e * 0.62 + 0.22, head, 0));
+      L.push(box(-2.24, -2.18, 0.72, 0.8, e * 0.58 - 0.24, e * 0.58 + 0.24, tail, 0));
+    }
+    carWheels(P, [-1.35, 1.38], 1.68, 0.34, 0.26);
+  }
+  return { P, L };
+}
+function parkCar(kind, color, x, z, yaw, y) {
+  const c = carParts(kind, color);
+  S.push(...placeParts(c.P, x, z, yaw, y)); G.push(...placeParts(c.L, x, z, yaw, y));
+}
+
+// outside walls are only drawn while the camera is outside at street level (from above they'd hide the rooms)
+const FACADES = [];
+function groundPlane(x0, x1, z0, z1, tex, tile, y) {
+  const w = x1 - x0, d = z1 - z0;
+  const g = new THREE.PlaneGeometry(w, d, Math.ceil(w / 2), Math.max(1, Math.ceil(d / 2)));
+  scaleUV(g, w / tile, d / tile);
+  const m = new THREE.Mesh(g, ps1(new THREE.MeshLambertMaterial({ map: tex })));
+  m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, y || 0, (z0 + z1) / 2); scene.add(m);
+  return m;
+}
+const asphaltTex = canvasTex(32, 32, (x, w, h) => noiseFill(x, w, h, [17, 18, 21], 8));
+const pavingTex = canvasTex(16, 16, (x, w, h) => {
+  noiseFill(x, w, h, [42, 42, 46], 6);
+  x.fillStyle = 'rgb(22,22,26)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+});
+const wetTex = canvasTex(32, 32, (x, w, h) => {
+  noiseFill(x, w, h, [14, 15, 18], 7);
+  for (let k = 0; k < 5; k++) { x.fillStyle = 'rgba(70,84,110,0.55)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 5 + Math.floor(rr() * 7), 2 + Math.floor(rr() * 3)); }
+});
+for (const t of [asphaltTex, pavingTex, wetTex]) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+
+// the street: sidewalk at floor level, road a curb lower
+const ST = { x0: -26, x1: 28, walk0: 4, curb0: 6.6, curb1: 13.4, walk1: 15.4 }, ROAD_Y = -0.12;
+groundPlane(ST.x0, ST.x1, ST.walk0, ST.curb0 - 0.12, pavingTex, 1.2, 0);
+groundPlane(ST.x0, ST.x1, ST.curb0 - 0.12, ST.curb1 + 0.12, asphaltTex, 3, ROAD_Y);
+groundPlane(ST.x0, ST.x1, ST.curb1 + 0.12, ST.walk1 + 2, pavingTex, 1.2, 0);
+S.push(box(ST.x0, ST.x1, ROAD_Y, 0, ST.curb0 - 0.12, ST.curb0, [74, 74, 80], 0.03));
+S.push(box(ST.x0, ST.x1, ROAD_Y, 0, ST.curb1, ST.curb1 + 0.12, [74, 74, 80], 0.03));
+const LANE_Z = (ST.curb0 + ST.curb1) / 2;
+for (let x = ST.x0 + 1; x < ST.x1; x += 3.2) S.push(box(x, x + 1.6, ROAD_Y, ROAD_Y + 0.012, LANE_Z - 0.06, LANE_Z + 0.06, [190, 166, 84], 0.03));
+for (const z of [ST.curb0 + 2.0, ST.curb1 - 2.0]) S.push(box(ST.x0, ST.x1, ROAD_Y, ROAD_Y + 0.01, z - 0.05, z + 0.05, [150, 150, 150], 0.03));
+
+// the building's outside walls: dark stone, taller than the rooms, with the entrance and the back door cut in
+const stoneTex = canvasTex(32, 64, (x, w, h) => {
+  noiseFill(x, w, h, [26, 25, 29], 5);
+  x.fillStyle = 'rgb(15,15,19)'; for (let j = 0; j < h; j += 8) x.fillRect(0, j, w, 1);
+  for (let j = 0; j < h; j += 16) x.fillRect((j / 16) % 2 ? 16 : 0, j, 1, 8);
+});
+stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping;
+const stoneMat = ps1(new THREE.MeshLambertMaterial({ map: stoneTex }));
+const FAC_H = 6.5;
+function facade(ax, az, bx, bz, nx, nz, gaps) {
+  const len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len;
+  const P2 = (d) => [ax + ux * d, az + uz * d];
+  const piece = (d0, d1, y0) => { const p = P2(d0), q = P2(d1); FACADES.push(wallPlane(p[0], p[1], q[0], q[1], nx, nz, y0, FAC_H, stoneMat, 2.5)); };
+  let cur = 0;
+  for (const [g0, g1] of gaps || []) { if (g0 > cur) piece(cur, g0, 0); piece(g0, g1, DOOR_H); cur = g1; }
+  if (cur < len) piece(cur, len, 0);
+}
+facade(-13, 4.01, 14, 4.01, 0, 1, [[12.1, 13.9]]);   // front, entrance at x -0.9..0.9
+facade(-13.01, -11, -13.01, 4, -1, 0);                // left side
+facade(14.01, -12, 14.01, 4, 1, 0);                   // right side
+facade(-13, -11.01, 5, -11.01, 0, -1, [[8.6, 9.8]]);  // back of billiards + VIP, back door at x -4.4..-3.2
+facade(5.01, -12, 5.01, -11, -1, 0);                  // the step out at the pool lounge
+facade(5, -12.01, 14, -12.01, 0, -1);                 // back of the pool lounge
+// a brass band and cornice along the front
+S.push(box(-13, 14, 3.3, 3.36, 4.01, 4.06, BRASS_D, 0.03));
+S.push(box(-13.1, 14.1, FAC_H - 0.1, FAC_H, 4.0, 4.25, [20, 20, 24], 0.03));
+// tall front windows, warm light behind frosted glass
+for (const x of [-11, -8, -5, 5, 8, 11]) {
+  S.push(box(x - 0.68, x + 0.68, 0.9, 0.98, 4.02, 4.14, BRASS_D, 0.03));
+  G.push(box(x - 0.6, x + 0.6, 0.98, 2.6, 4.02, 4.035, [92, 62, 34], 0));
+  for (const dx of [-0.2, 0.2]) S.push(box(x + dx - 0.02, x + dx + 0.02, 0.98, 2.6, 4.035, 4.06, [18, 18, 22], 0.03));
+  S.push(box(x - 0.62, x + 0.62, 2.6, 2.68, 4.02, 4.08, [18, 18, 22], 0.03));
+}
+// entrance canopy, sign, rope and plants
+S.push(box(-1.6, 1.6, 2.62, 2.74, 4.06, 5.6, LACQUER));
+S.push(box(-1.62, 1.62, 2.58, 2.62, 5.5, 5.62, BRASS, 0.03));
+for (const x of [-1.5, 1.5]) S.push(cyl(V(x, 2.7, 5.5), V(x, 3.3, 4.08), 0.012, 0.012, BRASS, { n: 4 }));
+for (const x of [-0.9, 0, 0.9]) G.push(cyl(V(x, 2.62, 4.9), V(x, 2.59, 4.9), 0.07, 0.06, [255, 210, 150], { n: 8, amt: 0 }));
+for (const [x, z] of [[-2.2, 4.5], [-1.4, 5.5], [2.2, 4.5], [1.4, 5.5]]) {
+  S.push(cyl(V(x, 0, z), V(x, 0.04, z), 0.13, 0.12, BRASS_D, { n: 8 }));
+  S.push(cyl(V(x, 0.04, z), V(x, 1.0, z), 0.025, 0.025, BRASS, { n: 6 }));
+  S.push(cyl(V(x, 1.0, z), V(x, 1.06, z), 0.04, 0.03, BRASS, { n: 6 }));
+}
+for (const e of [-1, 1]) S.push(tube([V(e * 2.2, 0.98, 4.5), V(e * 1.85, 0.74, 5.0), V(e * 1.4, 0.98, 5.5)], [0.022, 0.022, 0.022], VELVET, { n: 5 }));
+succulent(-3.3, 0, 4.4, 3); succulent(3.3, 0, 4.4, 3);
+S.push(box(-1.85, 1.85, 3.35, 3.4, 4.02, 4.26, BRASS_D, 0.03));
+S.push(box(-1.85, 1.85, 4.12, 4.17, 4.02, 4.26, BRASS_D, 0.03));
+const entranceLight = pLight(0xffc890, 1.3, 7, 0, 2.4, 5.2);
+
+// street lamps (only two of them actually cast light, to keep the light count down)
+const STREET_LAMPS = [-15, -6, 6, 15];
+for (const x of STREET_LAMPS) {
+  S.push(cyl(V(x, 0, 6.2), V(x, 0.1, 6.2), 0.14, 0.12, [20, 20, 22], { n: 8 }));
+  S.push(cyl(V(x, 0.1, 6.2), V(x, 4.2, 6.2), 0.05, 0.04, [20, 20, 22], { n: 6 }));
+  S.push(cyl(V(x, 4.2, 6.2), V(x, 4.25, 7.1), 0.03, 0.03, [20, 20, 22], { n: 4 }));
+  S.push(cyl(V(x, 4.32, 7.1), V(x, 4.14, 7.1), 0.08, 0.22, [30, 30, 34], { n: 8 }));
+  G.push(cyl(V(x, 4.13, 7.1), V(x, 4.09, 7.1), 0.18, 0.15, [255, 214, 160], { n: 8, amt: 0 }));
+}
+const lampLights = [-6, 6].map((x) => pLight(0xffc890, 1.4, 11, x, 3.9, 7.3));
+
+// buildings across the street: dark fronts with a scatter of lit windows
+const windowTex = canvasTex(32, 64, (x, w, h) => {
+  x.fillStyle = 'rgb(12,12,16)'; x.fillRect(0, 0, w, h);
+  for (let j = 4; j < h - 6; j += 10) for (let i = 3; i < w - 3; i += 8) {
+    const lit = rr() < 0.3;
+    x.fillStyle = lit ? (rr() < 0.6 ? 'rgb(214,164,88)' : 'rgb(160,180,204)') : 'rgb(24,26,34)';
+    x.fillRect(i, j, 4, 6);
+  }
+});
+windowTex.wrapS = windowTex.wrapT = THREE.RepeatWrapping;
+const windowMat = new THREE.MeshBasicMaterial({ map: windowTex });
+for (let x = ST.x0, k = 0; x < ST.x1; k++) {
+  const w = 6 + (k * 7) % 5, h = 7 + (k * 5) % 6;
+  const g = new THREE.PlaneGeometry(w, h);
+  scaleUV(g, w / 3.2, h / 6.4);
+  const m = new THREE.Mesh(g, windowMat);
+  m.position.set(x + w / 2, h / 2, ST.walk1 + 0.3); m.rotation.y = Math.PI; scene.add(m);
+  S.push(box(x + 0.05, x + w - 0.05, 0, 0.5, ST.walk1 + 0.1, ST.walk1 + 0.28, [24, 24, 28], 0.03));
+  x += w;
+}
+
+// black SUVs parked along the curb (the entrance stays clear)
+const PARKED = [-10.5, -5.0, 5.0, 10.5];
+for (const x of PARKED) parkCar('suv', [13, 13, 15], x, ST.curb0 + 1.1, 0, ROAD_Y);
+
+// passing traffic in both lanes, looping from one end of the street to the other
+const TRAFFIC = [
+  { kind: 'sedan', color: [44, 46, 52], z: 9.0, dir: 1, speed: 8.5, x: -20 },
+  { kind: 'suv', color: [13, 13, 15], z: 9.0, dir: 1, speed: 7.2, x: 8 },
+  { kind: 'sedan', color: [96, 96, 102], z: 11.6, dir: -1, speed: 9.5, x: 18 },
+  { kind: 'sedan', color: [70, 22, 26], z: 11.6, dir: -1, speed: 8.0, x: -6 }
+];
+const beamTex = canvasTex(16, 16, (x, w, h) => {
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const u = i / (w - 1), v = Math.abs(j / (h - 1) - 0.5) * 2, k = Math.max(0, (1 - u) * (1 - v * v));
+    x.fillStyle = `rgb(${Math.round(255 * k)},${Math.round(226 * k)},${Math.round(176 * k)})`; x.fillRect(i, j, 1, 1);
+  }
+});
+const beamMat = new THREE.MeshBasicMaterial({ map: beamTex, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 });
+const traffic = [];
+for (const tc of TRAFFIC) {
+  const c = carParts(tc.kind, tc.color);
+  const grp = new THREE.Group();
+  grp.add(new THREE.Mesh(toGeometry(c.P), roomMat));
+  grp.add(new THREE.Mesh(toGeometry(c.L), glowMat));
+  const beam = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 2.4), beamMat);
+  beam.rotation.x = -Math.PI / 2; beam.position.set(2.3 + 2.75, 0.02, 0); grp.add(beam);
+  grp.position.set(tc.x, ROAD_Y, tc.z); grp.rotation.y = tc.dir > 0 ? 0 : Math.PI;
+  scene.add(grp); traffic.push({ grp, tc });
+}
+function driveTraffic(dt) {
+  for (const { grp, tc } of traffic) {
+    tc.x += tc.dir * tc.speed * dt;
+    if (tc.dir > 0 && tc.x > ST.x1 + 6) tc.x = ST.x0 - 6;
+    if (tc.dir < 0 && tc.x < ST.x0 - 6) tc.x = ST.x1 + 6;
+    grp.position.x = tc.x;
+  }
+}
+
+// ===== BACKSTREET =====
+const AL = { x0: -14, x1: 15, z0: -19, z1: -11 };
+groundPlane(AL.x0, AL.x1, AL.z0, -11.02, wetTex, 3, 0);
+// the far side of the alley: the back of another building
+{
+  const w = AL.x1 - AL.x0, g = new THREE.PlaneGeometry(w, 7);
+  scaleUV(g, w / 3.2, 7 / 6.4);
+  const m = new THREE.Mesh(g, windowMat); m.position.set((AL.x0 + AL.x1) / 2, 3.5, AL.z0 - 0.02); scene.add(m);
+}
+// the drive-in garage, open to the alley, with the red coupe parked nose out
+const GAR = { x0: -3.3, x1: 0.3, z0: -18.9, z1: -14.0, h: 2.8 };
+const GAR_WALL = [40, 38, 42];
+S.push(box(GAR.x0 - 0.15, GAR.x0, 0, GAR.h, GAR.z0, GAR.z1, GAR_WALL));
+S.push(box(GAR.x1, GAR.x1 + 0.15, 0, GAR.h, GAR.z0, GAR.z1, GAR_WALL));
+S.push(box(GAR.x0 - 0.15, GAR.x1 + 0.15, GAR.h, GAR.h + 0.15, GAR.z0, GAR.z1 + 0.05, [30, 29, 32]));
+S.push(box(GAR.x0 - 0.15, GAR.x1 + 0.15, GAR.h - 0.45, GAR.h, GAR.z1, GAR.z1 + 0.08, [70, 68, 72], 0.03));
+S.push(box(GAR.x0, GAR.x1, 0, 0.01, GAR.z0, GAR.z1, [34, 34, 38], 0.03));
+G.push(box(GAR.x0 + 0.1, GAR.x1 - 0.1, GAR.h - 0.05, GAR.h - 0.02, GAR.z0 + 0.3, GAR.z0 + 0.38, [255, 40, 54], 0));
+G.push(box(GAR.x0 - 0.13, GAR.x0 - 0.1, 0.3, GAR.h - 0.2, GAR.z1 - 0.12, GAR.z1 - 0.06, [255, 40, 54], 0));
+G.push(box(GAR.x1 + 0.1, GAR.x1 + 0.13, 0.3, GAR.h - 0.2, GAR.z1 - 0.12, GAR.z1 - 0.06, [255, 40, 54], 0));
+G.push(box(GAR.x0 + 0.4, GAR.x1 - 0.4, GAR.h - 0.05, GAR.h - 0.02, -16.4, -16.2, [255, 244, 230], 0));
+// tool wall and a tyre stack at the back of the garage
+S.push(box(GAR.x0 + 0.05, GAR.x1 - 0.05, 0.9, 1.8, GAR.z0 + 0.02, GAR.z0 + 0.06, [60, 56, 50], 0.05));
+for (let k = 0; k < 3; k++) S.push(cyl(V(GAR.x1 - 0.45, 0.02 + k * 0.24, GAR.z0 + 0.5), V(GAR.x1 - 0.45, 0.24 + k * 0.24, GAR.z0 + 0.5), 0.32, 0.32, RUBBER, { n: 10, amt: 0.03 }));
+const COUPE = { x: (GAR.x0 + GAR.x1) / 2, z: -16.6 };
+parkCar('coupe', [176, 18, 24], COUPE.x, COUPE.z, -Math.PI / 2, 0);
+const garageLight = pLight(0xffe8e0, 1.4, 6, COUPE.x, 2.4, -15.6);
+// back door: steps and a caged lamp over it
+S.push(box(-4.6, -3.0, 0, 0.16, -11.6, -11.02, [50, 50, 54], 0.03));
+S.push(box(-4.05, -3.55, 2.56, 2.66, -11.24, -11.02, [30, 30, 34], 0.03));
+G.push(box(-3.95, -3.65, 2.5, 2.56, -11.2, -11.06, [255, 220, 160], 0));
+const backLight = pLight(0xffd8a0, 1.1, 6, -3.8, 2.3, -11.9);
+// dumpster, crates, a pallet
+S.push(box(-10.2, -8.2, 0, 1.25, -12.3, -11.15, [26, 54, 40])); S.push(box(-10.25, -8.15, 1.25, 1.33, -12.35, -11.1, [20, 42, 32]));
+const CRATES = [[-6.1, -12.4], [-6.1, -13.3]];
+const CRATE_C = [96, 70, 40];
+for (const [x, z] of CRATES) { S.push(box(x - 0.3, x + 0.3, 0, 0.46, z - 0.3, z + 0.3, CRATE_C)); S.push(box(x - 0.31, x + 0.31, 0.18, 0.24, z - 0.31, z + 0.31, [70, 50, 28], 0.03)); }
+S.push(box(-7.3, -6.7, 0, 0.42, -11.75, -11.15, CRATE_C)); S.push(box(-7.25, -6.75, 0.42, 0.84, -11.72, -11.18, CRATE_C));
+S.push(box(4.0, 5.2, 0, 0.14, -11.9, -11.1, [80, 64, 40]));
+// fire escape up the billiards wall
+for (const x of [-11.1, -10.5]) S.push(cyl(V(x, 0.9, -11.18), V(x, 6.2, -11.18), 0.015, 0.015, [40, 40, 44], { n: 4 }));
+for (let y = 1.1; y < 6.2; y += 0.35) S.push(cyl(V(-11.1, y, -11.18), V(-10.5, y, -11.18), 0.01, 0.01, [40, 40, 44], { n: 4 }));
+S.push(box(-11.9, -9.7, 3.2, 3.26, -12.1, -11.03, [36, 36, 40], 0.03));
+for (const x of [-11.9, -9.7]) S.push(cyl(V(x, 3.26, -12.1), V(x, 4.1, -12.1), 0.012, 0.012, [40, 40, 44], { n: 4 }));
+S.push(cyl(V(-11.9, 4.1, -12.1), V(-9.7, 4.1, -12.1), 0.012, 0.012, [40, 40, 44], { n: 4 }));
+
+
 addStatic(S);
 addStatic(G, glowMat);
 for (const [x, z] of [[6.3, -8.0], [12.7, -8.0]]) {
@@ -1297,6 +1570,11 @@ doorSign('CINEMA', -4.97, 1.5, Math.PI / 2); doorSign('BAR', -5.03, 1.5, -Math.P
 doorSign('BILLIARDS', -9.2, -3.97, 0); doorSign('CINEMA', -9.2, -4.03, Math.PI);
 doorSign('POOL', 9.5, -3.97, 0); doorSign('DANCE', 9.5, -4.03, Math.PI);
 doorSign('VIP', -5.03, -7.75, -Math.PI / 2); doorSign('BILLIARDS', -4.97, -7.75, Math.PI / 2);
+doorSign('BACKSTREET', -3.8, -10.97, 0); doorSign('VIP', -3.8, -11.05, Math.PI);
+// the big sign over the street entrance
+const outSign = goldSign("SH1DEN'S", 320, 64, 46); SIGNS.push(outSign);
+const outSignMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 0.68), decal({ map: outSign.tex, transparent: true }));
+outSignMesh.position.set(0, 3.75, 4.27); scene.add(outSignMesh);
 
 // the TV: a black screen in 3D, with the YouTube player laid over it in CSS 3D
 // the screen punches a see-through hole in the 3D picture; the video sits behind the canvas and shows only through it,
@@ -1394,6 +1672,16 @@ for (const [i, x] of [8.0, 9.0, 10.0, 11.0].entries()) {
 DAYBEDS.forEach(([x, z], i) => addSpot('swim-bed-' + i, 5, 'sitlow', x, z + 0.15, 0, 'Lie back on a daybed', hitBox(x, 0.45, z, 0.85, 0.9, 1.7)));
 [[6.4, -8.0, Math.PI / 2], [12.6, -8.0, -Math.PI / 2], [6.6, -6.2, 2.2], [12.4, -6.2, -2.2], [8.0, -5.0, Math.PI], [11.0, -5.0, Math.PI]].forEach(([x, z, yaw], i) =>
   addSpot('swim-side-' + i, 5, 'lean', x, z, yaw, 'Hang out by the pool', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
+// the street: by the door, smoking by the windows, leaning on the parked SUVs
+const standHit = (x, z) => hitBox(x, 0.9, z, 0.45, 1.8, 0.45);
+[[-1.75, 4.45, 0.15], [1.75, 4.45, -0.15]].forEach(([x, z, yaw], i) => addSpot('street-door-' + i, 6, 'lean', x, z, yaw, 'Hang out by the door', standHit(x, z)));
+[[-3.9, 4.4, 0.35], [3.9, 4.4, -0.35], [-7.8, 4.4, 0.2], [7.8, 4.4, -0.2]].forEach(([x, z, yaw], i) => addSpot('street-wall-' + i, 6, 'lean', x, z, yaw, 'Lean on the wall outside', standHit(x, z)));
+PARKED.forEach((x, i) => addSpot('street-suv-' + i, 6, 'lean', x + 0.6, ST.curb0 - 0.32, Math.PI, 'Lean on the SUV', standHit(x + 0.6, ST.curb0 - 0.32)));
+// the backstreet: by the coupe, at the back door, on the crates
+[[GAR.x0 + 0.42, -15.0, 0.3], [GAR.x1 - 0.42, -15.0, -0.3], [COUPE.x - 0.7, -13.4, Math.PI], [COUPE.x + 0.7, -13.4, Math.PI]].forEach(([x, z, yaw], i) => addSpot('alley-car-' + i, 7, 'lean', x, z, yaw, 'Check out the car', standHit(x, z)));
+addSpot('alley-door-0', 7, 'lean', -3.9, -11.85, Math.PI - 0.3, 'Step out back', standHit(-3.9, -11.85));
+CRATES.forEach(([x, z], i) => addSpot('alley-crate-' + i, 7, 'sitlow', x, z, Math.PI / 2, 'Sit on a crate', hitBox(x, 0.4, z, 0.65, 0.8, 0.65)));
+[[2.6, -11.45, Math.PI], [-8.6, -12.7, Math.PI - 0.4], [3.6, -12.4, Math.PI + 0.5]].forEach(([x, z, yaw], i) => addSpot('alley-wall-' + i, 7, 'lean', x, z, yaw, 'Hang out in the backstreet', standHit(x, z)));
 // dance floor: one spot per tile, filled from the middle outward
 {
   const r = rngFrom(5), order = [];
@@ -1662,7 +1950,9 @@ const VIEWS = {
   pool: { tx: -9, ty: 0.9, tz: -7.5, d: 6, yaw: 0.75, pitch: 0.6 },
   vip: { tx: -1.5, ty: 0.9, tz: -7.4, d: 5, yaw: 0.35, pitch: 0.42 },
   swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
-  map: { tx: 0.5, ty: 0, tz: -3.6, d: 26, yaw: 0, pitch: 1.3, free: true }
+  street: { tx: 0, ty: 1.6, tz: 6.2, d: 9, yaw: 0.0, pitch: 0.22 },
+  alley: { tx: -2.6, ty: 0.9, tz: -15.2, d: 7, yaw: 0.55, pitch: 0.32 },
+  map: { tx: 0.5, ty: 0, tz: -1.8, d: 34, yaw: 0, pitch: 1.3, free: true }
 };
 for (const k in VIEWS) VIEWS[k].free = !!VIEWS[k].free;
 let cam = Object.assign({}, VIEWS.bar), camT = Object.assign({}, VIEWS.bar), follow = null;
@@ -1757,7 +2047,7 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'Shift') keys.fast = false;
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-const BIRD = { pitch: 1.3, d: 14, x0: -13.5, x1: 14.5, z0: -12.5, z1: 4.5 };
+const BIRD = { pitch: 1.3, d: 14, x0: -20, x1: 22, z0: -18.5, z1: 15 };
 function keyboardPan(dt) {
   const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), mz = (keys.f ? 1 : 0) - (keys.b ? 1 : 0), rot = (keys.e ? 1 : 0) - (keys.q ? 1 : 0);
   if (!mx && !mz && !rot) return;
@@ -1835,7 +2125,14 @@ function updateCamera(dt, t) {
     if (r) d = Math.min(d, roomReach(r, cam.tx, cam.tz, dx, dz));
   }
   camera.position.set(cam.tx + dx * d, Math.max(0.4, cam.ty + dyv * d), cam.tz + dz * d);
-  scene.fog.near = camDist > 12 ? 30 : 7; scene.fog.far = camDist > 12 ? 70 : 17;
+  const outRoom = camT.free ? null : roomAt(cam.tx, cam.tz);
+  const outside = !!(outRoom && outRoom.outside);
+  scene.fog.near = camDist > 12 ? 30 : outside ? 12 : 7; scene.fog.far = camDist > 12 ? 70 : outside ? 42 : 17;
+  // the outside walls only show from street level outside the building
+  const cx = camera.position.x, cz = camera.position.z;
+  const inBuilding = cx > -13 && cx < 14 && cz < 4 && cz > (cx > 5 ? -12 : -11);
+  const showFacade = camera.position.y < 7.5 && !inBuilding;
+  if (FACADES[0].visible !== showFacade) for (const f of FACADES) f.visible = showFacade;
   camera.lookAt(cam.tx, cam.ty, cam.tz);
 }
 
@@ -1888,7 +2185,7 @@ const OBJECTS = [
   { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, 0, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, 0], size: 0.7 },
   { id: 'pooltable', label: 'Play pool', hit: hitBox(PT.x, 0.45, PT.z, PT.l, 0.9, PT.w), cat: 3, floor: [PT.x, PT.z], size: 1.2 }
 ];
-const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim };
+const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley };
 const targets = SPOT_LIST.map((s) => ({ kind: 'spot', s, box: new THREE.Box3(new THREE.Vector3(s.hit.x - s.hit.sx / 2, s.hit.y - s.hit.sy / 2, s.hit.z - s.hit.sz / 2), new THREE.Vector3(s.hit.x + s.hit.sx / 2, s.hit.y + s.hit.sy / 2, s.hit.z + s.hit.sz / 2)) }))
   .concat(OBJECTS.map((o) => ({ kind: 'object', o, box: new THREE.Box3(new THREE.Vector3(o.hit.x - o.hit.sx / 2, o.hit.y - o.hit.sy / 2, o.hit.z - o.hit.sz / 2), new THREE.Vector3(o.hit.x + o.hit.sx / 2, o.hit.y + o.hit.sy / 2, o.hit.z + o.hit.sz / 2)) })));
 
@@ -2113,6 +2410,8 @@ function tick() {
   fireLight.intensity = 1.1 * fl;
   flames.forEach((f, i) => { f.scale.set(1, 0.7 + 0.45 * Math.abs(Math.sin(t * (5 + i) + i)), 1); });
   neonLight.intensity = 0.7;
+  driveTraffic(dt);
+  backLight.intensity = Math.random() < 0.02 ? 0.25 : 1.1;
   waterTex.offset.set((t * 0.03) % 1, (t * 0.017) % 1);
   waterLight.intensity = 0.9 + 0.15 * Math.sin(t * 1.7);
   candleLight.intensity = 0.6 + 0.12 * Math.sin(t * 9.1) * Math.sin(t * 3.7);
@@ -2285,7 +2584,7 @@ $('enter').onclick = () => enterBar(true);
 $('enterQuiet').onclick = () => enterBar(false);
 $('mute').onclick = () => { setMuted(!muted); $('mute').setAttribute('aria-pressed', muted ? 'true' : 'false'); $('mute').textContent = muted ? 'Sound off' : 'Sound on'; };
 $('track').onclick = () => { if (hasCharacter() || !(window.NET && window.NET.online)) changeMusic(); else { toast('Create a character to change the music.'); } };
-for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'vip', 'map']) $('v-' + v).onclick = () => setView(v);
+for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'vip', 'street', 'alley', 'map']) $('v-' + v).onclick = () => setView(v);
 $('findMe').onclick = () => { const me = crowd.find((c) => c.mine); if (me) focusChar(me); else openCreator(); };
 $('pix').onclick = () => { pixels = !pixels; snapOn.value = pixels ? 1 : 0; $('pix').setAttribute('aria-pressed', pixels ? 'true' : 'false'); resize(); };
 
