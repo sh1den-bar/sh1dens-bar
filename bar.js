@@ -691,8 +691,6 @@ function rebuild() {
     addChar(codeToLook(e.code), e.name, { mine, uid: e.uid });
   }
   if (myEntry && !haveMine && !seen.has(myEntry.name.toLowerCase())) addChar(codeToLook(myEntry.code), myEntry.name, { mine: true, uid: myUid });
-  const creatorOpen = !document.getElementById('creator').hidden;
-  if (creatorOpen) for (const c of crowd) if (c.mine) c.root.visible = false;
   placeAll();
   if (keepDraft) { scene.add(keepDraft.root); crowd.push(keepDraft); }
   updateRosterUI();
@@ -875,10 +873,16 @@ function resize() {
 new ResizeObserver(resize).observe(stage); resize();
 
 const clock = new THREE.Clock();
+const creatorEl = document.getElementById('creator'), formEl = document.getElementById('form');
 let sHead = 0;
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime, beat = beatNow();
-  for (const ch of crowd) pose(ch, ch.act, beat + (ch.act === 'dance' ? 0 : ch.phase), t);
+  // while you're editing your look, hide your old character (never the bartender) so only the preview shows
+  const editing = !creatorEl.hidden && !formEl.hidden;
+  for (const ch of crowd) {
+    ch.root.visible = !(editing && ch.mine && !ch.host && ch !== draftChar);
+    pose(ch, ch.act, beat + (ch.act === 'dance' ? 0 : ch.phase), t);
+  }
 
   // lights + floor on the beat
   const bi = Math.floor(beat), bf = beat - bi;
@@ -1019,7 +1023,6 @@ function refreshDraft() {
   focusChar(draftChar);
 }
 function openCreator() {
-  for (const c of crowd.filter((c) => c.mine)) c.root.visible = false;
   draft = myEntry ? codeToLook(myEntry.code) : randomLook(Math.random);
   $('nm').value = myEntry ? myEntry.name : '';
   $('nmErr').hidden = true;
@@ -1028,7 +1031,6 @@ function openCreator() {
 }
 function closeCreator() {
   removeDraft();
-  for (const c of crowd) c.root.visible = true;
   $('creator').hidden = true; setView('room');
 }
 $('nm').addEventListener('input', () => { if (draftChar) refreshDraft(); });
