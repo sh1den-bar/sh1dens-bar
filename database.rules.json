@@ -18,7 +18,7 @@
       ".read": true,
       "$uid": {
         ".write": "auth != null && auth.uid == $uid",
-        ".validate": "newData.isBoolean()"
+        ".validate": "newData.isBoolean() || (newData.hasChildren(['s']) && newData.child('s').isString() && newData.child('s').val().length <= 24 && (!newData.child('s').val().beginsWith('vip') || root.child('admins').child(auth.uid).exists() || (newData.child('s').val() == 'vip-chair-0' && root.child('names').child('sh1denfps').val() == auth.uid)) && (!newData.child('d').exists() || (newData.child('d').isString() && newData.child('d').val().length <= 12)) && (!newData.child('t').exists() || (newData.child('t').isNumber() && newData.child('t').val() <= now)))"
       }
     },
     "last": {
@@ -91,6 +91,11 @@
           ".validate": "newData.isNumber() && newData.val() > 0 && (newData.val() <= 900 || root.child('admins').child(root.child('tv/current/uid').val()).exists())"
         }
       }
+    },
+    "jukebox": {
+      ".read": true,
+      ".write": "auth != null && root.child('chars').child(auth.uid).exists() && !root.child('bans').child(auth.uid).exists()",
+      ".validate": "newData.hasChildren(['i', 'by', 't']) && newData.child('i').isNumber() && newData.child('i').val() >= 0 && newData.child('i').val() <= 9 && newData.child('by').isString() && newData.child('by').val().length <= 25 && newData.child('t').val() == now && (!data.exists() || data.child('t').val() < now - 8000 || root.child('admins').child(auth.uid).exists())"
     }
   }
 }

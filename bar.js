@@ -498,11 +498,20 @@ function pose(ch, act, beat, t) {
     b.shR.rotation.x = -0.9 + 0.12 * Math.sin(t * 3); b.elR.rotation.x = -0.8; b.shR.rotation.z = 0.15 + 0.1 * Math.sin(t * 1.3);
     b.head.rotation.x = 0.15 + 0.3 * k; b.head.rotation.z = 0.1 * Math.sin(PI * beat / 2);
   } else if (act === 'bartend') {
+    b.shL.rotation.x = -0.6; b.elL.rotation.x = -1.2; b.shL.rotation.z = -0.15;
     const w = t * 2.2;
     b.spine.rotation.x = 0.12;
     b.shR.rotation.x = -0.95 + 0.12 * Math.sin(w); b.shR.rotation.z = 0.15 * Math.cos(w); b.elR.rotation.x = -0.75;
     b.shL.rotation.x = -0.6; b.elL.rotation.x = -1.2; b.shL.rotation.z = -0.15;
     b.head.rotation.x = 0.1 + 0.06 * Math.abs(Math.sin(PI * beat)); b.head.rotation.y = 0.3 * Math.sin(t * 0.4);
+  }
+  // holding a drink: take a sip every so often (sitting at the bar already has its own sip)
+  if (ch.glass && act !== 'sit' && act !== 'pool' && act !== 'dance') {
+    const cyc = (t + ph * 9) % 9;
+    const u = cyc < 2.2 ? Math.sin((cyc / 2.2) * PI) : 0;
+    b.shL.rotation.x = -0.45 - 0.75 * u; b.shL.rotation.z = -0.12; b.shL.rotation.y = 0;
+    b.elL.rotation.x = -1.25 - 0.75 * u; b.elL.rotation.y = 0;
+    b.head.rotation.x -= 0.15 * u;
   }
 }
 
@@ -1066,47 +1075,82 @@ const crowd = [];
 const tmpV = new THREE.Vector3();
 const yawTo = (x, z, tx, tz) => Math.atan2(tx - x, tz - z);
 
-// every hangout spot, per room: [act, x, z, yaw]
-const SPOTS = {
-  0: [], // dance room: filled below from the floor grid
-  1: STOOLS.map(([x, z]) => ['sit', x, z + 0.06, Math.PI]).concat(
-    HIGH_TABLES.flatMap(([x, z]) => [['lean', x - 0.45, z + 0.1, yawTo(x - 0.45, z + 0.1, x, z)], ['lean', x + 0.45, z - 0.1, yawTo(x + 0.45, z - 0.1, x, z)]]),
-    [['lean', -4.75, -0.2, Math.PI / 2], ['lean', 4.75, -2.0, -Math.PI / 2]]),
-  2: COUCH_SEATS.map(([x, z]) => ['sitlow', x, z, -Math.PI / 2]).concat(
-    [['lean', -5.4, -3.3, -Math.PI / 2 - 0.4], ['lean', -5.4, 3.3, -Math.PI / 2 + 0.4], ['lean', -6.2, -0.2, -Math.PI / 2]]),
-  3: [['pool', PT.x - PT.l / 2 - 0.55, PT.z - 0.25, Math.PI / 2], ['pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 2],
-    ['sit', -12.25, -9.6, -Math.PI / 2], ['sit', -12.25, -8.2, -Math.PI / 2],
-    ['lean', -9.0, -5.2, Math.PI], ['lean', -7.2, -5.0, Math.PI + 0.5], ['lean', -10.8, -5.0, Math.PI - 0.5], ['lean', -6.0, -9.8, -Math.PI / 2 - 0.5], ['lean', -9.0, -10.3, 0]],
-  // VIP lounge, mods only: the three free armchairs, then standing room
-  4: VIP_CHAIRS.slice(1).map(([x, z, yaw]) => ['sitlow', x - Math.sin(yaw) * 0.05, z - Math.cos(yaw) * 0.05, yaw]).concat(
-    [['lean', -4.6, -9.9, Math.PI / 4], ['lean', 1.5, -9.7, -Math.PI / 4], ['lean', -4.5, -4.6, Math.PI * 0.8], ['lean', 1.5, -6.6, -Math.PI / 2]])
-};
+// every place a regular can be. cat matches the creator's hangout choice:
+// 0 dance room, 1 main bar, 2 cinema, 3 billiards, 4 VIP (mods only)
+const SPOT_LIST = [], SPOT_BY_ID = {};
+function addSpot(id, cat, act, x, z, yaw, label, hit, extra) {
+  const s = Object.assign({ id, cat, act, x, z, yaw, label, hit }, extra || {});
+  SPOT_LIST.push(s); SPOT_BY_ID[id] = s;
+}
+const hitBox = (x, y, z, sx, sy, sz) => ({ x, y, z, sx, sy, sz });
+// main bar
+STOOLS.forEach(([x, z], i) => addSpot('bar-stool-' + i, 1, 'sit', x, z + 0.06, Math.PI, 'Sit at the bar', hitBox(x, 0.45, z, 0.5, 0.9, 0.5)));
+HIGH_TABLES.forEach(([x, z], i) => {
+  for (const [k, ox, oz] of [['a', -0.45, 0.1], ['b', 0.45, -0.1]]) {
+    const px = x + ox, pz = z + oz;
+    addSpot('bar-table-' + i + k, 1, 'lean', px, pz, yawTo(px, pz, x, z), 'Stand at the table', hitBox(px, 0.9, pz, 0.45, 1.8, 0.45));
+  }
+});
+addSpot('bar-wall-0', 1, 'lean', -4.75, -0.2, Math.PI / 2, 'Lean on the wall', hitBox(-4.75, 0.9, -0.2, 0.45, 1.8, 0.5));
+addSpot('bar-wall-1', 1, 'lean', 4.75, -2.0, -Math.PI / 2, 'Lean on the wall', hitBox(4.75, 0.9, -2.0, 0.45, 1.8, 0.5));
+// cinema
+COUCH_SEATS.forEach(([x, z], i) => addSpot('cinema-seat-' + i, 2, 'sitlow', x, z, -Math.PI / 2, 'Sit and watch', hitBox(x, 0.32, z, 0.7, 0.64, 0.52)));
+[[-5.4, -3.3, -Math.PI / 2 - 0.4], [-5.4, 3.3, -Math.PI / 2 + 0.4], [-6.2, -0.2, -Math.PI / 2]].forEach(([x, z, yaw], i) =>
+  addSpot('cinema-stand-' + i, 2, 'lean', x, z, yaw, 'Stand at the back', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
+// billiards
+addSpot('pool-cue-0', 3, 'pool', PT.x - PT.l / 2 - 0.55, PT.z - 0.25, Math.PI / 2, 'Play pool', hitBox(PT.x - PT.l / 2 - 0.5, 0.8, PT.z - 0.25, 0.6, 1.6, 0.6));
+addSpot('pool-cue-1', 3, 'pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 2, 'Play pool', hitBox(PT.x + PT.l / 2 + 0.5, 0.8, PT.z + 0.2, 0.6, 1.6, 0.6));
+[-9.6, -8.2].forEach((z, i) => addSpot('pool-stool-' + i, 3, 'sit', -12.25, z, -Math.PI / 2, 'Sit at the corner bar', hitBox(-12.25, 0.45, z, 0.45, 0.9, 0.45)));
+[[-9.0, -5.2, Math.PI], [-7.2, -5.0, Math.PI + 0.5], [-10.8, -5.0, Math.PI - 0.5], [-6.0, -9.8, -Math.PI / 2 - 0.5], [-9.0, -10.3, 0]].forEach(([x, z, yaw], i) =>
+  addSpot('pool-watch-' + i, 3, 'lean', x, z, yaw, 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
+// VIP lounge: the host's armchair is his alone
+VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'lounge' : 'sitlow', x - Math.sin(yaw) * 0.05, z - Math.cos(yaw) * 0.05, yaw,
+  i === 0 ? "The host's chair" : 'Take an armchair', hitBox(x, 0.5, z, 0.8, 1.0, 0.8), { hostOnly: i === 0 }));
+[[-4.6, -9.9, Math.PI / 4], [1.5, -9.7, -Math.PI / 4], [-4.5, -4.6, Math.PI * 0.8], [1.5, -6.6, -Math.PI / 2]].forEach(([x, z, yaw], i) =>
+  addSpot('vip-stand-' + i, 4, 'lean', x, z, yaw, 'Hang out by the fire', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
+// dance floor: one spot per tile, filled from the middle outward
 {
-  const r = rngFrom(5);
-  const order = [];
+  const r = rngFrom(5), order = [];
   for (let i = 0; i < DF.n; i++) for (let j = 0; j < DF.n; j++) order.push([i, j, Math.abs(i - 2.5) + Math.abs(j - 2.5)]);
   order.sort((a, b) => a[2] - b[2]);
-  for (const [i, j] of order) SPOTS[0].push(['dance', DF.x + (i - 2.5) * DF.s + (r() - 0.5) * 0.2, DF.z + (j - 2.5) * DF.s + (r() - 0.5) * 0.2, -Math.PI / 2 + (r() - 0.5) * 1.8]);
+  for (const [i, j] of order) {
+    const cx = DF.x + (i - 2.5) * DF.s, cz = DF.z + (j - 2.5) * DF.s;
+    addSpot('dance-' + i + '-' + j, 0, 'dance', cx + (r() - 0.5) * 0.16, cz + (r() - 0.5) * 0.16, -Math.PI / 2 + (r() - 0.5) * 1.8, 'Dance here', hitBox(cx, 0.03, cz, DF.s - 0.04, 0.08, DF.s - 0.04));
+  }
 }
 function overflowSpot(idx) {
   const a = idx * 2.4, rx = 3.0 + (idx % 3) * 0.4, rz = 2.9 + (idx % 2) * 0.4;
   const x = Math.min(13.0, DF.x + Math.cos(a) * rx), z = Math.max(-3.6, Math.min(3.6, DF.z + Math.sin(a) * rz));
-  return ['dance', x, z, yawTo(x, z, DF.x, DF.z)];
+  return { id: 'overflow-' + idx, cat: 0, act: 'dance', x, z, yaw: yawTo(x, z, DF.x, DF.z) };
 }
 
+function putAt(ch, s) {
+  ch.act = s.act; ch.spot = s.id;
+  ch.root.position.set(s.x, 0, s.z); ch.root.rotation.y = s.yaw;
+  setCue(ch, ch.act === 'pool');
+}
+const spotOwner = new Map(); // spot id -> character, refreshed by placeAll
 function placeAll() {
-  const used = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+  spotOwner.clear();
+  const people = crowd.filter((ch) => !ch.npc && ch !== draftChar);
+  const claim = (ch, s) => { spotOwner.set(s.id, ch); putAt(ch, s); ch.placed = true; };
+  for (const ch of people) ch.placed = false;
+  // 1. people who clicked somewhere, earliest click first (a seat goes to whoever took it first)
+  const chosen = people.filter((ch) => ch.want && SPOT_BY_ID[ch.want]).sort((a, b) => (a.wantT || 0) - (b.wantT || 0));
+  for (const ch of chosen) {
+    const s = SPOT_BY_ID[ch.want];
+    if (spotOwner.has(s.id) || (s.hostOnly && !ch.host)) continue;
+    claim(ch, s);
+  }
+  // 2. the host keeps his armchair unless he went somewhere else
+  for (const ch of people) if (ch.host && !ch.placed && !spotOwner.has('vip-chair-0')) claim(ch, SPOT_BY_ID['vip-chair-0']);
+  // 3. everyone else goes to a free spot in the room they picked in the creator
   let over = 0;
-  for (const ch of crowd) {
-    if (ch.npc || ch.host || ch === draftChar) continue;
-    let spot = ch.look.spot;
-    let s = SPOTS[spot] && SPOTS[spot][used[spot]];
-    if (s) used[spot]++;
-    else if (spot === 4 && (s = SPOTS[1][used[1]])) used[1]++;
-    else if ((s = SPOTS[0][used[0]])) used[0]++;
-    else s = overflowSpot(over++);
-    ch.act = s[0]; ch.root.position.set(s[1], 0, s[2]); ch.root.rotation.y = s[3];
-    setCue(ch, ch.act === 'pool');
+  for (const ch of people) {
+    if (ch.placed) continue;
+    const free = (cat) => SPOT_LIST.find((s) => s.cat === cat && !s.hostOnly && !spotOwner.has(s.id));
+    const s = free(ch.look.spot) || (ch.look.spot === 4 && free(1)) || free(0);
+    if (s) claim(ch, s); else putAt(ch, overflowSpot(over++));
   }
 }
 
@@ -1133,30 +1177,49 @@ function addChar(look, name, opts) {
 
 let roster = [];
 let myEntry = null, myUid = null;
+const lastSpots = new Map(), lastDrinks = new Map();
+function wantFrom(ch, e) {
+  if (!ch || !e) return ch;
+  ch.want = e.s && SPOT_BY_ID[e.s] ? e.s : null; ch.wantT = e.t || 0; ch.drink = e.d || '';
+  return ch;
+}
 const HOST_NAME = 'sh1denfps';
 function rebuild() {
   const keepDraft = draftChar;
   clearCrowd();
   // staff: a bartender behind the bar and a DJ in the dance room
   const bt = addChar(BARTENDER_LOOK, '', { npc: true, seedName: 'bartender' });
+  bartender = bt;
   bt.act = 'bartend'; bt.root.position.set(0.4, 0, -3.35); bt.root.rotation.y = 0;
   const dj = addChar(DJ_LOOK, '', { npc: true, seedName: 'dj' });
   dj.act = 'dj'; dj.root.position.set(13.85, 0, 0); dj.root.rotation.y = -Math.PI / 2;
   // the host, in his armchair in the VIP lounge
   const host = addChar(HOST_LOOK, HOST_NAME, { host: true });
-  host.act = 'lounge'; host.root.position.set(VIP_CHAIRS[0][0], 0, VIP_CHAIRS[0][1] - 0.05); host.root.rotation.y = VIP_CHAIRS[0][2];
   const seen = new Set([HOST_NAME.toLowerCase()]);
   let haveMine = false;
   for (const e of roster.slice(-80)) {
     const key = e.name.toLowerCase();
-    if (key === HOST_NAME.toLowerCase()) { host.uid = e.uid; if (myUid && e.uid === myUid) { host.mine = true; haveMine = true; } continue; }
+    if (key === HOST_NAME.toLowerCase()) { host.uid = e.uid; wantFrom(host, e); if (myUid && e.uid === myUid) { host.mine = true; haveMine = true; } continue; }
     if (seen.has(key)) continue; seen.add(key);
     const mine = myUid ? e.uid === myUid : !!(myEntry && myEntry.name.toLowerCase() === key);
     if (mine) haveMine = true;
-    addChar(codeToLook(e.code), e.name, { mine, uid: e.uid });
+    wantFrom(addChar(codeToLook(e.code), e.name, { mine, uid: e.uid }), e);
   }
-  if (myEntry && !haveMine && !seen.has(myEntry.name.toLowerCase())) addChar(codeToLook(myEntry.code), myEntry.name, { mine: true, uid: myUid });
+  if (myEntry && !haveMine && !seen.has(myEntry.name.toLowerCase())) wantFrom(addChar(codeToLook(myEntry.code), myEntry.name, { mine: true, uid: myUid }), { s: myState.s, d: myState.d, t: 1 });
+  if (!(window.NET && window.NET.online)) { const me = crowd.find((c) => c.mine); if (me && !me.want) wantFrom(me, { s: myState.s, d: myState.d, t: 1 }); }
   placeAll();
+  // pop people in when they moved, and hand out their drinks
+  for (const ch of crowd) {
+    if (ch.npc || ch === draftChar) continue;
+    const key = ch.uid || ch.name;
+    const prev = lastSpots.get(key);
+    if (prev && prev !== ch.spot) ch.pop = 0;
+    lastSpots.set(key, ch.spot);
+    setGlass(ch, ch.act === 'pool' ? null : ch.drink);
+    const pd = lastDrinks.get(key);
+    if (ch.drink && pd !== undefined && pd !== ch.drink) bartenderSays(ch.drink, ch.name);
+    lastDrinks.set(key, ch.drink || '');
+  }
   if (keepDraft) { scene.add(keepDraft.root); crowd.push(keepDraft); }
   updateRosterUI();
 }
@@ -1462,6 +1525,222 @@ function updateCamera(dt, t) {
   camera.lookAt(cam.tx, cam.ty, cam.tz);
 }
 
+// ---------------------------------------------------------------- drinks held in the left hand
+const DRINKS = [
+  { id: 'martini', name: 'Martini' },
+  { id: 'whiskey', name: 'Whiskey' },
+  { id: 'beer', name: 'Beer' },
+  { id: 'cola', name: 'Cola' }
+];
+const DRINK_BY_ID = Object.fromEntries(DRINKS.map((d) => [d.id, d]));
+const GLASS_C = [170, 182, 188];
+const drinkGeos = {
+  martini: toGeometry([cyl(V(0, -0.04, 0), V(0, -0.035, 0), 0.026, 0.026, GLASS_C, { n: 6, amt: 0 }), cyl(V(0, -0.035, 0), V(0, 0.02, 0), 0.004, 0.004, GLASS_C, { n: 4, amt: 0 }),
+    cyl(V(0, 0.02, 0), V(0, 0.07, 0), 0.004, 0.042, GLASS_C, { n: 8, amt: 0 }), cyl(V(0, 0.05, 0), V(0, 0.052, 0), 0.03, 0.03, [205, 210, 170], { n: 8, amt: 0 })]),
+  whiskey: toGeometry([cyl(V(0, -0.03, 0), V(0, 0.03, 0), 0.03, 0.032, GLASS_C, { n: 8, amt: 0 }), cyl(V(0, -0.025, 0), V(0, 0.005, 0), 0.031, 0.031, [170, 100, 34], { n: 8, amt: 0 })]),
+  beer: toGeometry([cyl(V(0, -0.05, 0), V(0, 0.07, 0), 0.03, 0.036, [190, 140, 50], { n: 8, amt: 0 }), cyl(V(0, 0.07, 0), V(0, 0.09, 0), 0.037, 0.037, [236, 230, 210], { n: 8, amt: 0 })]),
+  cola: toGeometry([cyl(V(0, -0.05, 0), V(0, 0.06, 0), 0.028, 0.03, [40, 20, 16], { n: 8, amt: 0 }), cyl(V(0, 0.06, 0), V(0, 0.08, 0), 0.031, 0.031, GLASS_C, { n: 8, amt: 0 }),
+    cyl(V(0.012, 0.05, 0), V(0.02, 0.12, 0), 0.004, 0.004, [200, 50, 40], { n: 4, amt: 0 })])
+};
+function setGlass(ch, drink) {
+  const want = drink && drinkGeos[drink] ? drink : null;
+  if (ch.glassId === want) return;
+  if (ch.glass) { ch.bones.elL.remove(ch.glass); ch.glass = null; }
+  ch.glassId = want;
+  if (!want) return;
+  const g = new THREE.Group();
+  g.position.set(0.04, -0.33, 0.075); // in the left palm
+  g.add(new THREE.Mesh(drinkGeos[want], charMat));
+  ch.bones.elL.add(g); ch.glass = g;
+}
+function keepGlassUpright(ch) {
+  if (!ch.glass) return;
+  const b = ch.bones;
+  ch.glass.rotation.x = -(b.spine.rotation.x + b.shL.rotation.x + b.elL.rotation.x);
+  ch.glass.rotation.z = -(b.spine.rotation.z + b.shL.rotation.z + b.elL.rotation.z);
+}
+
+// ---------------------------------------------------------------- click to hang out
+// hover anything you can use and it lights up; click (or tap twice on a phone) to go there
+const OBJECTS = [
+  { id: 'bartender', label: 'Order a drink', hit: hitBox(0.4, 1.1, -3.1, 0.9, 2.0, 0.9), cat: 1, floor: [0.4, -2.75], size: 0.5 },
+  { id: 'jukebox', label: 'Change the music', hit: hitBox(-4.7, 0.75, -1.6, 0.6, 1.5, 0.9), cat: 1, floor: [-4.25, -1.6], size: 0.45 },
+  { id: 'djbooth', label: 'Change the music', hit: hitBox(13.25, 0.6, 0, 0.8, 1.2, 2.7), cat: 0, floor: [12.5, 0], size: 0.6 },
+  { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, 0, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, 0], size: 0.7 },
+  { id: 'pooltable', label: 'Play pool', hit: hitBox(PT.x, 0.45, PT.z, PT.l, 0.9, PT.w), cat: 3, floor: [PT.x, PT.z], size: 1.2 }
+];
+const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip };
+const targets = SPOT_LIST.map((s) => ({ kind: 'spot', s, box: new THREE.Box3(new THREE.Vector3(s.hit.x - s.hit.sx / 2, s.hit.y - s.hit.sy / 2, s.hit.z - s.hit.sz / 2), new THREE.Vector3(s.hit.x + s.hit.sx / 2, s.hit.y + s.hit.sy / 2, s.hit.z + s.hit.sz / 2)) }))
+  .concat(OBJECTS.map((o) => ({ kind: 'object', o, box: new THREE.Box3(new THREE.Vector3(o.hit.x - o.hit.sx / 2, o.hit.y - o.hit.sy / 2, o.hit.z - o.hit.sz / 2), new THREE.Vector3(o.hit.x + o.hit.sx / 2, o.hit.y + o.hit.sy / 2, o.hit.z + o.hit.sz / 2)) })));
+
+const ringMat = new THREE.MeshBasicMaterial({ color: 0xffc870, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16, fog: false });
+const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 1.0, 24), ringMat);
+ring.rotation.x = -Math.PI / 2; ring.visible = false; ring.renderOrder = 2; scene.add(ring);
+const hintEl = document.getElementById('hint');
+const raycaster = new THREE.Raycaster();
+const pointerNdc = new THREE.Vector2();
+const hitPoint = new THREE.Vector3();
+let hovered = null, armed = null, lastPointer = null;
+let myState = { s: '', d: '' };
+
+function hasCharacter() { return !!crowd.find((c) => c.mine); }
+function myChar() { return crowd.find((c) => c.mine); }
+// what a target would do for you right now: { ok, text }
+function describe(tg) {
+  if (!hasCharacter()) return { ok: true, text: 'Create a character to hang out here', needChar: true };
+  if (tg.kind === 'object') {
+    if (tg.o.id === 'bartender') {
+      const me = myChar();
+      return { ok: true, text: me && me.glassId ? 'Order another drink' : 'Order a drink' };
+    }
+    return { ok: true, text: tg.o.label };
+  }
+  const s = tg.s, owner = spotOwner.get(s.id);
+  if (owner && owner.mine) return { ok: false, text: "You're here" };
+  if (s.hostOnly) return { ok: !!(myChar() && myChar().host) && !owner, text: owner ? (owner.name || 'Taken') + "'s spot" : "The host's chair" };
+  if (s.cat === 4 && !isMod) return { ok: false, text: 'Mods only' };
+  if (owner) return { ok: false, text: 'Taken by ' + (owner.name || 'someone') };
+  return { ok: true, text: s.label };
+}
+function pickTarget(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  pointerNdc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+  raycaster.setFromCamera(pointerNdc, camera);
+  // only things in the room you're looking at (everything, from the map)
+  const here = camT.free ? null : roomAt(cam.tx, cam.tz);
+  let best = null, bestD = Infinity;
+  for (const tg of targets) {
+    const room = tg.kind === 'spot' ? CAT_ROOM[tg.s.cat] : CAT_ROOM[tg.o.cat];
+    if (here && room !== here) continue;
+    if (!isMod && room === ROOMS.vip && !(tg.kind === 'spot' && tg.s.hostOnly && myChar() && myChar().host)) continue;
+    if (raycaster.ray.intersectBox(tg.box, hitPoint)) {
+      const d = hitPoint.distanceTo(raycaster.ray.origin);
+      if (d < bestD) { bestD = d; best = tg; }
+    }
+  }
+  return best;
+}
+function showHover(tg, x, y, touch) {
+  hovered = tg;
+  if (!tg) { ring.visible = false; hintEl.hidden = true; canvas.style.cursor = drag ? 'grabbing' : 'grab'; return; }
+  const info = describe(tg);
+  if (tg.kind === 'spot') { ring.position.set(tg.s.hit.x, 0.03, tg.s.hit.z); ring.scale.setScalar(Math.max(tg.s.hit.sx, tg.s.hit.sz) * 0.55); }
+  else { ring.position.set(tg.o.floor[0], 0.03, tg.o.floor[1]); ring.scale.setScalar(tg.o.size); }
+  ring.visible = true;
+  ringMat.color.setHex(info.ok ? 0xffc870 : 0x8a8a96);
+  hintEl.textContent = info.text + (touch && info.ok ? ' (tap again)' : '');
+  hintEl.classList.toggle('off', !info.ok);
+  hintEl.hidden = false;
+  const r = stage.getBoundingClientRect();
+  hintEl.style.transform = 'translate(' + Math.round(x - r.left + 14) + 'px,' + Math.round(y - r.top + 16) + 'px)';
+  canvas.style.cursor = info.ok ? 'pointer' : 'not-allowed';
+}
+canvas.addEventListener('pointermove', (e) => {
+  if (e.pointerType === 'touch') return;
+  lastPointer = { x: e.clientX, y: e.clientY };
+  if (drag && upInfo && (Math.abs(e.clientX - upInfo.x0) > 4 || Math.abs(e.clientY - upInfo.y0) > 4)) { showHover(null); return; }
+  showHover(pickTarget(e.clientX, e.clientY), e.clientX, e.clientY, false);
+});
+canvas.addEventListener('pointerleave', () => { if (!armed) showHover(null); });
+canvas.addEventListener('pointerdown', () => { closeDrinkMenu(); });
+canvas.addEventListener('pointerup', (e) => {
+  const d0 = upInfo; upInfo = null;
+  if (!d0 || Math.abs(e.clientX - d0.x0) > 6 || Math.abs(e.clientY - d0.y0) > 6 || performance.now() - d0.t0 > 600) return;
+  const tg = pickTarget(e.clientX, e.clientY);
+  if (e.pointerType === 'touch') {
+    // phones have no hover: the first tap shows what it is, the second does it
+    if (!tg) { armed = null; showHover(null); return; }
+    if (armed !== tg) { armed = tg; showHover(tg, e.clientX, e.clientY, true); return; }
+    armed = null;
+  }
+  if (tg) activate(tg, e.clientX, e.clientY);
+});
+let upInfo = null;
+canvas.addEventListener('pointerdown', (e) => { upInfo = { x0: e.clientX, y0: e.clientY, t0: performance.now() }; }, true);
+
+function activate(tg, x, y) {
+  const info = describe(tg);
+  if (info.needChar) { openCreator(); return; }
+  if (!info.ok) return;
+  if (tg.kind === 'spot') { goTo(tg.s.id); return; }
+  const id = tg.o.id;
+  if (id === 'bartender') openDrinkMenu(x, y);
+  else if (id === 'jukebox' || id === 'djbooth') changeMusic();
+  else if (id === 'tv') { setView('tv'); const p = document.getElementById('room'); if (p && p.hidden) document.getElementById('roomBtn').click(); }
+  else if (id === 'pooltable') {
+    const free = ['pool-cue-0', 'pool-cue-1'].find((sid) => !spotOwner.has(sid) || spotOwner.get(sid).mine);
+    if (free) goTo(free); else toast('Both cues are taken. Grab a spot to watch.');
+  }
+  showHover(null);
+}
+function goTo(spotId, drink) {
+  myState = { s: spotId, d: drink !== undefined ? drink : myState.d };
+  if (window.NET && window.NET.online) {
+    // show it right away; the room confirms a moment later
+    const e = roster.find((r) => r.uid && r.uid === myUid);
+    if (e) { e.s = myState.s; e.d = myState.d; e.t = Date.now() + 9e12; rebuild(); }
+    window.NET.setActivity(myState.s, myState.d);
+  } else applyMyStateLocally();
+}
+function applyMyStateLocally() { rebuild(); }
+
+// the bartender's drink menu
+const drinkMenu = document.getElementById('drinkMenu');
+function openDrinkMenu(x, y) {
+  const r = stage.getBoundingClientRect();
+  drinkMenu.hidden = false;
+  const w = drinkMenu.offsetWidth || 180, h = drinkMenu.offsetHeight || 180;
+  drinkMenu.style.left = Math.max(12, Math.min(r.width - w - 12, x - r.left + 10)) + 'px';
+  drinkMenu.style.top = Math.max(60, Math.min(r.height - h - 70, y - r.top - h / 2)) + 'px';
+  const first = drinkMenu.querySelector('button'); if (first) first.focus();
+}
+function closeDrinkMenu() { if (drinkMenu) drinkMenu.hidden = true; }
+function orderDrink(id) {
+  closeDrinkMenu();
+  const me = myChar();
+  // order at the bar: if you're not already at the bar, take a free stool
+  let spot = myState.s || (me && me.spot) || '';
+  const atBar = SPOT_BY_ID[spot] && SPOT_BY_ID[spot].cat === 1;
+  if (!atBar) {
+    const stool = SPOT_LIST.find((s) => s.id.startsWith('bar-stool-') && !spotOwner.has(s.id));
+    if (stool) spot = stool.id;
+  }
+  goTo(spot, id);
+  if (!(window.NET && window.NET.online) && id) bartenderSays(id, me ? me.name : 'you');
+}
+if (drinkMenu) {
+  drinkMenu.textContent = '';
+  const title = document.createElement('div'); title.className = 'dmTitle'; title.textContent = "What'll it be?";
+  drinkMenu.appendChild(title);
+  for (const d of DRINKS) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = d.name;
+    b.onclick = () => orderDrink(d.id); drinkMenu.appendChild(b);
+  }
+  const none = document.createElement('button'); none.type = 'button'; none.className = 'quiet'; none.textContent = 'Put my drink down';
+  none.onclick = () => orderDrinkNone(); drinkMenu.appendChild(none);
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrinkMenu(); });
+}
+function orderDrinkNone() { closeDrinkMenu(); goTo(myState.s || (myChar() && myChar().spot) || '', ''); }
+let bartender = null;
+function bartenderSays(drinkId, name) {
+  const d = DRINK_BY_ID[drinkId]; if (!d || !bartender) return;
+  showBubbleOn(bartender, 'One ' + d.name.toLowerCase() + ' for ' + name + '.');
+}
+
+// shared jukebox: everyone hears the same track
+function changeMusic() {
+  const next = (trackIdx + 1) % TRACKS.length;
+  if (window.NET && window.NET.online) window.NET.setJukebox(next);
+  else { pickTrack(next); toast('Now playing: ' + TRACKS[next].name); }
+}
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(text) {
+  if (!toastEl) return;
+  toastEl.textContent = text; toastEl.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 3200);
+}
+
 // ---------------------------------------------------------------- render loop
 let pixels = true;
 function resize() {
@@ -1485,7 +1764,14 @@ function tick() {
   for (const ch of crowd) {
     ch.root.visible = !(editing && ch.mine && !ch.host && ch !== draftChar);
     pose(ch, ch.act, beat + (ch.act === 'dance' ? 0 : ch.phase), t);
+    keepGlassUpright(ch);
+    if (ch.pop !== undefined && ch.pop < 1) {
+      ch.pop = Math.min(1, ch.pop + dt * 3.2);
+      const p = ch.pop - 1, sc = 1 + 2.2 * p * p * p + 1.2 * p * p; // ease out with a little overshoot
+      ch.root.scale.setScalar(Math.max(0.02, sc));
+    }
   }
+  if (ring.visible) ringMat.opacity = 0.55 + 0.3 * Math.sin(t * 5);
 
   // lights + floor on the beat
   const bi = Math.floor(beat), bf = beat - bi;
@@ -1582,7 +1868,9 @@ function makeBubble(text) {
 }
 function showBubble(uid, text) {
   const ch = crowd.find((c) => c.uid && c.uid === uid);
-  if (!ch) return;
+  if (ch) showBubbleOn(ch, text);
+}
+function showBubbleOn(ch, text) {
   if (ch.bubble) { ch.bones.head.remove(ch.bubble); ch.bubble.material.map.dispose(); ch.bubble.material.dispose(); }
   ch.bubble = makeBubble(text);
   ch.bubble.position.set(0, 0.6, 0);
@@ -1683,7 +1971,7 @@ function enterBar(withSound) {
 $('enter').onclick = () => enterBar(true);
 $('enterQuiet').onclick = () => enterBar(false);
 $('mute').onclick = () => { setMuted(!muted); $('mute').setAttribute('aria-pressed', muted ? 'true' : 'false'); $('mute').textContent = muted ? 'Sound off' : 'Sound on'; };
-$('track').onclick = () => { pickTrack((trackIdx + 1) % TRACKS.length); };
+$('track').onclick = () => { if (hasCharacter() || !(window.NET && window.NET.online)) changeMusic(); else { toast('Create a character to change the music.'); } };
 for (const v of ['bar', 'dance', 'tv', 'pool', 'vip', 'map']) $('v-' + v).onclick = () => setView(v);
 $('findMe').onclick = () => { const me = crowd.find((c) => c.mine); if (me) focusChar(me); else openCreator(); };
 $('pix').onclick = () => { pixels = !pixels; snapOn.value = pixels ? 1 : 0; $('pix').setAttribute('aria-pressed', pixels ? 'true' : 'false'); resize(); };
@@ -1697,6 +1985,14 @@ window.BAR = {
   bubble: showBubble,
   setDucked,
   setTvOn(on) { tvOn = !!on; },
+  getMyState() { return myState; },
+  setJukebox(i, by, fresh) {
+    if (!(i >= 0 && i < TRACKS.length)) return;
+    if (i !== trackIdx) pickTrack(i);
+    pinnedTrack = true;
+    if (fresh) toast((by ? by + ' put on ' : 'Now playing: ') + TRACKS[i].name);
+  },
+  toast,
   setMod(on) {
     isMod = !!on;
     $('v-vip').hidden = !isMod;

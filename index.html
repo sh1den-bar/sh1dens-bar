@@ -38,6 +38,16 @@ canvas:active { cursor: grabbing; }
   border: 1px solid rgba(226, 180, 103, 0.25); padding: 3px 7px; border-radius: 3px; white-space: nowrap; will-change: transform; }
 .nametag.mine { color: #ffd28a; border-color: rgba(255, 210, 138, 0.6); }
 .nametag.host { color: var(--neon); border-color: rgba(226, 180, 103, 0.7); }
+#hint { position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none; font: 500 12px/1.2 var(--mono); color: #1a1206;
+  background: var(--neon); padding: 5px 9px; border-radius: 3px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.5); }
+#hint.off { background: #2a2b30; color: #b9b4aa; }
+#drinkMenu { position: absolute; z-index: 4; min-width: 180px; display: flex; flex-direction: column; gap: 4px; padding: 10px;
+  background: var(--panel); border: 1px solid rgba(226, 180, 103, 0.45); box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+#drinkMenu .dmTitle { font-family: var(--deco); color: var(--neon); font-size: 18px; margin: 0 0 4px; }
+#drinkMenu button { text-align: left; }
+#drinkMenu button.quiet { color: var(--dim); }
+#toast { position: absolute; left: 50%; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 4;
+  background: var(--panel); border: 1px solid rgba(226, 180, 103, 0.45); color: var(--fg); padding: 8px 14px; font-size: 12px; max-width: calc(100% - 32px); text-align: center; }
 .scan { position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,0.2) 2px 3px),
               radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55)); }
@@ -151,6 +161,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
   <div class="scan"></div>
   <div id="labels" aria-hidden="true"></div>
   <div id="fade"></div>
+  <div id="hint" hidden></div>
+  <div id="drinkMenu" role="menu" aria-label="Drinks" hidden></div>
+  <div id="toast" role="status" hidden></div>
 
   <div id="tvHold">
     <div id="tvScreen">
@@ -266,9 +279,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=8"></script>
-<script src="net.js?v=8"></script>
-<script src="bar.js?v=8"></script>
+<script src="config.js?v=9"></script>
+<script src="net.js?v=9"></script>
+<script src="bar.js?v=9"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

@@ -15,11 +15,14 @@ let db = null, TS = null, offset = 0, banned = false, myName = null, lastSend = 
 let current = null, queue = [], curDur = 0, durWritten = false, errored = false, tooLong = false, advancing = false;
 let player = null, playerReady = false, loadedId = null, entered = false, mutedAll = false, tvVolume = 70;
 let msgs = [], triedLocalSave = false;
-let allChars = [], online = new Set(), lastCrowdKey = '';
+let allChars = [], online = new Map(), lastCrowdKey = '', myAct = { s: '', d: '' };
+// t is when you took your spot (server time); it decides who keeps a seat if two people click it at once
+const myPresence = () => (myAct.s || myAct.d ? { s: myAct.s, d: myAct.d, t: myAct.t || TS } : true);
 // only people who have the bar open right now are shown (the bartender is always there)
 function pushCrowd() {
-  const here = allChars.filter((e) => online.has(e.uid) || e.uid === NET.uid).slice(-80);
-  const key = here.map((e) => e.uid + e.name + e.code).join('|');
+  const here = allChars.filter((e) => online.has(e.uid) || e.uid === NET.uid).slice(-80)
+    .map((e) => { const p = online.get(e.uid) || (e.uid === NET.uid ? { s: myAct.s, d: myAct.d, t: 0 } : {}); return Object.assign({}, e, { s: p.s || '', d: p.d || '', t: p.t || 0 }); });
+  const key = here.map((e) => e.uid + e.name + e.code + e.s + e.d + e.t).join('|');
   if (key === lastCrowdKey) return;
   lastCrowdKey = key;
   window.BAR.setRegulars(here);
@@ -87,17 +90,36 @@ function joined() {
 
   const pres = db.ref('presence/' + NET.uid);
   db.ref('.info/connected').on('value', (s) => {
-    if (s.val()) { pres.onDisconnect().remove(); pres.set(true); }
+    if (s.val()) { pres.onDisconnect().remove(); pres.set(myPresence()).catch(() => pres.set(true)); }
     else status('Reconnecting…');
   });
   // re-mark ourselves as here every minute, in case another tab of ours closed and cleared it
-  setInterval(() => { pres.set(true).catch(() => { }); }, 60000);
+  setInterval(() => { pres.set(myPresence()).catch(() => { }); }, 60000);
+  NET.setActivity = function (spot, drink) {
+    const moved = (spot || '') !== myAct.s;
+    myAct = { s: spot || '', d: drink || '', t: moved ? 0 : myAct.t };
+    pres.set(myPresence()).catch((e) => window.BAR.toast(friendly(e)));
+  };
   db.ref('presence').on('value', (s) => {
     const n = s.numChildren();
     status(n === 1 ? '1 here now' : n + ' here now');
-    online = new Set(); s.forEach((c) => { online.add(c.key); });
+    online = new Map();
+    s.forEach((c) => { const v = c.val(); online.set(c.key, v && typeof v === 'object' ? v : {}); });
+    const mine = online.get(NET.uid);
+    if (mine && mine.t && mine.s === myAct.s) myAct.t = mine.t;
     pushCrowd();
   });
+  // the jukebox is shared: whoever changes it changes it for everyone
+  let firstJuke = true;
+  db.ref('jukebox').on('value', (s) => {
+    const v = s.val();
+    if (v && typeof v.i === 'number') window.BAR.setJukebox(v.i, v.by, !firstJuke);
+    firstJuke = false;
+  });
+  NET.setJukebox = function (i) {
+    if (!myName) { window.BAR.toast('Create a character to change the music.'); return; }
+    db.ref('jukebox').set({ i, by: myName, t: TS }).catch(() => window.BAR.toast('The jukebox needs a few seconds between changes.'));
+  };
 
   db.ref('chars').on('value', (s) => {
     const list = [];
