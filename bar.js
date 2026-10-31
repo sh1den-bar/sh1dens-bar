@@ -146,9 +146,9 @@ const LOOK = {
   jacket: [['Black', [30, 30, 32]], ['Olive', [54, 58, 38]], ['Charcoal', [56, 56, 58]], ['Brown', [64, 44, 30]], ['Navy', [30, 35, 48]], ['Oxblood', [62, 26, 24]], ['Ivory', [196, 192, 182]], ['Camel', [150, 110, 70]]],
   pants: [['Washed black', [44, 44, 43]], ['Jet black', [24, 24, 24]], ['Olive', [62, 64, 44]], ['Urban gray', [78, 78, 78]], ['Denim', [52, 70, 104]], ['Khaki', [132, 114, 82]], ['Navy', [30, 34, 50]]],
   skin: [['Pale', [232, 192, 164]], ['Light', [210, 162, 126]], ['Tan', [150, 102, 78]], ['Brown', [112, 74, 54]], ['Deep', [76, 50, 38]]],
-  head: [['Shaved', 0], ['Short hair', 1], ['Beanie', 2], ['Cap', 3], ['Long hair', 4], ['Ponytail', 5], ['Bob', 6]],
+  head: [['Shaved', 0], ['Short hair', 1], ['Beanie', 2], ['Cap', 3], ['Long hair', 4], ['Ponytail', 5], ['Bob', 6], ['Bald', 7]],
   hair: [['Dark brown', [40, 28, 22]], ['Black', [18, 16, 16]], ['Blond', [170, 136, 80]], ['Ginger', [128, 60, 30]], ['Gray', [120, 118, 114]]],
-  beard: [['None', 0], ['Stubble', 1], ['Full beard', 2]],
+  beard: [['None', 0], ['Stubble', 1], ['Full beard', 2], ['Pointed moustache', 3]],
   eyes: [['Bare eyes', 0], ['Round glasses', 1], ['Shades', 2]],
   smoke: [['No smoke', 0], ['Cigarette', 1], ['Cigar', 2]],
   dance: [['Bounce', 0], ['Two-step', 1], ['Hands up', 2], ['Head nod', 3]],
@@ -274,6 +274,8 @@ function buildParts(look, seed) {
     P('head', loft(PROF.slice(10).map((p) => headRing(p, 0.01)), CAP, { amt: 0.05, smooth: true, center: hc }));
     P('head', loft([rring(1.755, 0.15, 0.09, 0, 0.125, 10, 2.4), rring(1.762, 0.15, 0.09, 0, 0.13, 10, 2.4)], CAP.map((v) => v * 0.85), { amt: 0.04 }));
     O('head', loft(upper.slice(0, 5).map((p) => headRing(p, 0.0018, clamp[p[0]])), HAIR, { amt: 0.06, smooth: true, center: hc }));
+  } else if (look.head === 7) {
+    // bald: bare scalp, nothing on top
   } else {
     // longer styles: a fuller crown, hair down the sides to the jaw, then the style's own shape
     O('head', loft(upper.map((p) => headRing(p, 0.01, c2[p[0]])), HAIR, { amt: 0.07, smooth: true, center: hc }));
@@ -294,6 +296,11 @@ function buildParts(look, seed) {
   if (look.beard === 2) {
     O('head', loft(PROF.slice(0, 6).map((p, i) => headRing(p, 0.0075 * (1 - 0.7 * i / 5))), HAIR.map((v) => v * 1.1 + 4), { amt: 0.05, smooth: true, center: hc }));
     O('head', loft([rring(1.622, 0.07, 0.016, 0, 0.098, 8), rring(1.636, 0.05, 0.014, 0, 0.104, 8)], HAIR, { amt: 0.03, smooth: true }));
+  } else if (look.beard === 3) {
+    // a thin moustache with long tips drooping past the corners of the mouth
+    const M = HAIR.map((v) => v * 0.9);
+    for (const s of [-1, 1]) O('head', tube([V(0, 1.626, 0.105), V(s * 0.02, 1.625, 0.103), V(s * 0.036, 1.62, 0.098), V(s * 0.049, 1.611, 0.092),
+      V(s * 0.057, 1.596, 0.087), V(s * 0.061, 1.58, 0.082), V(s * 0.064, 1.562, 0.077)], [0.0038, 0.005, 0.0046, 0.0038, 0.003, 0.0021, 0.0009], M, { n: 6 }));
   } else if (look.beard === 1) {
     O('head', loft(PROF.slice(0, 6).map((p) => headRing(p, 0.0016)), SKIN.map((v, i) => v * 0.55 + HAIR[i] * 0.15), { amt: 0.05, smooth: true, center: hc }));
   }
@@ -1710,7 +1717,7 @@ const smoke = new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0x8c8780,
 smoke.frustumCulled = false; scene.add(smoke);
 
 // ---------------------------------------------------------------- crowd
-const HOST_LOOK = { jacket: 0, pants: 1, skin: 2, head: 0, hair: 0, beard: 2, eyes: 1, smoke: 2, dance: 3, spot: 1, body: 0, top: 2, bottom: 2, shoes: 2 };
+const HOST_LOOK = { jacket: 0, pants: 1, skin: 2, head: 7, hair: 1, beard: 3, eyes: 1, smoke: 2, dance: 3, spot: 1, body: 0, top: 2, bottom: 2, shoes: 2 };
 const BARTENDER_LOOK = { jacket: 2, pants: 1, skin: 4, head: 1, hair: 1, beard: 1, eyes: 0, smoke: 0, dance: 3, spot: 1, outfit: 'barman' };
 const DJ_LOOK = { jacket: 4, pants: 1, skin: 3, head: 3, hair: 1, beard: 1, eyes: 2, smoke: 0, dance: 3, spot: 0 };
 const crowd = [];
@@ -2602,7 +2609,7 @@ function saveMine(e) { try { localStorage.setItem('sh1den-bar-me', JSON.stringif
 function renderOptions() {
   const box = $('opts'); box.textContent = '';
   for (const k of UI_KEYS) {
-    if (k === 'hair' && draft.head === 0 && draft.beard === 0) continue;
+    if (k === 'hair' && (draft.head === 0 || draft.head === 7) && draft.beard === 0) continue;
     const row = document.createElement('div'); row.className = 'opt';
     const lab = document.createElement('span'); lab.className = 'lab'; lab.textContent = LABELS[k];
     const prev = document.createElement('button'); prev.type = 'button'; prev.textContent = '‹'; prev.setAttribute('aria-label', 'Previous ' + LABELS[k]);
