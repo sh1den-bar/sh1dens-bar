@@ -6,19 +6,20 @@
 <title>SH1DEN'S Bar</title>
 <meta name="description" content="A PS1-style bar for the sh1denfps community. Make your own character, chat and watch videos together.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=VT323&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: the bar fills the screen; HUD rows float top and bottom, the room panel docks right, other panels slide over the scene. */
 :root {
-  --bg: #070606;
-  --panel: rgba(16, 13, 11, 0.92);
-  --solid: #120f0d;
-  --line: #2d2723;
-  --fg: #d6cec2;
-  --dim: #8a8075;
-  --neon: #ff4a3a;
-  --amber: #ffa860;
+  --bg: #04060a;
+  --panel: rgba(9, 11, 16, 0.92);
+  --solid: #0b0e14;
+  --line: #2a2b2e;
+  --fg: #ddd6c8;
+  --dim: #8a8678;
+  --neon: #e2b467;
+  --amber: #8fb0ff;
   --display: "VT323", "Courier New", monospace;
+  --deco: "Limelight", "Poiret One", Georgia, serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
   color-scheme: dark;
 }
@@ -42,7 +43,7 @@ canvas:active { cursor: grabbing; }
   background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(0,0,0,0.22) 3px 5px); }
 #tvIdle { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; background: #0b0a0a;
   font-family: var(--display); color: #6f6a64; font-size: 46px; line-height: 1.1; padding: 40px; }
-#tvIdle b { display: block; color: var(--neon); font-weight: 400; font-size: 80px; text-shadow: 0 0 12px rgba(255,74,58,0.6); }
+#tvIdle b { display: block; color: var(--neon); font-weight: 400; font-size: 76px; font-family: var(--deco); text-shadow: 0 0 12px rgba(226,180,103,0.5); }
 
 .hud { position: absolute; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; z-index: 2; }
@@ -50,8 +51,8 @@ canvas:active { cursor: grabbing; }
 .top { top: 0; padding-top: calc(12px + env(safe-area-inset-top, 0px)); justify-content: space-between; }
 .bottom { bottom: 0; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.brand h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1; color: var(--neon);
-  text-shadow: 0 0 8px rgba(255, 74, 58, 0.6); letter-spacing: 0.05em; }
+.brand h1 { margin: 0; font-family: var(--deco); font-weight: 400; font-size: 28px; line-height: 1; color: var(--neon);
+  text-shadow: 0 0 10px rgba(226, 180, 103, 0.45); letter-spacing: 0.06em; }
 .brand .stat { color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; font-variant-numeric: tabular-nums; }
 .brand .stat + .stat::before { content: "· "; }
 .group { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -62,11 +63,12 @@ button { font: inherit; font-size: 12px; color: var(--fg); background: var(--pan
 button:hover { border-color: var(--dim); }
 button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 button[aria-pressed="true"] { border-color: var(--amber); color: #fff; }
-button.primary { background: var(--neon); border-color: var(--neon); color: #160604; font-weight: 500; }
-button.primary:hover { background: #ff6656; }
+button.primary { background: var(--neon); border-color: var(--neon); color: #120c04; font-weight: 500; }
+button.primary:hover { background: #f0c67e; }
 button:disabled { opacity: 0.45; cursor: default; }
 button.mini { padding: 2px 7px; font-size: 11px; margin-left: 6px; }
 button.danger { border-color: #6a2620; color: #ff8a7a; }
+.panel h2, .panel h3 { font-family: var(--deco); letter-spacing: 0.05em; }
 
 .panel { position: absolute; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px;
   padding: 16px; overflow-y: auto; max-height: calc(100% - 140px); z-index: 3; }
@@ -112,7 +114,7 @@ details[open] { display: flex; flex-direction: column; gap: 8px; }
 
 label { display: flex; flex-direction: column; gap: 6px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
 input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: var(--solid); border: 1px solid var(--line); padding: 8px 10px; text-transform: none; letter-spacing: 0; }
-.err { color: var(--neon); font-size: 12px; }
+.err { color: #ff8a7a; font-size: 12px; }
 #opts { display: grid; gap: 4px; }
 .opt { display: grid; grid-template-columns: 96px 30px 1fr 30px; align-items: center; gap: 6px; }
 .opt .lab { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -125,8 +127,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 .cover { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5, 4, 4, 0.82); padding: 24px; z-index: 5;
   padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
 .gatebox { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; max-width: 440px; }
-.gatebox h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(56px, 14vw, 96px); line-height: 0.9;
-  color: var(--neon); text-shadow: 0 0 14px rgba(255, 74, 58, 0.7), 0 0 2px #fff; letter-spacing: 0.05em; }
+.gatebox h1 { margin: 0; font-family: var(--deco); font-weight: 400; font-size: clamp(48px, 12vw, 84px); line-height: 1;
+  color: var(--neon); text-shadow: 0 0 18px rgba(226, 180, 103, 0.55); letter-spacing: 0.06em; }
+.gatebox h1::after { content: ""; display: block; height: 2px; margin: 14px auto 0; width: 70%; background: linear-gradient(90deg, transparent, var(--neon), transparent); }
 .gatebox p { margin: 0; color: var(--dim); line-height: 1.6; }
 .gatebox .small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
 #loading { font-family: var(--display); font-size: 26px; color: var(--dim); background: var(--bg); z-index: 6; }
@@ -235,7 +238,7 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
   <div class="cover" id="gate">
     <div class="gatebox">
       <h1>SH1DEN'S</h1>
-      <p>A PS1 bar for the sh1denfps community. Make your own regular, chat with whoever's inside and watch videos together on the TV.</p>
+      <p>A late-night PS1 lounge for the sh1denfps community. Make your own regular, chat with whoever's inside and watch videos together on the TV.</p>
       <button id="enter" class="primary" type="button">Enter the bar</button>
       <button id="enterQuiet" type="button">Enter without sound</button>
       <span class="small">Music and TV sound start once you enter</span>
@@ -249,9 +252,10 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="config.js"></script>
-<script src="net.js"></script>
-<script src="bar.js"></script>
+<!-- bump ?v= after each update so browsers load the new files right away -->
+<script src="config.js?v=3"></script>
+<script src="net.js?v=3"></script>
+<script src="bar.js?v=3"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

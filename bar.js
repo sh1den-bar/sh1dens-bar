@@ -456,25 +456,30 @@ function pose(ch, act, beat, t) {
   }
 }
 
-// ---------------------------------------------------------------- scene
+// ---------------------------------------------------------------- scene (art deco hotel bar: black marble, brass, blue night light, warm lamps)
 const canvas = document.getElementById('c');
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.setClearColor(0x070606, 1);
+renderer.setClearColor(0x04060a, 1);
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x070606, 7, 17);
+scene.fog = new THREE.Fog(0x04060a, 6.5, 16);
 const camera = new THREE.PerspectiveCamera(46, 1, 0.15, 40);
 
-scene.add(new THREE.HemisphereLight(0x6e655d, 0x0c0908, 0.5));
+scene.add(new THREE.HemisphereLight(0x3a4a66, 0x080706, 0.5));
+// cool blue night light from the corners
+for (const p of [[-3.2, 2.9, 2.2], [3.4, 2.9, -1.2], [0.5, 2.9, 3.4]]) {
+  const l = new THREE.PointLight(0x3f6fc0, 0.95, 7.5, 1.4); l.position.set(p[0], p[1], p[2]); scene.add(l);
+}
 const barLights = [];
 for (const x of [-2, 0, 2]) {
-  const l = new THREE.PointLight(0xffa860, 1.15, 5.5, 1.6); l.position.set(x, 2.5, -2.6); scene.add(l); barLights.push(l);
+  const l = new THREE.PointLight(0xffb070, 1.2, 4.8, 1.6); l.position.set(x, 2.35, -2.6); scene.add(l); barLights.push(l);
 }
-const danceLight = new THREE.PointLight(0xff3020, 1.6, 6.5, 1.4); danceLight.position.set(1.4, 2.6, 1.0); scene.add(danceLight);
-const neonLight = new THREE.PointLight(0xff2a2a, 0.9, 4.5, 1.6); neonLight.position.set(0, 2.5, -3.6); scene.add(neonLight);
-const jukeLight = new THREE.PointLight(0xffb040, 0.7, 2.8, 1.6); jukeLight.position.set(-4.2, 1.2, -1.6); scene.add(jukeLight);
-const lampLight = new THREE.PointLight(0xffc890, 0.8, 3.6, 1.6); lampLight.position.set(-3.4, 1.9, 2.0); scene.add(lampLight);
+const backBar = new THREE.PointLight(0xffa048, 0.9, 3.6, 1.5); backBar.position.set(0, 1.8, -3.55); scene.add(backBar);
+const danceLight = new THREE.PointLight(0x4a7cff, 1.6, 6.5, 1.4); danceLight.position.set(1.4, 2.6, 1.0); scene.add(danceLight);
+const neonLight = new THREE.PointLight(0xffc070, 0.7, 4, 1.6); neonLight.position.set(0, 2.85, -3.5); scene.add(neonLight);
+const jukeLight = new THREE.PointLight(0xffb040, 0.6, 2.6, 1.6); jukeLight.position.set(-4.2, 1.2, -1.6); scene.add(jukeLight);
+const lampLight = new THREE.PointLight(0xffc890, 0.85, 3.4, 1.6); lampLight.position.set(-3.3, 1.3, 2.25); scene.add(lampLight);
 
 function canvasTex(w, h, draw, repeat) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -485,23 +490,47 @@ function canvasTex(w, h, draw, repeat) {
   return t;
 }
 const rr = rngFrom(42);
-const floorTex = canvasTex(32, 32, (x, w, h) => {
+
+// black marble floor: big tiles, faint pale veins, thin gold grout
+const floorTex = canvasTex(64, 64, (x, w, h) => {
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
-    const v = ((i >> 3) + (j >> 3)) % 2 ? 30 : 22, n = rr() * 7;
-    x.fillStyle = `rgb(${v + n + 2},${v + n},${v + n - 3})`; x.fillRect(i, j, 1, 1);
+    const tile = ((i >> 5) + (j >> 5)) % 2;
+    const v = (tile ? 16 : 12) + rr() * 4;
+    x.fillStyle = `rgb(${v},${v + 1},${v + 4})`; x.fillRect(i, j, 1, 1);
   }
-}, [10, 8]);
-const wallTex = canvasTex(32, 64, (x, w, h) => {
+  for (let k = 0; k < 9; k++) {
+    let px = rr() * w, py = rr() * h; const dx = rr() - 0.5, dy = rr() - 0.5;
+    x.fillStyle = `rgba(150,155,165,${0.18 + rr() * 0.2})`;
+    for (let s = 0; s < 40; s++) { x.fillRect(Math.floor(px) % w, Math.floor(py) % h, 1, 1); px += dx * 2 + (rr() - 0.5); py += dy * 2 + (rr() - 0.5); }
+  }
+  x.fillStyle = 'rgb(70,56,30)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 32, w, 1); x.fillRect(0, 0, 1, h); x.fillRect(32, 0, 1, h);
+}, [5, 4]);
+
+// lacquered deco wall panels with brass strips and a fan frieze near the top
+const wallTex = canvasTex(64, 128, (x, w, h) => {
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
-    const plank = Math.floor(i / 8), seam = i % 8 === 0;
-    const v = seam ? 10 : 26 + (plank * 37 % 7) + rr() * 6;
-    x.fillStyle = `rgb(${v + 6},${v + 2},${v - 2})`; x.fillRect(i, j, 1, 1);
+    const v = 13 + rr() * 3;
+    x.fillStyle = `rgb(${v},${v + 1},${v + 5})`; x.fillRect(i, j, 1, 1);
   }
-  x.fillStyle = 'rgb(14,11,9)'; x.fillRect(0, 40, w, 2);
-}, [8, 1]);
+  x.fillStyle = 'rgb(22,24,32)'; x.fillRect(6, 30, 52, 92);
+  x.fillStyle = 'rgb(16,17,24)'; x.fillRect(9, 33, 46, 86);
+  x.fillStyle = 'rgb(122,94,46)';
+  x.fillRect(0, 0, 2, h); x.fillRect(31, 34, 1, 84);
+  x.fillRect(0, 22, w, 1); x.fillRect(0, 26, w, 1); x.fillRect(0, 124, w, 2);
+  // fan frieze
+  for (let f = 0; f < 2; f++) {
+    const cx = 16 + f * 32, cy = 21;
+    for (let a = 0; a < 7; a++) {
+      const ang = Math.PI + (a / 6) * Math.PI;
+      for (let r = 2; r < 14; r++) x.fillRect(Math.round(cx + Math.cos(ang) * r), Math.round(cy + Math.sin(ang) * r), 1, 1);
+    }
+    for (let a = 0; a <= 24; a++) { const ang = Math.PI + (a / 24) * Math.PI; x.fillRect(Math.round(cx + Math.cos(ang) * 14), Math.round(cy + Math.sin(ang) * 14), 1, 1); }
+  }
+}, [5, 1]);
 
 const roomMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true }));
-function addStatic(parts) { const m = new THREE.Mesh(toGeometry(parts), roomMat); scene.add(m); return m; }
+const glowMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+function addStatic(parts, mat) { const m = new THREE.Mesh(toGeometry(parts), mat || roomMat); scene.add(m); return m; }
 function plane(w, h, mat, segW, segH) { return new THREE.Mesh(new THREE.PlaneGeometry(w, h, segW || 8, segH || 4), mat); }
 
 // floor + walls (walls face inward so the camera can see in from outside)
@@ -513,86 +542,167 @@ const wl = plane(8, 3.2, wallMat, 16, 6); wl.position.set(-5, 1.6, 0); wl.rotati
 const wr = plane(8, 3.2, wallMat, 16, 6); wr.position.set(5, 1.6, 0); wr.rotation.y = -Math.PI / 2; scene.add(wr);
 
 RNG = rngFrom(7);
-const WOOD = [56, 36, 24], WOOD_D = [34, 22, 15], METAL = [62, 62, 64], LEATHER = [44, 16, 14], CHROME = [120, 120, 124];
-const S = [];
-// bar counter
-S.push(box(-3, 3, 0, 1.0, -3.0, -2.6, WOOD_D));
-S.push(box(-3.1, 3.1, 1.0, 1.06, -3.05, -2.5, WOOD));
-S.push(box(-3, 3, 0.18, 0.22, -2.62, -2.56, CHROME, 0.02));
-// back shelves + bottles
-for (const y of [1.25, 1.65]) S.push(box(-2.8, 2.8, y, y + 0.04, -3.98, -3.72, WOOD));
-S.push(box(-2.9, 2.9, 0, 1.0, -3.98, -3.6, WOOD_D));
-const BOTTLES = [[40, 80, 40], [90, 50, 20], [130, 120, 100], [30, 50, 70], [110, 30, 30], [60, 40, 20]];
-for (const y of [1.29, 1.69]) for (let x = -2.65; x < 2.7; x += 0.17 + rr() * 0.08) {
-  const c = BOTTLES[Math.floor(rr() * BOTTLES.length)], h = 0.2 + rr() * 0.1;
-  S.push(cyl(V(x, y, -3.85), V(x, y + h, -3.85), 0.035, 0.03, c, { n: 6 }));
-  S.push(cyl(V(x, y + h, -3.85), V(x, y + h + 0.07, -3.85), 0.012, 0.012, c, { n: 5 }));
+const LACQUER = [16, 17, 22], MARBLE = [26, 27, 32], MARBLE_L = [58, 58, 64], BRASS = [150, 112, 54], BRASS_D = [96, 72, 36];
+const LEATHER = [34, 20, 18], GLASS = [150, 160, 166], GREEN = [52, 96, 72], GREEN_D = [34, 70, 54];
+const S = [], G = [];
+const tubeB = (pts, r, col) => S.push(tube(pts, pts.map(() => r), col, { n: 4, smooth: false, amt: 0.04 }));
+
+// bar counter: lacquered front with brass fluting, black marble top, brass foot rail
+S.push(box(-3, 3, 0, 1.0, -3.0, -2.6, LACQUER));
+for (let x = -2.85; x <= 2.86; x += 0.3) S.push(box(x - 0.012, x + 0.012, 0.08, 0.96, -2.605, -2.59, BRASS_D, 0.04));
+S.push(box(-3.1, 3.1, 0, 0.06, -3.02, -2.57, BRASS_D, 0.03));
+S.push(box(-3.12, 3.12, 1.0, 1.06, -3.06, -2.48, MARBLE, 0.05));
+S.push(box(-3.12, 3.12, 1.0, 1.012, -2.49, -2.47, BRASS, 0.03));
+S.push(cyl(V(-3, 0.2, -2.52), V(3, 0.2, -2.52), 0.018, 0.018, BRASS, { n: 6 }));
+for (const x of [-2.6, 0, 2.6]) S.push(cyl(V(x, 0, -2.56), V(x, 0.2, -2.52), 0.012, 0.012, BRASS, { n: 4 }));
+
+// back bar: cabinet, shelves, bottles, backlit deco arches
+S.push(box(-2.9, 2.9, 0, 1.0, -3.98, -3.6, LACQUER));
+S.push(box(-2.95, 2.95, 1.0, 1.03, -4.0, -3.56, MARBLE));
+for (const y of [1.3, 1.72]) {
+  S.push(box(-2.75, 2.75, y, y + 0.03, -3.98, -3.74, MARBLE_L, 0.04));
+  S.push(box(-2.75, 2.75, y + 0.03, y + 0.036, -3.75, -3.74, BRASS, 0.03));
 }
-// stools
+const BOTTLES = [[52, 92, 60], [120, 70, 26], [170, 150, 110], [40, 60, 90], [120, 34, 34], [80, 56, 30], [190, 190, 180]];
+for (const y of [1.03, 1.336, 1.756]) for (let x = -2.65; x < 2.7; x += 0.15 + rr() * 0.08) {
+  if (y === 1.03 && Math.abs(x - 0.4) < 0.5) continue; // gap behind the bartender
+  const c = BOTTLES[Math.floor(rr() * BOTTLES.length)], h = 0.2 + rr() * 0.1, z = -3.84 + rr() * 0.06;
+  S.push(cyl(V(x, y, z), V(x, y + h, z), 0.034, 0.03, c, { n: 6 }));
+  S.push(cyl(V(x, y + h, z), V(x, y + h + 0.07, z), 0.011, 0.011, c, { n: 5 }));
+}
+// five tall arches behind the bottles, each lit warm from behind
+const archGlow = canvasTex(16, 32, (x, w, h) => {
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const dx = (i - w / 2) / (w / 2), dy = (j - h * 0.62) / (h * 0.7);
+    const k = Math.max(0, 1 - Math.sqrt(dx * dx * 0.8 + dy * dy));
+    x.fillStyle = `rgb(${Math.round(18 + 170 * k)},${Math.round(12 + 100 * k)},${Math.round(8 + 40 * k)})`; x.fillRect(i, j, 1, 1);
+  }
+});
+const archMat = new THREE.MeshBasicMaterial({ map: archGlow });
+for (let a = 0; a < 5; a++) {
+  const cx = -2.2 + a * 1.1, y0 = 1.03, y1 = 2.25, r = 0.46;
+  const pts = [V(cx - r, y0, -3.96), V(cx - r, y1, -3.96)];
+  for (let k = 1; k < 8; k++) { const ang = Math.PI - (k / 8) * Math.PI; pts.push(V(cx + Math.cos(ang) * r, y1 + Math.sin(ang) * r, -3.96)); }
+  pts.push(V(cx + r, y1, -3.96), V(cx + r, y0, -3.96));
+  tubeB(pts, 0.016, BRASS);
+  // sunburst ribs inside the arch top
+  for (let k = 1; k < 6; k++) { const ang = Math.PI - (k / 6) * Math.PI; tubeB([V(cx, y1, -3.965), V(cx + Math.cos(ang) * r, y1 + Math.sin(ang) * r, -3.965)], 0.007, BRASS_D); }
+  tubeB([V(cx - r, y1, -3.965), V(cx + r, y1, -3.965)], 0.008, BRASS_D);
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, (y1 - y0) + r), archMat);
+  glow.position.set(cx, (y0 + y1 + r) / 2, -3.985); scene.add(glow);
+}
+// columns framing the bar
+for (const x of [-3.45, 3.45]) {
+  S.push(box(x - 0.18, x + 0.18, 0, 3.2, -3.4, -3.04, LACQUER));
+  for (const y of [0.1, 1.05, 2.9]) S.push(box(x - 0.19, x + 0.19, y, y + 0.04, -3.41, -3.03, BRASS, 0.03));
+  for (let k = -1; k <= 1; k++) S.push(box(x + k * 0.09 - 0.008, x + k * 0.09 + 0.008, 0.15, 2.88, -3.035, -3.03, BRASS_D, 0.03));
+}
+
+// stools: brass pedestal, dark leather seat
 const STOOLS = [];
 for (let i = 0; i < 7; i++) {
   const x = -2.5 + i * (5 / 6);
   STOOLS.push([x, -2.15]);
-  S.push(cyl(V(x, 0, -2.15), V(x, 0.03, -2.15), 0.2, 0.2, METAL, { n: 8 }));
-  S.push(cyl(V(x, 0.03, -2.15), V(x, 0.68, -2.15), 0.03, 0.03, CHROME, { n: 6 }));
-  S.push(cyl(V(x, 0.3, -2.15), V(x, 0.32, -2.15), 0.15, 0.15, CHROME, { n: 8 }));
-  S.push(cyl(V(x, 0.68, -2.15), V(x, 0.76, -2.15), 0.19, 0.19, LEATHER, { n: 10 }));
+  S.push(cyl(V(x, 0, -2.15), V(x, 0.025, -2.15), 0.19, 0.17, BRASS_D, { n: 10 }));
+  S.push(cyl(V(x, 0.025, -2.15), V(x, 0.68, -2.15), 0.028, 0.028, BRASS, { n: 6 }));
+  S.push(cyl(V(x, 0.3, -2.15), V(x, 0.315, -2.15), 0.15, 0.15, BRASS, { n: 10 }));
+  S.push(loft([rring(0.68, 0.36, 0.36, x, -2.15, 12, 2), rring(0.74, 0.4, 0.4, x, -2.15, 12, 2), rring(0.775, 0.36, 0.36, x, -2.15, 12, 2)], LEATHER, { smooth: true }));
 }
-// glasses on the counter
-for (let i = 0; i < 9; i++) { const x = -2.7 + rr() * 5.4; S.push(cyl(V(x, 1.06, -2.75), V(x, 1.17, -2.75), 0.035, 0.04, [150, 150, 140], { n: 6, amt: 0.1 })); }
-// jukebox
-S.push(box(-4.95, -4.45, 0, 1.25, -2.0, -1.2, [60, 30, 22]));
-S.push(cyl(V(-4.7, 1.25, -2.0), V(-4.7, 1.25, -1.2), 0.25, 0.25, [60, 30, 22], { n: 10 }));
-// lounge: booth + table
+// martini glasses on the counter and a couple on the table
+function martini(x, y, z) {
+  S.push(cyl(V(x, y, z), V(x, y + 0.005, z), 0.03, 0.03, GLASS, { n: 6, amt: 0.05 }));
+  S.push(cyl(V(x, y + 0.005, z), V(x, y + 0.08, z), 0.004, 0.004, GLASS, { n: 4, amt: 0.05 }));
+  S.push(cyl(V(x, y + 0.08, z), V(x, y + 0.14, z), 0.004, 0.05, GLASS, { n: 8, amt: 0.08 }));
+  S.push(cyl(V(x, y + 0.115, z), V(x, y + 0.118, z), 0.03, 0.03, [190, 200, 170], { n: 8, amt: 0.03 }));
+}
+for (let i = 0; i < 7; i++) martini(-2.55 + i * (5 / 6) + 0.12, 1.06, -2.72);
+
+// succulent in a square black planter
+function succulent(x, y, z, s) {
+  S.push(box(x - 0.09 * s, x + 0.09 * s, y, y + 0.11 * s, z - 0.09 * s, z + 0.09 * s, [20, 20, 24], 0.03));
+  for (let k = 0; k < 9; k++) {
+    const ang = k * 2.4, len = (0.07 + (k % 3) * 0.025) * s, up = 0.04 + (k % 2) * 0.03;
+    const bx = x + Math.cos(ang) * 0.015, bz = z + Math.sin(ang) * 0.015, by = y + 0.11 * s;
+    S.push(cyl(V(bx, by, bz), V(bx + Math.cos(ang) * len, by + up * s, bz + Math.sin(ang) * len), 0.018 * s, 0.004, k % 2 ? GREEN : GREEN_D, { n: 4, amt: 0.08 }));
+  }
+}
+succulent(-2.9, 1.06, -2.75, 1); succulent(2.9, 1.06, -2.75, 1);
+
+// deco jukebox: black lacquer body, brass arch, glowing grille
+S.push(box(-4.95, -4.45, 0, 1.2, -2.0, -1.2, LACQUER));
+S.push(cyl(V(-4.7, 1.2, -2.0), V(-4.7, 1.2, -1.2), 0.25, 0.25, LACQUER, { n: 12 }));
+tubeB([V(-4.44, 0.05, -1.98), V(-4.44, 1.2, -1.98), V(-4.44, 1.38, -1.82), V(-4.44, 1.45, -1.6), V(-4.44, 1.38, -1.38), V(-4.44, 1.2, -1.22), V(-4.44, 0.05, -1.22)], 0.014, BRASS);
+
+// lounge: tufted booth, black marble table, lamp, glass and plant
 S.push(box(-4.95, -4.4, 0, 0.45, 0.8, 3.2, LEATHER));
-S.push(box(-4.98, -4.82, 0.45, 1.15, 0.8, 3.2, LEATHER));
-S.push(cyl(V(-3.6, 0, 2.0), V(-3.6, 0.72, 2.0), 0.05, 0.05, METAL, { n: 6 }));
-S.push(cyl(V(-3.6, 0.72, 2.0), V(-3.6, 0.76, 2.0), 0.5, 0.5, WOOD, { n: 10 }));
-S.push(cyl(V(-3.6, 0, 2.0), V(-3.6, 0.03, 2.0), 0.28, 0.28, METAL, { n: 8 }));
-S.push(cyl(V(-3.5, 0.76, 1.9), V(-3.5, 0.82, 1.9), 0.06, 0.04, [70, 70, 72], { n: 8 }));
-S.push(cyl(V(-3.4, 0.76, 2.2), V(-3.4, 1.0, 2.2), 0.012, 0.012, METAL, { n: 5 }));
-S.push(cyl(V(-3.4, 1.0, 2.2), V(-3.4, 1.12, 2.2), 0.08, 0.12, [140, 110, 70], { n: 8 }));
-// speakers by the dance floor
+S.push(box(-4.98, -4.82, 0.45, 1.2, 0.8, 3.2, LEATHER));
+for (let z = 1.0; z < 3.1; z += 0.4) S.push(box(-4.83, -4.81, 0.5, 1.15, z - 0.01, z + 0.01, [22, 12, 11], 0.03));
+S.push(box(-4.99, -4.8, 1.2, 1.23, 0.78, 3.22, BRASS, 0.03));
+S.push(cyl(V(-3.6, 0, 2.0), V(-3.6, 0.03, 2.0), 0.3, 0.26, BRASS_D, { n: 10 }));
+S.push(cyl(V(-3.6, 0.03, 2.0), V(-3.6, 0.72, 2.0), 0.04, 0.04, BRASS, { n: 6 }));
+S.push(cyl(V(-3.6, 0.72, 2.0), V(-3.6, 0.76, 2.0), 0.52, 0.52, MARBLE, { n: 14 }));
+S.push(cyl(V(-3.6, 0.755, 2.0), V(-3.6, 0.762, 2.0), 0.525, 0.525, BRASS, { n: 14, amt: 0.03 }));
+martini(-3.45, 0.76, 1.8);
+succulent(-3.85, 0.76, 2.2, 1.2);
+S.push(cyl(V(-3.3, 0.76, 2.25), V(-3.3, 0.79, 2.25), 0.07, 0.06, BRASS_D, { n: 8 }));
+S.push(cyl(V(-3.3, 0.79, 2.25), V(-3.3, 1.08, 2.25), 0.01, 0.01, BRASS, { n: 4 }));
+S.push(cyl(V(-3.3, 1.06, 2.25), V(-3.3, 1.18, 2.25), 0.13, 0.07, [120, 96, 60], { n: 8 }));
+
+// speakers by the dance floor: black lacquer, brass rings
 for (const z of [-1.6, 3.4]) {
-  S.push(box(3.9, 4.6, 0, 1.3, z - 0.35, z + 0.35, [18, 18, 19]));
-  S.push(cyl(V(3.88, 0.4, z), V(3.86, 0.4, z), 0.22, 0.22, [40, 40, 42], { n: 10 }));
-  S.push(cyl(V(3.88, 0.95, z), V(3.86, 0.95, z), 0.13, 0.13, [40, 40, 42], { n: 10 }));
+  S.push(box(3.9, 4.6, 0, 1.3, z - 0.35, z + 0.35, LACQUER));
+  for (const [y, r] of [[0.4, 0.22], [0.95, 0.13]]) {
+    S.push(cyl(V(3.89, y, z), V(3.87, y, z), r + 0.02, r + 0.02, BRASS_D, { n: 12 }));
+    S.push(cyl(V(3.88, y, z), V(3.86, y, z), r, r, [24, 24, 28], { n: 12 }));
+  }
 }
-// ceiling lamp shades over the bar
+
+// pendant lamps over the bar: brass rod, deco glass shade, glowing bulb
 for (const x of [-2, 0, 2]) {
-  S.push(cyl(V(x, 3.2, -2.6), V(x, 2.62, -2.6), 0.01, 0.01, [20, 20, 20], { n: 4 }));
-  S.push(cyl(V(x, 2.62, -2.6), V(x, 2.5, -2.6), 0.06, 0.2, [150, 110, 60], { n: 8 }));
+  S.push(cyl(V(x, 3.2, -2.6), V(x, 2.5, -2.6), 0.008, 0.008, BRASS, { n: 4 }));
+  S.push(cyl(V(x, 2.5, -2.6), V(x, 2.38, -2.6), 0.03, 0.17, BRASS, { n: 10 }));
+  G.push(cyl(V(x, 2.39, -2.6), V(x, 2.33, -2.6), 0.07, 0.05, [255, 210, 150], { n: 8, amt: 0 }));
+}
+// wall sconces: brass fans with a warm glow
+for (const [wx, z, dir] of [[-4.97, -0.4, 1], [-4.97, 2.0, 1], [4.97, -2.6, -1], [4.97, 2.8, -1]]) {
+  for (let k = 0; k <= 4; k++) { const ang = Math.PI * (0.15 + 0.7 * k / 4); tubeB([V(wx, 2.1, z), V(wx + dir * 0.03, 2.1 + Math.sin(ang) * 0.22, z + Math.cos(ang) * 0.22)], 0.008, BRASS); }
+  G.push(cyl(V(wx, 2.12, z), V(wx + dir * 0.06, 2.12, z), 0.05, 0.04, [255, 196, 130], { n: 8, amt: 0 }));
 }
 addStatic(S);
+addStatic(G, glowMat);
 
-// jukebox face, neon sign (unlit, glowing)
+// jukebox face, gold sign (unlit, glowing)
 const jukeFace = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.7), new THREE.MeshBasicMaterial({ map: canvasTex(16, 18, (x) => {
-  x.fillStyle = '#2a120c'; x.fillRect(0, 0, 16, 18);
-  for (let i = 0; i < 7; i++) { x.fillStyle = i % 2 ? '#ffb040' : '#ff6a1c'; x.fillRect(2, 2 + i * 2, 12, 1); }
-  x.fillStyle = '#ffd890'; x.fillRect(4, 16, 8, 1);
+  x.fillStyle = '#1a120a'; x.fillRect(0, 0, 16, 18);
+  for (let i = 0; i < 7; i++) { x.fillStyle = i % 2 ? '#ffc060' : '#d48a2a'; x.fillRect(2 + i * 2, 2, 1, 13); }
+  x.fillStyle = '#ffe0a0'; x.fillRect(3, 16, 10, 1);
 }) }));
-jukeFace.position.set(-4.44, 0.85, -1.6); jukeFace.rotation.y = Math.PI / 2; scene.add(jukeFace);
+jukeFace.position.set(-4.44, 0.8, -1.6); jukeFace.rotation.y = Math.PI / 2; scene.add(jukeFace);
 
-const neonCanvas = document.createElement('canvas'); neonCanvas.width = 256; neonCanvas.height = 64;
+const signFont = '"Limelight", "Poiret One", Georgia, serif';
+const neonCanvas = document.createElement('canvas'); neonCanvas.width = 320; neonCanvas.height = 64;
 const neonTex = new THREE.CanvasTexture(neonCanvas); neonTex.magFilter = THREE.NearestFilter; neonTex.minFilter = THREE.NearestFilter; neonTex.encoding = THREE.sRGBEncoding;
 function drawNeon(on) {
   const x = neonCanvas.getContext('2d');
-  x.clearRect(0, 0, 256, 64);
-  x.font = '54px ' + tagFont; x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.shadowColor = on ? '#ff2a2a' : 'transparent'; x.shadowBlur = on ? 10 : 0;
-  x.fillStyle = on ? '#ff6a5a' : '#3a1414'; x.fillText("SH1DEN'S", 128, 34);
+  x.clearRect(0, 0, 320, 64);
+  x.font = '46px ' + signFont; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.shadowColor = on ? 'rgba(255,190,100,0.9)' : 'transparent'; x.shadowBlur = on ? 12 : 0;
+  const g = x.createLinearGradient(0, 10, 0, 56); g.addColorStop(0, '#fff0c8'); g.addColorStop(0.5, '#e7b86a'); g.addColorStop(1, '#a8772e');
+  x.fillStyle = on ? g : '#3a2c18'; x.fillText("SH1DEN'S", 160, 34);
+  x.shadowBlur = 0; x.fillStyle = on ? '#c8964a' : '#3a2c18';
+  x.fillRect(40, 60, 240, 2); x.fillRect(40, 2, 240, 2);
   neonTex.needsUpdate = true;
 }
 drawNeon(true);
-const neon = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.6), new THREE.MeshBasicMaterial({ map: neonTex, transparent: true }));
-neon.position.set(0, 2.5, -3.96); scene.add(neon);
+const neon = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.52), new THREE.MeshBasicMaterial({ map: neonTex, transparent: true }));
+neon.position.set(0, 2.92, -3.95); scene.add(neon);
 
 // big TV on the right wall: a black screen in 3D, with the YouTube player laid over it in CSS 3D
 const TV = { y: 2.05, z: 0.9, w: 2.4, h: 1.35 };
-addStatic([box(4.93, 5.0, TV.y - TV.h / 2 - 0.07, TV.y + TV.h / 2 + 0.07, TV.z - TV.w / 2 - 0.07, TV.z + TV.w / 2 + 0.07, [20, 20, 22], 0.03),
-  box(4.96, 5.0, TV.y - TV.h / 2 - 0.3, TV.y - TV.h / 2 - 0.07, TV.z - 0.06, TV.z + 0.06, [30, 30, 32], 0.03)]);
+addStatic([box(4.93, 5.0, TV.y - TV.h / 2 - 0.07, TV.y + TV.h / 2 + 0.07, TV.z - TV.w / 2 - 0.07, TV.z + TV.w / 2 + 0.07, [14, 14, 18], 0.03),
+  box(4.925, 4.935, TV.y - TV.h / 2 - 0.085, TV.y + TV.h / 2 + 0.085, TV.z - TV.w / 2 - 0.085, TV.z + TV.w / 2 + 0.085, BRASS_D, 0.03)]);
 const tvGlass = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), new THREE.MeshBasicMaterial({ color: 0x050506 }));
-tvGlass.position.set(4.925, TV.y, TV.z); tvGlass.rotation.y = -Math.PI / 2; scene.add(tvGlass);
+tvGlass.position.set(4.92, TV.y, TV.z); tvGlass.rotation.y = -Math.PI / 2; scene.add(tvGlass);
 const tvLight = new THREE.PointLight(0x9aa6ff, 0, 3.8, 1.6); tvLight.position.set(4.3, TV.y, TV.z); scene.add(tvLight);
 let tvOn = false, cssRenderer = null, cssScene = null;
 if (THREE.CSS3DRenderer && document.getElementById('tvScreen')) {
@@ -603,20 +713,21 @@ if (THREE.CSS3DRenderer && document.getElementById('tvScreen')) {
   const el = document.getElementById('tvScreen');
   const obj = new THREE.CSS3DObject(el);
   el.style.pointerEvents = 'none';
-  obj.position.set(4.918, TV.y, TV.z); obj.rotation.y = -Math.PI / 2; obj.scale.setScalar(TV.w / 960);
+  obj.position.set(4.912, TV.y, TV.z); obj.rotation.y = -Math.PI / 2; obj.scale.setScalar(TV.w / 960);
   cssScene.add(obj);
 }
 
-// dance floor tiles
+// dance floor: dark glass tiles that pulse cold blue and white
 const DF = { x: 1.6, z: 1.0, n: 4, s: 0.75 };
 const tiles = [];
-const TILE_COL = [new THREE.Color(0x5a0e0a), new THREE.Color(0x8a4a10), new THREE.Color(0x3a3a3e), new THREE.Color(0x24120e)];
+const TILE_COL = [new THREE.Color(0x10224a), new THREE.Color(0x2c4f9a), new THREE.Color(0x8a96c0), new THREE.Color(0x24164a)];
+addStatic([box(DF.x - DF.s * 2 - 0.05, DF.x + DF.s * 2 + 0.05, -0.02, 0.012, DF.z - DF.s * 2 - 0.05, DF.z + DF.s * 2 + 0.05, BRASS_D, 0.02)]);
 for (let i = 0; i < DF.n; i++) for (let j = 0; j < DF.n; j++) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(DF.s - 0.04, DF.s - 0.04),
-    new THREE.MeshBasicMaterial({ color: 0x220a08, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 }));
+    new THREE.MeshBasicMaterial({ color: 0x0a1020, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 }));
   m.renderOrder = 1;
   m.rotation.x = -Math.PI / 2;
-  m.position.set(DF.x + (i - 1.5) * DF.s, 0.012, DF.z + (j - 1.5) * DF.s);
+  m.position.set(DF.x + (i - 1.5) * DF.s, 0.02, DF.z + (j - 1.5) * DF.s);
   scene.add(m); tiles.push({ m, i, j });
 }
 
@@ -697,12 +808,12 @@ function rebuild() {
 }
 
 // ---------------------------------------------------------------- music (original tracks, Web Audio)
-// Four original loops. The jukebox rotates them every 48 bars unless a visitor picks one.
+// Four original tracks for a late-night hotel bar. The jukebox rotates them every 48 bars unless a visitor picks one.
 const TRACKS = [
-  { name: 'Last Call', bpm: 108, swing: 0, prog: [[45, 48, 52], [45, 48, 52], [41, 45, 48], [40, 44, 47]] },   // Am Am F E
-  { name: 'Neon Rain', bpm: 92, swing: 0, prog: [[38, 41, 45], [34, 38, 41], [36, 40, 43], [33, 36, 40]] },    // Dm Bb C Am
-  { name: 'Static Floor', bpm: 124, swing: 0, prog: [[40, 43, 47], [40, 43, 47], [36, 40, 43], [38, 42, 45]] }, // Em Em C D
-  { name: 'Dust Room', bpm: 84, swing: 0.2, prog: [[41, 45, 48, 52], [40, 43, 47, 50], [38, 41, 45, 48], [43, 47, 50, 53]] } // Fmaj7 Em7 Dm7 G7
+  { name: 'Velvet Rope', bpm: 112, swing: 0, prog: [[45, 48, 52], [45, 48, 52], [41, 45, 48], [43, 47, 50]] },          // Am Am F G — dark electro
+  { name: 'Last Round', bpm: 86, swing: 0, swing8: 0.33, prog: [[38, 41, 45, 48, 52], [43, 47, 50, 53, 57], [36, 40, 43, 47, 50], [45, 49, 52, 55, 58]] }, // Dm9 G13 Cmaj9 A7 — noir lounge
+  { name: 'Midnight Ledger', bpm: 118, swing: 0, prog: [[40, 43, 47], [36, 40, 43], [43, 47, 50], [42, 45, 49]] },    // Em C G F#dim — darkwave
+  { name: 'Quiet Contract', bpm: 128, swing: 0, prog: [[38, 41, 45], [38, 41, 45], [38, 41, 45], [36, 39, 43]] }      // Dm Dm Dm Cm — industrial techno
 ];
 let trackIdx = 0, pinnedTrack = false, pendingTrack = -1;
 let SPB = 60 / TRACKS[0].bpm;
@@ -744,47 +855,47 @@ function tone(t, midi, dur, type, peak, cutoff, detune, attack) {
 }
 const ARP = [0, 1, 2, 1, 0, 2, 1, 2];
 const STEPS = [
-  // Last Call: driving dark house
+  // Velvet Rope: dark electro, gritty pulsing bass, metallic hats, sparse minor stabs
   function (t, s, bar, ch, sec, st) {
-    if (s % 4 === 0 && sec !== 3) kick(t);
-    if (s % 4 === 2) noise(t, 7000, 0.7, 0.16, 0.05);
-    if (s % 2 === 1 && sec >= 1) noise(t, 9000, 0.7, 0.05, 0.025);
-    if ((s === 4 || s === 12) && sec !== 0) noise(t, 1600, 0.8, 0.22, 0.14, 'bandpass');
-    if (s % 4 === 2 || s === 15) tone(t, ch[0] - 12, st * 1.6, 'sawtooth', 0.22, 380 + 120 * Math.sin(bar), 0);
-    if (s === 0) for (const n of ch) { tone(t, n + 12, SPB * 4, 'sawtooth', 0.035, 900, -7); tone(t, n + 12, SPB * 4, 'sawtooth', 0.035, 900, 7); }
-    if (sec >= 2 && s % 2 === 0) tone(t, ch[ARP[(s / 2) % 8]] + 24, st * 1.5, 'square', 0.04, 2200, 0);
+    if (s % 4 === 0 && !(sec === 0 && bar % 8 < 2)) kick(t, 0.95);
+    if (s === 4 || s === 12) { noise(t, 1500, 0.9, 0.24, 0.16, 'bandpass'); noise(t, 5000, 0.6, 0.06, 0.08); }
+    if (s % 2 === 1) noise(t, 9500, 1.2, s % 4 === 3 ? 0.07 : 0.035, 0.03);
+    if (s % 2 === 1 || s === 0) tone(t, ch[0] - 24, st * 0.95, 'sawtooth', 0.2, 260 + 400 * ((s % 8) / 8), 0);
+    if (s % 2 === 1) tone(t, ch[0] - 12, st * 0.6, 'square', 0.05, 900, 0);
+    if (sec >= 1 && (s === 0 || s === 10)) for (const n of ch) tone(t, n + 12, st * 3, 'sawtooth', 0.03, 1600, -6);
+    if (sec >= 2 && s % 4 === 2) tone(t, ch[(s / 2 + bar) % 3] + 24, st * 1.2, 'square', 0.03, 2600, 0);
   },
-  // Neon Rain: slow, wide pads, glassy bells
+  // Last Round: noir lounge, brushed snare, ride cymbal, walking bass, soft electric piano
   function (t, s, bar, ch, sec, st) {
-    if (s === 0 || s === 10) kick(t, 0.75, true);
-    if (s === 8 && sec !== 0) noise(t, 2200, 0.6, 0.18, 0.22, 'bandpass');
-    if (s % 4 === 2 && sec >= 1) noise(t, 8000, 0.7, 0.06, 0.04);
-    if (s === 0) {
-      for (const n of ch) { tone(t, n + 12, SPB * 4.2, 'sawtooth', 0.03, 700, -10, 0.6); tone(t, n + 12, SPB * 4.2, 'triangle', 0.04, 1200, 9, 0.6); }
-      tone(t, ch[0] - 12, SPB * 3.5, 'sine', 0.28, 300, 0, 0.02);
+    const tr = TRACKS[1], next = tr.prog[(bar + 1) % 4];
+    if (s === 0 || s === 4 || s === 6 || s === 8 || s === 12 || s === 14) noise(t, 8500, 1.5, s % 4 === 2 ? 0.035 : 0.055, 0.28);
+    if (s % 2 === 0) noise(t, 2800, 0.5, 0.025, 0.12, 'bandpass');
+    if (s === 4 || s === 12) noise(t, 2000, 0.6, 0.06, 0.2, 'bandpass');
+    if (s === 0 || s === 10) kick(t, 0.35, true);
+    if (s % 4 === 0) {
+      const walk = [ch[0], ch[1], ch[2], next[0] - 1][s / 4];
+      tone(t, walk - 12, SPB * 0.92, 'triangle', 0.28, 700, 0, 0.01);
     }
-    if (sec >= 1 && (s === 3 || s === 6 || s === 11 || s === 14)) tone(t, ch[(s + bar) % 3] + 24 + (s === 14 ? 12 : 0), st * 6, 'triangle', 0.05, 4000, 0);
+    if (s === 0 || s === 6) for (const n of ch.slice(1)) { tone(t, n + 12, SPB * 1.6, 'sine', 0.045, 2400, 0, 0.005); tone(t, n + 24, SPB * 0.5, 'triangle', 0.012, 3000, 3, 0.005); }
+    if (sec >= 2 && (s === 3 || s === 9 || s === 14)) tone(t, ch[(s + bar) % ch.length] + 24, st * 3, 'sine', 0.035, 3500, 0);
   },
-  // Static Floor: fast, rolling bass, open hats
+  // Midnight Ledger: darkwave, gated snare, galloping bass, wide pads
   function (t, s, bar, ch, sec, st) {
-    if (s % 4 === 0 && !(sec === 3 && bar % 8 >= 6)) kick(t, 0.95);
-    if (s % 4 === 2) noise(t, 6000, 0.8, 0.14, 0.12);
-    if (s % 2 === 1) noise(t, 10000, 0.7, 0.04, 0.02);
-    if (s % 8 === 4 && sec >= 1) noise(t, 1400, 0.9, 0.2, 0.12, 'bandpass');
-    if (s % 4 !== 0) tone(t, ch[0] - 12 + (s % 4 === 3 ? 12 : 0), st * 0.9, 'sawtooth', 0.16, 300 + 500 * ((bar % 4) / 4), 0);
-    if (s === 0 && sec >= 1) for (const n of ch) tone(t, n + 12, SPB * 2, 'square', 0.025, 1400, 5);
-    if (sec >= 2 && s % 2 === 1) tone(t, ch[ARP[(s + bar) % 8]] + 24, st * 0.8, 'sawtooth', 0.035, 3000, 0);
+    if (s % 4 === 0) kick(t, 0.85);
+    if (s === 4 || s === 12) { noise(t, 1200, 0.7, 0.26, 0.22, 'bandpass'); noise(t, 6000, 0.5, 0.05, 0.18); }
+    if (s % 4 === 2) noise(t, 8000, 0.8, 0.07, 0.04);
+    if (s % 4 !== 1) tone(t, ch[0] - 12 + (s % 4 === 3 ? 7 : 0), st * 0.9, 'sawtooth', 0.15, 420 + 220 * Math.sin(bar * 0.7), 0);
+    if (s === 0) for (const n of ch) { tone(t, n + 12, SPB * 4.1, 'sawtooth', 0.026, 1100, -9, 0.3); tone(t, n + 12, SPB * 4.1, 'sawtooth', 0.026, 1100, 9, 0.3); }
+    if (sec >= 1 && s % 2 === 0) tone(t, ch[ARP[(s / 2 + bar) % 8]] + 24, st * 1.6, 'square', 0.03, 2000, 0);
   },
-  // Dust Room: lo-fi, swung, warm keys with crackle
+  // Quiet Contract: industrial techno, rumbling kick, offbeat metal, one-note stab
   function (t, s, bar, ch, sec, st) {
-    if (s === 0 || s === 11) kick(t, 0.7, true);
-    if (s === 4 || s === 12) noise(t, 1800, 0.7, 0.16, 0.16, 'bandpass');
-    if (s % 2 === 0) noise(t, 7500, 0.7, 0.045, 0.03);
-    if (s % 4 === 1) noise(t, 3000, 0.5, 0.012, 0.01);
-    if (s === 0 || s === 7) for (const n of ch) tone(t, n + 12, SPB * 1.6, 'triangle', 0.05, 1600, 3, 0.02);
-    if (s === 0) tone(t, ch[0] - 12, SPB * 2, 'sine', 0.3, 260, 0);
-    if (s === 10) tone(t, ch[2] - 12, SPB * 1, 'sine', 0.22, 260, 0);
-    if (sec >= 2 && (s === 2 || s === 9 || s === 14)) tone(t, ch[(s + bar) % 4] + 24, st * 3, 'sine', 0.04, 3000, 0);
+    if (s % 4 === 0 && !(sec === 3 && bar % 8 >= 6)) { kick(t, 1.0); tone(t + st * 0.5, ch[0] - 36, st * 1.4, 'sine', 0.18, 140, 0); }
+    if (s % 4 === 2) { noise(t, 7000, 2.5, 0.12, 0.09); tone(t, 86, st * 0.4, 'square', 0.012, 6000, 0); }
+    if (s % 2 === 1) noise(t, 11000, 1.0, 0.03, 0.02);
+    if (s % 8 === 4 && sec >= 1) noise(t, 900, 1.2, 0.22, 0.1, 'bandpass');
+    if (sec >= 1 && (s === 3 || s === 11 || (s === 14 && bar % 2))) for (const n of ch) tone(t, n + 12, st * 1.2, 'sawtooth', 0.035, 1200 + 600 * (bar % 4) / 4, 0);
+    if (sec >= 2 && s % 4 === 1) tone(t, ch[0] + 24, st * 0.5, 'square', 0.02, 3000, 0);
   }
 ];
 function setTrackNow(i, t) {
@@ -800,7 +911,7 @@ function schedule() {
     }
     const tr = TRACKS[trackIdx], st = SPB / 4;
     const s = stepIdx % 16, bar = Math.floor(stepIdx / 16), ch = tr.prog[bar % 4], sec = Math.floor(bar / 8) % 4;
-    const t = nextStep + (s % 2 === 1 ? tr.swing * st : 0);
+    const t = nextStep + (s % 2 === 1 ? tr.swing * st : 0) + (tr.swing8 && s % 4 === 2 ? tr.swing8 * st * 2 : 0);
     if (!ducked) STEPS[trackIdx](t, s, bar, ch, sec, st);
     nextStep += st; stepIdx++;
   }
@@ -892,10 +1003,10 @@ function tick() {
     const on = ((tl.i * 3 + tl.j * 5 + bi) % 3) === 0;
     tl.m.material.color.copy(c).multiplyScalar(on ? 0.6 + 0.8 * pulse : 0.25);
   }
-  const hue = [0xff3020, 0xff8a20, 0xb0b0c0, 0xff3020][Math.floor(bi / 8) % 4];
+  const hue = [0x4a7cff, 0xb8c4ff, 0x6a4aff, 0x2a5cff][Math.floor(bi / 8) % 4];
   danceLight.color.setHex(hue); danceLight.intensity = 0.9 + 1.2 * pulse;
-  const flick = Math.sin(t * 13) > 0.97 ? 0.3 : 1;
-  neonLight.intensity = 0.9 * flick;
+  const flick = 1;
+  neonLight.intensity = 0.7;
   if ((flick < 1) !== tick.off) { tick.off = flick < 1; drawNeon(!tick.off); }
   for (const l of barLights) l.intensity = 1.1 + 0.05 * Math.sin(t * 2 + l.position.x);
   tvLight.intensity = tvOn ? 0.55 + 0.2 * Math.sin(t * 9) * Math.sin(t * 2.3) : 0;
@@ -1097,7 +1208,7 @@ window.BAR = {
 myEntry = loadMine();
 if (myEntry) $('createBtn').textContent = 'Edit my character';
 updateTrackUI();
-(document.fonts && document.fonts.load ? document.fonts.load('28px "VT323"').catch(() => { }) : Promise.resolve()).then(() => {
+(document.fonts && document.fonts.load ? Promise.all([document.fonts.load('28px "VT323"'), document.fonts.load('46px "Limelight"')]).catch(() => { }) : Promise.resolve()).then(() => {
   drawNeon(true);
   rebuild();
   $('loading').hidden = true;
