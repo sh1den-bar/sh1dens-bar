@@ -1086,7 +1086,7 @@ smoke.frustumCulled = false; scene.add(smoke);
 
 // ---------------------------------------------------------------- crowd
 const HOST_LOOK = { jacket: 0, pants: 0, skin: 2, head: 0, hair: 0, beard: 2, eyes: 1, smoke: 2, dance: 3, spot: 1 };
-const BARTENDER_LOOK = { jacket: 2, pants: 1, skin: 1, head: 1, hair: 1, beard: 0, eyes: 0, smoke: 0, dance: 3, spot: 1, outfit: 'barman' };
+const BARTENDER_LOOK = { jacket: 2, pants: 1, skin: 4, head: 1, hair: 1, beard: 1, eyes: 0, smoke: 0, dance: 3, spot: 1, outfit: 'barman' };
 const DJ_LOOK = { jacket: 4, pants: 1, skin: 3, head: 3, hair: 1, beard: 1, eyes: 2, smoke: 0, dance: 3, spot: 0 };
 const crowd = [];
 const tmpV = new THREE.Vector3();
