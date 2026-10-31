@@ -148,7 +148,7 @@ const LOOK = {
   skin: [['Pale', [232, 192, 164]], ['Light', [210, 162, 126]], ['Tan', [150, 102, 78]], ['Brown', [112, 74, 54]], ['Deep', [76, 50, 38]]],
   head: [['Shaved', 0], ['Short hair', 1], ['Beanie', 2], ['Cap', 3], ['Long hair', 4], ['Ponytail', 5], ['Bob', 6], ['Bald', 7]],
   hair: [['Dark brown', [40, 28, 22]], ['Black', [18, 16, 16]], ['Blond', [170, 136, 80]], ['Ginger', [128, 60, 30]], ['Gray', [120, 118, 114]]],
-  beard: [['None', 0], ['Stubble', 1], ['Full beard', 2], ['Pointed moustache', 3]],
+  beard: [['None', 0], ['Stubble', 1], ['Full beard', 2], ['Pointed moustache', 3], ['Moustache & chin beard', 4]],
   eyes: [['Bare eyes', 0], ['Round glasses', 1], ['Shades', 2]],
   smoke: [['No smoke', 0], ['Cigarette', 1], ['Cigar', 2]],
   dance: [['Bounce', 0], ['Two-step', 1], ['Hands up', 2], ['Head nod', 3]],
@@ -252,8 +252,9 @@ function buildParts(look, seed) {
 
   // head: a softer, narrower jaw for the female body
   const PROF = F ? PROFILE.map((p) => (p[0] < 1.645 ? [p[0], p[1] * (0.9 + 0.1 * (p[0] - 1.546) / 0.1), p[2] * 0.96, p[3] * 0.96, p[4]] : p)) : PROFILE;
-  P('head', loft(PROF.map((p) => headRing(p)), SKIN, { amt: 0.04, smooth: true, center: hc,
-    colfn: (ri, i) => { const h = PROF[ri][0], t = 2 * Math.PI * i / HS + Math.PI / HS; return (h < 1.57 || (Math.abs(Math.cos(t)) > 0.8 && h > 1.73)) ? SKIN_SHAD : SKIN; } }));
+  const BALD = look.head === 7;
+  P('head', loft(PROF.map((p) => headRing(p)), SKIN, { amt: BALD ? 0.012 : 0.025, smooth: true, center: hc,
+    colfn: (ri, i) => { const h = PROF[ri][0], t = 2 * Math.PI * i / HS + Math.PI / HS; return (h < 1.57 || (!BALD && Math.abs(Math.cos(t)) > 0.8 && h > 1.73)) ? SKIN_SHAD : SKIN; } }));
   const clamp = { 1.640: -0.07, 1.662: -0.062, 1.680: -0.052, 1.697: -0.04, 1.716: -0.022, 1.738: 0.048, 1.762: 0.079 };
   const upper = PROF.slice(5);
   const c2 = Object.assign({}, clamp, { 1.738: 0.06, 1.762: 0.095 });
@@ -301,6 +302,13 @@ function buildParts(look, seed) {
     const M = HAIR.map((v) => v * 0.9);
     for (const s of [-1, 1]) O('head', tube([V(0, 1.626, 0.105), V(s * 0.02, 1.625, 0.103), V(s * 0.036, 1.62, 0.098), V(s * 0.049, 1.611, 0.092),
       V(s * 0.057, 1.596, 0.087), V(s * 0.061, 1.58, 0.082), V(s * 0.064, 1.562, 0.077)], [0.0038, 0.005, 0.0046, 0.0038, 0.003, 0.0021, 0.0009], M, { n: 6 }));
+  } else if (look.beard === 4) {
+    // a full moustache curving down and out, plus a narrow strip from the lip into a pointed chin beard
+    const M = HAIR.map((v) => v * 0.9);
+    for (const s of [-1, 1]) O('head', tube([V(0, 1.628, 0.106), V(s * 0.018, 1.627, 0.105), V(s * 0.034, 1.621, 0.1), V(s * 0.046, 1.609, 0.094),
+      V(s * 0.053, 1.595, 0.089), V(s * 0.059, 1.584, 0.086)], [0.0052, 0.0066, 0.006, 0.005, 0.0034, 0.0011], M, { n: 6 }));
+    O('head', tube([V(0, 1.599, 0.1005), V(0, 1.586, 0.101), V(0, 1.571, 0.1025), V(0, 1.557, 0.1035), V(0, 1.545, 0.1005), V(0, 1.531, 0.089), V(0, 1.515, 0.077)],
+      [0.0035, 0.0045, 0.0058, 0.0072, 0.0068, 0.0042, 0.0008], M, { n: 6 }));
   } else if (look.beard === 1) {
     O('head', loft(PROF.slice(0, 6).map((p) => headRing(p, 0.0016)), SKIN.map((v, i) => v * 0.55 + HAIR[i] * 0.15), { amt: 0.05, smooth: true, center: hc }));
   }
@@ -1717,7 +1725,7 @@ const smoke = new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0x8c8780,
 smoke.frustumCulled = false; scene.add(smoke);
 
 // ---------------------------------------------------------------- crowd
-const HOST_LOOK = { jacket: 0, pants: 1, skin: 2, head: 7, hair: 1, beard: 3, eyes: 1, smoke: 2, dance: 3, spot: 1, body: 0, top: 2, bottom: 2, shoes: 2 };
+const HOST_LOOK = { jacket: 0, pants: 1, skin: 2, head: 7, hair: 1, beard: 4, eyes: 1, smoke: 2, dance: 3, spot: 1, body: 0, top: 2, bottom: 2, shoes: 2 };
 const BARTENDER_LOOK = { jacket: 2, pants: 1, skin: 4, head: 1, hair: 1, beard: 1, eyes: 0, smoke: 0, dance: 3, spot: 1, outfit: 'barman' };
 const DJ_LOOK = { jacket: 4, pants: 1, skin: 3, head: 3, hair: 1, beard: 1, eyes: 2, smoke: 0, dance: 3, spot: 0 };
 const crowd = [];
