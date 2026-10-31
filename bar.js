@@ -1369,7 +1369,41 @@ function roomReach(r, ox, oz, dx, dz) {
   if (dz > 1e-4) t = Math.min(t, (r.z1 - m - oz) / dz); else if (dz < -1e-4) t = Math.min(t, (r.z0 + m - oz) / dz);
   return Math.max(0.35, t);
 }
+// keyboard: WASD / arrow keys pan the bird's-eye view, Q/E turn it, Shift moves faster
+const keys = {};
+const KEYMAP = { KeyW: 'f', ArrowUp: 'f', KeyS: 'b', ArrowDown: 'b', KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r', KeyQ: 'q', KeyE: 'e' };
+function typing(e) { const el = e.target; return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable); }
+window.addEventListener('keydown', (e) => {
+  if (typing(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = KEYMAP[e.code];
+  if (k) { keys[k] = true; e.preventDefault(); }
+  if (e.key === 'Shift') keys.fast = true;
+});
+window.addEventListener('keyup', (e) => {
+  const k = KEYMAP[e.code];
+  if (k) keys[k] = false;
+  if (e.key === 'Shift') keys.fast = false;
+});
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+const BIRD = { pitch: 1.3, d: 14, x0: -13.5, x1: 14.5, z0: -11.5, z1: 4.5 };
+function keyboardPan(dt) {
+  const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), mz = (keys.f ? 1 : 0) - (keys.b ? 1 : 0), rot = (keys.e ? 1 : 0) - (keys.q ? 1 : 0);
+  if (!mx && !mz && !rot) return;
+  if (!camT.free) {
+    // switch into the bird's-eye view right above where you were looking
+    follow = null; velYaw = velPitch = 0;
+    camT.free = true; camT.pitch = BIRD.pitch; camT.d = Math.max(camT.d, BIRD.d); camT.ty = 0;
+  }
+  if (rot) camT.yaw += rot * dt * 1.6;
+  if (mx || mz) {
+    const len = Math.hypot(mx, mz), speed = Math.max(3, camT.d * 0.55) * (keys.fast ? 2.2 : 1);
+    const fx = -Math.sin(camT.yaw), fz = -Math.cos(camT.yaw), rx = Math.cos(camT.yaw), rz = -Math.sin(camT.yaw);
+    camT.tx = Math.max(BIRD.x0, Math.min(BIRD.x1, camT.tx + (fx * mz + rx * mx) / len * speed * dt));
+    camT.tz = Math.max(BIRD.z0, Math.min(BIRD.z1, camT.tz + (fz * mz + rz * mx) / len * speed * dt));
+  }
+}
 function updateCamera(dt, t) {
+  keyboardPan(dt);
   if (!drag) {
     camT.yaw += velYaw * dt;
     camT.pitch = Math.max(0.02, Math.min(camT.free ? 1.5 : 1.25, camT.pitch + velPitch * dt));

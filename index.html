@@ -59,6 +59,8 @@ canvas:active { cursor: grabbing; }
 .brand .stat + .stat::before { content: "· "; }
 .group { display: flex; flex-wrap: wrap; gap: 6px; }
 .spacer { flex: 1; }
+.keyhint { color: var(--dim); font-size: 11px; letter-spacing: 0.06em; width: 100%; text-align: right; pointer-events: none; }
+@media (hover: none) { .keyhint { display: none; } }
 
 button { font: inherit; font-size: 12px; color: var(--fg); background: var(--panel); border: 1px solid var(--line);
   padding: 7px 11px; cursor: pointer; letter-spacing: 0.03em; }
@@ -172,6 +174,7 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
     <button id="track" type="button" title="Next track">Jukebox</button>
     <button id="pix" type="button" aria-pressed="true">PS1 mode</button>
     <button id="mute" type="button" aria-pressed="false">Sound on</button>
+    <span class="keyhint">WASD move · Q/E turn · Shift faster</span>
   </div>
 
   <section class="panel" id="whoPanel" hidden aria-label="Who's here">
@@ -257,9 +260,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=5"></script>
-<script src="net.js?v=5"></script>
-<script src="bar.js?v=5"></script>
+<script src="config.js?v=6"></script>
+<script src="net.js?v=6"></script>
+<script src="bar.js?v=6"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };
