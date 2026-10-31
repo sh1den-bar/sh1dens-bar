@@ -33,6 +33,11 @@ canvas:active { cursor: grabbing; }
 .css3d { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.17s ease; z-index: 1; }
 @media (prefers-reduced-motion: reduce) { #fade { transition: none; } }
+#labels { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.nametag { position: absolute; left: 0; top: 0; font: 500 12px/1 var(--mono); color: #ece6da; background: rgba(6, 7, 10, 0.72);
+  border: 1px solid rgba(226, 180, 103, 0.25); padding: 3px 7px; border-radius: 3px; white-space: nowrap; will-change: transform; }
+.nametag.mine { color: #ffd28a; border-color: rgba(255, 210, 138, 0.6); }
+.nametag.host { color: var(--neon); border-color: rgba(226, 180, 103, 0.7); }
 .scan { position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,0.2) 2px 3px),
               radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55)); }
@@ -144,6 +149,7 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <div id="stage">
   <canvas id="c" aria-label="PS1-style 3D bar with dancing characters"></canvas>
   <div class="scan"></div>
+  <div id="labels" aria-hidden="true"></div>
   <div id="fade"></div>
 
   <div id="tvHold">
@@ -260,9 +266,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=7"></script>
-<script src="net.js?v=7"></script>
-<script src="bar.js?v=7"></script>
+<script src="config.js?v=8"></script>
+<script src="net.js?v=8"></script>
+<script src="bar.js?v=8"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

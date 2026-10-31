@@ -356,6 +356,7 @@ function getGeos(look, seed) {
 }
 
 const emberMat = new THREE.MeshBasicMaterial({ color: 0xff6a1c });
+const labelLayer = document.getElementById('labels');
 function makeCharacter(look, name, seed) {
   const geos = getGeos(look, seed);
   const root = new THREE.Group();
@@ -372,9 +373,10 @@ function makeCharacter(look, name, seed) {
   }
   let ember = null;
   if (geos.ember) { ember = new THREE.Mesh(geos.ember, emberMat); bones.head.add(ember); }
-  let tag = null;
-  if (name) { tag = makeTag(name); tag.position.set(0, 0.42, 0); bones.head.add(tag); }
-  return { root, bones, ember, tag, look, name, seed };
+  // name tags are crisp HTML labels laid over the 3D view (see placeLabels), not pixelated sprites
+  let label = null;
+  if (name) { label = document.createElement('div'); label.className = 'nametag'; label.textContent = name; label.hidden = true; labelLayer.appendChild(label); }
+  return { root, bones, ember, label, look, name, seed };
 }
 
 // name tags
@@ -1116,14 +1118,15 @@ function setCue(ch, on) {
   else if (!on && ch.cue) { ch.bones.spine.remove(ch.cue); ch.cue = null; }
 }
 
-function clearCrowd() { for (const ch of crowd) scene.remove(ch.root); crowd.length = 0; }
+function dropLabel(ch) { if (ch && ch.label) { ch.label.remove(); ch.label = null; } }
+function clearCrowd() { for (const ch of crowd) { scene.remove(ch.root); if (ch !== draftChar) dropLabel(ch); } crowd.length = 0; }
 function addChar(look, name, opts) {
   opts = opts || {};
   const seed = hashStr(name || opts.seedName || 'npc');
   const ch = makeCharacter(look, name, seed);
   ch.phase = (seed % 1000) / 1000;
   ch.host = !!opts.host; ch.npc = !!opts.npc; ch.mine = !!opts.mine; ch.uid = opts.uid || null;
-  if (opts.mine && ch.tag) { ch.bones.head.remove(ch.tag); ch.tag = makeTag(name + ' (you)', '#ffd28a'); ch.tag.position.set(0, 0.42, 0); ch.bones.head.add(ch.tag); }
+  if (ch.label) { if (opts.mine) { ch.label.textContent = name + ' (you)'; ch.label.classList.add('mine'); } if (opts.host) ch.label.classList.add('host'); }
   scene.add(ch.root); crowd.push(ch);
   return ch;
 }
@@ -1404,6 +1407,28 @@ function keyboardPan(dt) {
     camT.tz = Math.max(BIRD.z0, Math.min(BIRD.z1, camT.tz + (fz * mz + rz * mx) / len * speed * dt));
   }
 }
+// keep every name tag over its character's head, crisp and always on top; people in other rooms are dimmed
+const labelV = new THREE.Vector3();
+function placeLabels() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  const here = camT.free ? null : roomAt(cam.tx, cam.tz);
+  camera.updateMatrixWorld();
+  for (const ch of crowd) {
+    const el = ch.label; if (!el) continue;
+    if (!ch.root.visible) { if (!el.hidden) el.hidden = true; continue; }
+    ch.root.updateMatrixWorld(true);
+    labelV.set(0, 0.42, 0); ch.bones.head.localToWorld(labelV);
+    const dist = labelV.distanceTo(camera.position);
+    labelV.project(camera);
+    if (labelV.z > 1 || labelV.z < -1 || Math.abs(labelV.x) > 1.1 || Math.abs(labelV.y) > 1.1 || dist > 40) { if (!el.hidden) el.hidden = true; continue; }
+    if (el.hidden) el.hidden = false;
+    const x = Math.round((labelV.x + 1) / 2 * w), y = Math.round((1 - labelV.y) / 2 * h);
+    el.style.transform = 'translate(' + x + 'px,' + y + 'px) translate(-50%,-100%)';
+    const r = roomAt(ch.root.position.x, ch.root.position.z);
+    el.style.opacity = here && r !== here ? '0.45' : '1';
+    el.style.zIndex = String(1000 - Math.round(dist * 10));
+  }
+}
 function updateCamera(dt, t) {
   keyboardPan(dt);
   if (!drag) {
@@ -1506,6 +1531,7 @@ function tick() {
   sHead = si; sGeo.attributes.position.needsUpdate = true;
 
   updateCamera(dt, t);
+  placeLabels();
   renderer.render(scene, camera);
   if (cssRenderer) cssRenderer.render(cssScene, camera);
   requestAnimationFrame(tick);
@@ -1591,7 +1617,7 @@ function renderOptions() {
 }
 function removeDraft() {
   if (!draftChar) return;
-  scene.remove(draftChar.root); const i = crowd.indexOf(draftChar); if (i >= 0) crowd.splice(i, 1); draftChar = null;
+  scene.remove(draftChar.root); dropLabel(draftChar); const i = crowd.indexOf(draftChar); if (i >= 0) crowd.splice(i, 1); draftChar = null;
 }
 function refreshDraft() {
   renderOptions();
