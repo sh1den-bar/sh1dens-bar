@@ -1578,22 +1578,10 @@ groundPlane(AL.x0, AL.x1, AL.z0, -11.02, wetTex, 3, 0);
   scaleUV(g, w / 3.2, 7 / 6.4);
   const m = new THREE.Mesh(g, windowMat); m.position.set((AL.x0 + AL.x1) / 2, 3.5, AL.z0 - 0.02); scene.add(m);
 }
-// the drive-in garage, open to the alley, with the red coupe parked nose out
-const GAR = { x0: -3.3, x1: 0.3, z0: -18.9, z1: -14.0, h: 2.8 };
-const GAR_WALL = [40, 38, 42];
-S.push(box(GAR.x0 - 0.15, GAR.x0, 0, GAR.h, GAR.z0, GAR.z1, GAR_WALL));
-S.push(box(GAR.x1, GAR.x1 + 0.15, 0, GAR.h, GAR.z0, GAR.z1, GAR_WALL));
-S.push(box(GAR.x0 - 0.15, GAR.x1 + 0.15, GAR.h, GAR.h + 0.15, GAR.z0, GAR.z1 + 0.05, [30, 29, 32]));
-S.push(box(GAR.x0 - 0.15, GAR.x1 + 0.15, GAR.h - 0.45, GAR.h, GAR.z1, GAR.z1 + 0.08, [70, 68, 72], 0.03));
-S.push(box(GAR.x0, GAR.x1, 0, 0.01, GAR.z0, GAR.z1, [34, 34, 38], 0.03));
-G.push(box(GAR.x0 + 0.1, GAR.x1 - 0.1, GAR.h - 0.05, GAR.h - 0.02, GAR.z0 + 0.3, GAR.z0 + 0.38, [255, 40, 54], 0));
-G.push(box(GAR.x0 - 0.13, GAR.x0 - 0.1, 0.3, GAR.h - 0.2, GAR.z1 - 0.12, GAR.z1 - 0.06, [255, 40, 54], 0));
-G.push(box(GAR.x1 + 0.1, GAR.x1 + 0.13, 0.3, GAR.h - 0.2, GAR.z1 - 0.12, GAR.z1 - 0.06, [255, 40, 54], 0));
-G.push(box(GAR.x0 + 0.4, GAR.x1 - 0.4, GAR.h - 0.05, GAR.h - 0.02, -16.4, -16.2, [255, 244, 230], 0));
-// tool wall and a tyre stack at the back of the garage
-S.push(box(GAR.x0 + 0.05, GAR.x1 - 0.05, 0.9, 1.8, GAR.z0 + 0.02, GAR.z0 + 0.06, [60, 56, 50], 0.05));
-for (let k = 0; k < 3; k++) S.push(cyl(V(GAR.x1 - 0.45, 0.02 + k * 0.24, GAR.z0 + 0.5), V(GAR.x1 - 0.45, 0.24 + k * 0.24, GAR.z0 + 0.5), 0.32, 0.32, RUBBER, { n: 10, amt: 0.03 }));
-const garageLight = pLight(0xffe8e0, 1.0, 6, (GAR.x0 + GAR.x1) / 2, 2.4, -15.6);
+// a wall lamp over where the coupe is parked
+S.push(box(-0.9, -0.5, 2.9, 3.0, -11.24, -11.02, [30, 30, 34], 0.03));
+G.push(box(-0.85, -0.55, 2.86, 2.9, -11.2, -11.06, [255, 232, 200], 0));
+const carLamp = pLight(0xffe8d0, 1.1, 7, -0.7, 2.7, -12.2);
 // the red open-top coupe, pulled up right by the back door (driver's side to the door, wheels still turned)
 const COUPE = { x: -0.7, z: -12.62, yaw: Math.PI + 0.05 };
 parkCar('coupe', [176, 18, 24], COUPE.x, COUPE.z, COUPE.yaw, 0, { steer: 0.32 });
@@ -1774,7 +1762,7 @@ const standHit = (x, z) => hitBox(x, 0.9, z, 0.45, 1.8, 0.45);
 [[-3.9, 4.4, 0.35], [3.9, 4.4, -0.35], [-7.8, 4.4, 0.2], [7.8, 4.4, -0.2]].forEach(([x, z, yaw], i) => addSpot('street-wall-' + i, 6, 'lean', x, z, yaw, 'Lean on the wall outside', standHit(x, z)));
 PARKED.forEach((x, i) => addSpot('street-suv-' + i, 6, 'lean', x + 0.6, ST.curb0 - 0.32, Math.PI, 'Lean on the SUV', standHit(x + 0.6, ST.curb0 - 0.32)));
 // the backstreet: by the coupe, at the back door, on the crates
-[[-1.4, -13.95, 0], [0.4, -13.95, 0], [-1.2, -11.32, Math.PI], [-3.4, -13.2, Math.PI / 2 + 0.3], [GAR.x0 + 0.6, -15.0, 0.3]].forEach(([x, z, yaw], i) => addSpot('alley-car-' + i, 7, 'lean', x, z, yaw, i === 4 ? 'Hang out in the garage' : 'Check out the car', standHit(x, z)));
+[[-1.4, -13.95, 0], [0.4, -13.95, 0], [-1.2, -11.32, Math.PI], [-3.4, -13.2, Math.PI / 2 + 0.3]].forEach(([x, z, yaw], i) => addSpot('alley-car-' + i, 7, 'lean', x, z, yaw, 'Check out the car', standHit(x, z)));
 {
   // sitting in the coupe: the driver's seat is the host's, anyone can ride along
   const fwd = Math.atan2(Math.cos(COUPE.yaw), -Math.sin(COUPE.yaw));
