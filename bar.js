@@ -225,8 +225,8 @@ function buildParts(look, seed) {
   const SKIN_SHAD = SKIN.map((v) => v * 0.83);
   const LIP = SKIN.map((v) => v * 0.72);
   const HAIR = LOOK.hair[look.hair][1];
-  const JACKET = LOOK.jacket[look.jacket][1];
-  const RIB = JACKET.map((v) => v * 0.6);
+  const JACKET = look.outfit === 'barman' ? [222, 218, 208] : LOOK.jacket[look.jacket][1];
+  const RIB = look.outfit === 'barman' ? [206, 202, 192] : JACKET.map((v) => v * 0.6);
   const CARGO = LOOK.pants[look.pants][1];
   const CARGO_D = CARGO.map((v) => v * 0.74);
   const BOOT = [16, 14, 13], SOLE = [9, 8, 8], WEB = [20, 20, 19], GUN = [72, 74, 76], ZIP = [78, 78, 82];
@@ -322,8 +322,22 @@ function buildParts(look, seed) {
     rring(1.30, 0.41, 0.24, 0, 0, 14), rring(1.38, 0.435, 0.238, 0, -0.003, 14), rring(1.44, 0.40, 0.222, 0, -0.006, 14),
     rring(1.475, 0.25, 0.17, 0, -0.01, 14)], JACKET, { smooth: true }));
   P('spine', loft([rring(1.44, 0.17, 0.152, 0, -0.008, 14), rring(1.475, 0.165, 0.148, 0, -0.009, 14), rring(1.51, 0.152, 0.138, 0, -0.01, 14)], RIB, { cap: false, amt: 0.03, smooth: true }));
-  O('spine', tube([V(0, 0.99, 0.113), V(0, 1.05, 0.12), V(0, 1.15, 0.122), V(0, 1.27, 0.123), V(0, 1.37, 0.12), V(0, 1.445, 0.106), V(0, 1.49, 0.07)], [0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005], ZIP, { n: 4, smooth: false }));
-  for (const s of [-1, 1]) O('spine', box(s * 0.11 - 0.006, s * 0.11 + 0.006, 1.08, 1.17, 0.112, 0.124, RIB, 0.03));
+  if (look.outfit === 'barman') {
+    // classic hotel bartender: black waistcoat over a white shirt, black bow tie
+    const VEST = [20, 20, 24], VEST_L = [34, 34, 40], BRASS_B = [170, 130, 64];
+    O('spine', loft([rring(0.975, 0.35, 0.232, 0, 0.002, 14), rring(1.10, 0.38, 0.25, 0, 0.004, 14), rring(1.20, 0.392, 0.252, 0, 0.005, 14),
+      rring(1.29, 0.418, 0.252, 0, 0, 14), rring(1.34, 0.43, 0.25, 0, -0.002, 14)], VEST, { smooth: true }));
+    // the V neckline: two lapel edges rising from the top button toward the shoulders
+    for (const s of [-1, 1]) O('spine', tube([V(s * 0.012, 1.2, 0.128), V(s * 0.075, 1.33, 0.118), V(s * 0.11, 1.42, 0.09)], [0.012, 0.012, 0.01], VEST_L, { n: 4, smooth: false }));
+    for (const y of [1.04, 1.1, 1.16]) O('spine', cyl(V(0, y, 0.124), V(0, y, 0.132), 0.008, 0.008, BRASS_B, { n: 6, amt: 0.02 }));
+    // shirt collar and bow tie
+    O('spine', loft([rring(1.445, 0.15, 0.135, 0, -0.004, 12), rring(1.5, 0.142, 0.128, 0, -0.006, 12)], [228, 224, 214], { cap: false, smooth: true, amt: 0.02 }));
+    for (const s of [-1, 1]) O('spine', loft([[V(0, 1.462, 0.064), V(s * 0.05, 1.484, 0.062), V(s * 0.05, 1.444, 0.062)], [V(0, 1.462, 0.072), V(s * 0.05, 1.484, 0.07), V(s * 0.05, 1.444, 0.07)]], [12, 12, 14], { amt: 0.02 }));
+    O('spine', box(-0.012, 0.012, 1.452, 1.472, 0.06, 0.078, [12, 12, 14], 0.02));
+  } else {
+    O('spine', tube([V(0, 0.99, 0.113), V(0, 1.05, 0.12), V(0, 1.15, 0.122), V(0, 1.27, 0.123), V(0, 1.37, 0.12), V(0, 1.445, 0.106), V(0, 1.49, 0.07)], [0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005], ZIP, { n: 4, smooth: false }));
+    for (const s of [-1, 1]) O('spine', box(s * 0.11 - 0.006, s * 0.11 + 0.006, 1.08, 1.17, 0.112, 0.124, RIB, 0.03));
+  }
 
   // arms
   for (const s of [-1, 1]) {
@@ -338,12 +352,15 @@ function buildParts(look, seed) {
       rring(0.80, 0.034, 0.084, hx - s * 0.002, hz + 0.008, 10), rring(0.76, 0.026, 0.066, hx - s * 0.006, hz + 0.01, 10)], SKIN, { smooth: true }));
     P(elK, tube([V(hx - s * 0.012, 0.86, hz + 0.035), V(hx - s * 0.02, 0.825, hz + 0.05), V(hx - s * 0.022, 0.805, hz + 0.052)], [0.011, 0.01, 0.008], SKIN_SHAD, { n: 6 }));
   }
-  O('shL', box(0.333, 0.35, 1.215, 1.30, -0.032, 0.018, RIB, 0.03));
+  if (look.outfit === 'barman') {
+    // sleeve garters on the white shirt sleeves
+    for (const s of [-1, 1]) O(s > 0 ? 'shL' : 'shR', cyl(V(s * 0.262, 1.3, -0.008), V(s * 0.268, 1.27, -0.009), 0.074, 0.073, [24, 24, 28], { n: 10, smooth: true, amt: 0.02 }));
+  } else O('shL', box(0.333, 0.35, 1.215, 1.30, -0.032, 0.018, RIB, 0.03));
   return { B, B2, ember };
 }
 
 function getGeos(look, seed) {
-  const key = lookToCode(look) + ':' + seed;
+  const key = lookToCode(look) + ':' + (look.outfit || '') + ':' + seed;
   if (geoCache.has(key)) return geoCache.get(key);
   const { B, B2, ember } = buildParts(look, seed);
   const geos = {}, over = {};
@@ -498,12 +515,12 @@ function pose(ch, act, beat, t) {
     b.shR.rotation.x = -0.9 + 0.12 * Math.sin(t * 3); b.elR.rotation.x = -0.8; b.shR.rotation.z = 0.15 + 0.1 * Math.sin(t * 1.3);
     b.head.rotation.x = 0.15 + 0.3 * k; b.head.rotation.z = 0.1 * Math.sin(PI * beat / 2);
   } else if (act === 'bartend') {
-    b.shL.rotation.x = -0.6; b.elL.rotation.x = -1.2; b.shL.rotation.z = -0.15;
-    const w = t * 2.2;
-    b.spine.rotation.x = 0.12;
-    b.shR.rotation.x = -0.95 + 0.12 * Math.sin(w); b.shR.rotation.z = 0.15 * Math.cos(w); b.elR.rotation.x = -0.75;
-    b.shL.rotation.x = -0.6; b.elL.rotation.x = -1.2; b.shL.rotation.z = -0.15;
-    b.head.rotation.x = 0.1 + 0.06 * Math.abs(Math.sin(PI * beat)); b.head.rotation.y = 0.3 * Math.sin(t * 0.4);
+    // polishing a glass with a towel, glancing up at the room now and then
+    const w = t * 2.6, look = Math.max(0, Math.sin(t * 0.35));
+    b.spine.rotation.x = 0.08;
+    b.shL.rotation.x = -0.75; b.shL.rotation.z = -0.32; b.elL.rotation.x = -1.45;
+    b.shR.rotation.x = -0.7 + 0.07 * Math.sin(w); b.shR.rotation.z = 0.36 + 0.05 * Math.cos(w); b.elR.rotation.x = -1.4 + 0.05 * Math.sin(w * 2);
+    b.head.rotation.x = 0.32 - 0.34 * look; b.head.rotation.y = 0.45 * look * Math.sin(t * 0.13);
   }
   // holding a drink: take a sip every so often (sitting at the bar already has its own sip)
   if (ch.glass && act !== 'sit' && act !== 'pool' && act !== 'dance') {
@@ -1069,7 +1086,7 @@ smoke.frustumCulled = false; scene.add(smoke);
 
 // ---------------------------------------------------------------- crowd
 const HOST_LOOK = { jacket: 0, pants: 0, skin: 2, head: 0, hair: 0, beard: 2, eyes: 1, smoke: 2, dance: 3, spot: 1 };
-const BARTENDER_LOOK = { jacket: 2, pants: 1, skin: 1, head: 1, hair: 1, beard: 0, eyes: 0, smoke: 0, dance: 3, spot: 1 };
+const BARTENDER_LOOK = { jacket: 2, pants: 1, skin: 1, head: 1, hair: 1, beard: 0, eyes: 0, smoke: 0, dance: 3, spot: 1, outfit: 'barman' };
 const DJ_LOOK = { jacket: 4, pants: 1, skin: 3, head: 3, hair: 1, beard: 1, eyes: 2, smoke: 0, dance: 3, spot: 0 };
 const crowd = [];
 const tmpV = new THREE.Vector3();
@@ -1190,6 +1207,7 @@ function rebuild() {
   // staff: a bartender behind the bar and a DJ in the dance room
   const bt = addChar(BARTENDER_LOOK, '', { npc: true, seedName: 'bartender' });
   bartender = bt;
+  setGlass(bt, 'whiskey'); giveTowel(bt);
   bt.act = 'bartend'; bt.root.position.set(0.4, 0, -3.35); bt.root.rotation.y = 0;
   const dj = addChar(DJ_LOOK, '', { npc: true, seedName: 'dj' });
   dj.act = 'dj'; dj.root.position.set(13.85, 0, 0); dj.root.rotation.y = -Math.PI / 2;
@@ -1562,6 +1580,11 @@ function setGlass(ch, drink) {
   g.position.set(0.04, -0.33, 0.075); // in the left palm
   g.add(new THREE.Mesh(drinkGeos[want], charMat));
   ch.bones.elL.add(g); ch.glass = g;
+}
+const towelGeo = toGeometry([box(-0.035, 0.035, -0.06, 0.04, -0.018, 0.018, [234, 230, 220], 0.03), box(-0.03, 0.03, -0.11, -0.06, -0.012, 0.012, [224, 220, 210], 0.03)]);
+function giveTowel(ch) {
+  const g = new THREE.Group(); g.position.set(-0.04, -0.33, 0.075);
+  g.add(new THREE.Mesh(towelGeo, charMat)); ch.bones.elR.add(g); ch.towel = g;
 }
 function keepGlassUpright(ch) {
   if (!ch.glass) return;
