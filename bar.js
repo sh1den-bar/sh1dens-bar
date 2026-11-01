@@ -3467,7 +3467,7 @@ function activate(tg, x, y) {
   else if (id === 'coin') { if (window.EXTRAS) window.EXTRAS.claimCoin(); }
   else if (id === 'jukebox' || id === 'djbooth') changeMusic();
   else if (id === 'viptv') setView('viptv');
-  else if (id === 'tv') { setView('tv'); const p = document.getElementById('room'); if (p && p.hidden) document.getElementById('roomBtn').click(); }
+  else if (id === 'tv') { setView('tv'); if (window.UI) window.UI.openTv(); }
   else if (id === 'pooltable') {
     if (window.POOL) window.POOL.open();
     else { const free = ['pool-cue-0', 'pool-cue-1'].find((sid) => !spotOwner.has(sid) || spotOwner.get(sid).mine); if (free) goTo(free); }

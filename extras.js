@@ -233,8 +233,8 @@ function wireCard() {
   setInterval(renderCard, 30000);
 }
 function renderHud() {
-  const b = $('coinBtn'); if (!b) return;
-  b.textContent = '🪙 ' + ((mine && mine.n) || 0);
+  const b = $('coinBtnN'); if (!b) return;
+  b.textContent = ((mine && mine.n) || 0).toLocaleString();
   const left = mine ? Math.max(0, (mine.t || 0) + PASSIVE_MS - now()) : PASSIVE_MS;
   const nx = $('coinNext'); if (nx) nx.textContent = hasChar() ? 'Next coin for hanging out in ' + Math.ceil(left / 60000) + ' min' : 'Make a character to start earning';
 }

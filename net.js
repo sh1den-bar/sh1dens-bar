@@ -203,7 +203,7 @@ function joined() {
     msgs.push({ key: s.key, uid: v.uid, name: v.name, text: v.text, t: v.t });
     if (msgs.length > 60) msgs.shift();
     renderChat();
-    if (v.t && v.t > joinedAt + offset - 4000) window.BAR.bubble(v.uid, clean(v.text), v.name);
+    if (v.t && v.t > joinedAt + offset - 4000) { window.BAR.bubble(v.uid, clean(v.text), v.name); if (v.uid !== NET.uid && window.UI) window.UI.newMessage(); }
   });
   chat.on('child_removed', (s) => { msgs = msgs.filter((m) => m.key !== s.key); renderChat(); });
 
@@ -293,7 +293,7 @@ function listenVipChat() {
     while (msgs.length > 90) msgs.shift();
     if (chatTab !== 'vip' && v.t && v.t > joinedAt + offset - 4000) vipUnread++;
     renderChat();
-    if (v.t && v.t > joinedAt + offset - 4000) window.BAR.bubble(v.uid, clean(v.text));
+    if (v.t && v.t > joinedAt + offset - 4000) { window.BAR.bubble(v.uid, clean(v.text)); if (v.uid !== NET.uid && window.UI) window.UI.newMessage(); }
   });
   vc.on('child_removed', (s) => { msgs = msgs.filter((m) => !(m.vip && m.key === s.key)); renderChat(); });
 }

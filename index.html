@@ -103,12 +103,6 @@ button.danger { border-color: #6a2620; color: #ff8a7a; }
 #creator { left: max(16px, env(safe-area-inset-left, 0px)); top: 186px; width: 340px; max-height: calc(100% - 256px); }
 #whoPanel { left: max(16px, env(safe-area-inset-left, 0px)); top: 186px; width: 240px; max-height: calc(100% - 256px); }
 
-#room { right: max(16px, env(safe-area-inset-right, 0px)); top: 70px; bottom: calc(64px + env(safe-area-inset-bottom, 0px));
-  width: 330px; max-height: none; padding: 0; gap: 0; overflow-x: hidden; overflow-y: auto; }
-#room > section { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; min-height: 0; }
-#room .tvsec { flex: 0 0 auto; max-height: 40%; overflow-y: auto; }
-#room .chatsec { flex: 1 0 260px; overflow: hidden; }
-#room .foot { flex: 0 0 auto; border-bottom: 0; }
 #tvNow { font-size: 14px; color: var(--fg); overflow-wrap: anywhere; }
 #tvBy { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; }
 #tvQueue { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
@@ -132,11 +126,7 @@ button.danger { border-color: #6a2620; color: #ff8a7a; }
 details summary { cursor: pointer; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
 details[open] { display: flex; flex-direction: column; gap: 8px; }
 
-@media (max-width: 760px) {
-  #creator, #whoPanel, #room { left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
-    width: auto; top: auto; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); max-height: 58%; }
-  #room { height: 58%; }
-}
+
 
 label { display: flex; flex-direction: column; gap: 6px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
 input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: var(--solid); border: 1px solid var(--line); padding: 8px 10px; text-transform: none; letter-spacing: 0; }
@@ -201,9 +191,8 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 .bizrole.emerald { color: #5fe0a0; } .bizrole.diamond { color: #9ae6ff; } .bizrole.co { color: #ffd27a; } .bizrole.ruby { color: #ff5a7a; text-shadow: 0 0 8px rgba(255,40,80,0.6); }
 .bizstats { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
 .bizstats b { color: var(--fg); font-weight: 500; text-transform: none; letter-spacing: 0; margin-left: 4px; }
-#bizTux { font-size: 11px; padding: 3px 6px; max-width: 150px; }
+#bizTux { font-size: 12px; padding: 6px 8px; width: 100%; }
 #bizNext { font-size: 10px; color: var(--dim); text-align: right; }
-@media (max-width: 760px) { #bizCard { width: 210px; padding: 7px 9px; gap: 4px; } #bizName { font-size: 16px; } #bizNext { display: none; } }
 /* v42: gold staff tags, coins, poker, the restroom lock, lightning, and the phone layout */
 .nametag.staff { color: #ffd98a; border-color: rgba(214, 170, 90, 0.85); background: rgba(24, 16, 6, 0.85); letter-spacing: 0.08em; }
 #chatLog li.charon b { color: #e7c98a; }
@@ -241,39 +230,70 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 #pokerStatus, #pkTimer { color: var(--dim); min-height: 1.2em; }
 #pkAmt { width: 90px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-/* smaller screens: rooms go into the dropdown so the button row never wraps over the panels */
-@media (max-width: 1440px) {
-  .top .group { display: none; }
-  #roomSelect { display: block; max-width: 46vw; }
-}
-@media (max-height: 820px) {
-  .keyhint { display: none; }
-  #room { top: 60px; }
-  #room { bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
-  .panel { max-height: calc(100% - 120px); }
-  #room .tvsec { max-height: 34%; }
-  #room > section { padding: 10px 14px; }
-}
+/* ===== layout: logo + card top left, rooms menu top right, a slim bottom bar of drop-up menus ===== */
+.top .group { display: none !important; }
+#roomSelect { display: block; max-width: 46vw; font-size: 12px; padding: 7px 10px; background: var(--panel); }
+.keyhint { display: none !important; }
+.bottom { gap: 8px; flex-wrap: nowrap; }
+.dropup { position: relative; }
+.dropup > .menu { position: absolute; bottom: calc(100% + 8px); left: 0; min-width: 220px; display: flex; flex-direction: column; gap: 4px; padding: 10px;
+  background: #0c0b0d; border: 1px solid rgba(226,180,103,0.45); box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 6; }
+.dropup.right > .menu { left: auto; right: 0; }
+.dropup > .menu button { text-align: left; width: 100%; }
+.dropup > .menu .mlabel { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; }
+.dropup > .menu select { width: 100%; }
+.dropup > .menu .idrow { font-size: 10px; color: var(--dim); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; overflow-wrap: anywhere; margin-top: 6px; border-top: 1px solid var(--line); padding-top: 6px; }
+.dropup > .menu .idrow button { width: auto; padding: 2px 8px; }
+.dropup > .menu .idrow #myId { flex: 1 1 100%; }
+.caret { font-size: 9px; margin-left: 4px; opacity: 0.7; }
+#roomBtn { position: relative; }
+#roomBtn.unread { border-color: var(--neon); color: #fff; box-shadow: 0 0 0 1px rgba(226,180,103,0.5), 0 0 14px rgba(226,180,103,0.55); animation: chatGlow 1.4s ease-in-out infinite; }
+@keyframes chatGlow { 50% { box-shadow: 0 0 0 1px rgba(226,180,103,0.8), 0 0 22px rgba(226,180,103,0.9); } }
+.badge { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #e3262f; color: #fff; font-size: 10px; line-height: 18px; text-align: center; }
+/* the chat & TV window */
+#room { right: max(16px, env(safe-area-inset-right, 0px)); left: auto; top: auto; bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  width: 380px; height: min(600px, calc(100% - 150px)); max-height: none; padding: 0; gap: 0; overflow: hidden; background: #0c0b0d; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+#room .winbar { display: flex; align-items: center; gap: 4px; padding: 6px 8px 0 12px; border-bottom: 1px solid var(--line); }
+#room .winbar .chattabs button { font-size: 22px; }
+#room .winbar .x { margin-left: auto; }
+#room > section { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-height: 0; flex: 1 1 auto; }
+#room .tvsec { overflow-y: auto; }
+#room .chatsec { overflow: hidden; }
+#room .subtabs button { font-size: 16px; }
+/* host tools window */
+#hostPanel { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); width: 380px; max-height: calc(100% - 150px); background: #0c0b0d; }
+/* the business card: a slim pill that opens into the full card */
+#bizCard { cursor: pointer; width: auto; min-width: 200px; max-width: 280px; padding: 6px 10px; gap: 4px; }
+#bizCard .bizmore { display: none; flex-direction: column; gap: 6px; }
+#bizCard.open { padding: 10px 12px; }
+#bizCard.open .bizmore { display: flex; }
+#bizName { font-size: 16px; }
+#bizCard.open #bizName { font-size: 20px; }
+#creator, #whoPanel, #coinsPanel { top: 130px; max-height: calc(100% - 200px); }
+@media (prefers-reduced-motion: reduce) { #roomBtn.unread { animation: none; } }
+/* phones */
 @media (max-width: 760px) {
-  .brand h1 { font-size: 22px; }
-  .brand .stat { font-size: 10px; }
-  .bottom { gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-  .bottom::-webkit-scrollbar { display: none; }
-  .bottom button { flex: 0 0 auto; }
-  .bottom button { padding: 7px 9px; font-size: 11px; }
-  .bottom .spacer { display: none; }
-  .keyhint { display: none; }
-  #track { display: none; }
-  #coinsPanel, #pokerPanel { left: 8px !important; right: 8px; top: auto; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); width: auto; transform: none; max-height: 70%; }
-  #poolPanel { width: calc(100vw - 16px); }
-  #creator, #whoPanel, #room { left: 8px; right: 8px; top: auto; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); max-height: 64%; }
-  #room { height: 64%; }
-  #creator { max-height: 72%; }
+  .brand h1 { font-size: 20px; }
+  .brand .stat { display: none; }
+  .top { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
+  .bottom { gap: 6px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .bottom > button, .dropup > button { padding: 9px 10px; font-size: 12px; }
+  .bottom .spacer { flex: 1; }
+  .lbl { display: none; }
+  .dropup > .menu { min-width: min(260px, calc(100vw - 24px)); }
+  .dropup > .menu button { padding: 11px 12px; font-size: 13px; }
+  #bizCard { max-width: 62vw; min-width: 0; }
+  #room, #hostPanel, #creator, #whoPanel, #coinsPanel, #pokerPanel, #shopPanel, #slotsPanel, #beggarPanel {
+    left: 6px !important; right: 6px !important; top: auto !important; bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+    width: auto !important; transform: none !important; max-height: 72% !important; }
+  #room { height: 72% !important; }
+  #poolPanel { width: calc(100vw - 12px); }
   .opt { grid-template-columns: 80px 34px 1fr 34px; }
   .opt button { padding: 8px 0; }
   .panel { padding: 12px; }
   .felt { border-radius: 40px; padding: 12px; }
   .pcard { width: 32px; height: 46px; font-size: 13px; }
+  .reel { width: 70px; height: 80px; font-size: 28px; }
 }
 </style>
 </head>
@@ -301,10 +321,12 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
   <div class="hud top">
     <div class="brandcol">
       <div class="brand"><h1>SH1DEN'S</h1><span class="stat" id="count">0 regulars</span><span class="stat" id="roomStatus">Connecting…</span></div>
-      <div id="bizCard" hidden>
+      <div id="bizCard" hidden title="Your business card">
         <div class="bizrow"><b id="bizName"></b><span id="bizRole" class="bizrole"></span></div>
-        <div class="bizrow bizstats"><span>Time here <b id="bizHours">0 h</b></span><span>Coins <b id="bizCoins">0</b></span></div>
-        <div class="bizrow" id="bizTuxRow"><select id="bizTux" aria-label="Your suit"></select><span id="bizNext"></span></div>
+        <div class="bizmore">
+          <div class="bizrow bizstats"><span>Time here <b id="bizHours">0 h</b></span><span>Coins <b id="bizCoins">0</b></span></div>
+          <div class="bizrow"><span id="bizNext"></span></div>
+        </div>
       </div>
     </div>
     <div class="group" role="group" aria-label="Camera">
@@ -330,16 +352,29 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
   </div>
 
   <div class="hud bottom">
-    <button id="createBtn" class="primary" type="button">Create your character</button>
-    <button id="findMe" type="button">Find me</button>
-    <button id="whoBtn" type="button">Who's here</button>
-    <button id="roomBtn" type="button" aria-pressed="true">Chat &amp; TV</button>
-    <button id="coinBtn" type="button" title="Gold coins">🪙 0</button>
-    <button id="shopBtn" type="button">Shop</button>
+    <div class="dropup" id="meDrop">
+      <button type="button" class="primary" data-drop="meMenu">☰ <span class="lbl">Me</span><span class="caret">▲</span></button>
+      <div class="menu" id="meMenu" hidden>
+        <button id="createBtn" type="button">Create your character</button>
+        <div class="mlabel" id="bizTuxRow">Suit</div>
+        <select id="bizTux" aria-label="Your suit"></select>
+        <button id="findMe" type="button">Find me</button>
+        <button id="whoBtn" type="button">Who's here</button>
+        <div class="idrow">Room ID <span id="myId">not connected</span><button type="button" id="copyId" class="mini">Copy</button></div>
+      </div>
+    </div>
+    <button id="roomBtn" type="button" aria-pressed="false">💬 <span class="lbl">Chat &amp; TV</span><span class="badge" id="chatBadge" hidden>0</span></button>
     <span class="spacer"></span>
-    <button id="track" type="button" title="Next track">Jukebox</button>
+    <div class="dropup right" id="coinDrop">
+      <button type="button" data-drop="coinMenu">🪙 <span id="coinBtnN">0</span><span class="caret">▲</span></button>
+      <div class="menu" id="coinMenu" hidden>
+        <button id="coinBtn" type="button">Gold coins &amp; rewards</button>
+        <button id="shopBtn" type="button">Shop</button>
+        <button id="track" type="button" title="Next track">Jukebox</button>
+      </div>
+    </div>
+    <button id="hostBtn" type="button" hidden>⚙ <span class="lbl">Host</span></button>
     <button id="mute" type="button" aria-pressed="false">Sound on</button>
-    <span class="keyhint">WASD move · hold middle mouse to turn · scroll zoom · click a spot to go there</span>
   </div>
 
   <section class="panel" id="whoPanel" hidden aria-label="Who's here">
@@ -348,8 +383,21 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     <ul id="who"></ul>
   </section>
 
-  <aside class="panel" id="room" aria-label="Chat and TV">
-    <section class="tvsec">
+  <aside class="panel" id="room" aria-label="Chat and TV" hidden>
+    <div class="winbar">
+      <div class="chattabs" role="tablist"><button type="button" id="winChat" class="on" role="tab">Chat</button><button type="button" id="winTv" role="tab">TV</button></div>
+      <button type="button" class="x" id="roomMin" aria-label="Minimize" title="Minimize">–</button>
+    </div>
+    <section class="chatsec">
+      <div class="chattabs subtabs" role="tablist"><button type="button" id="tabRoom" class="on" role="tab" aria-selected="true">Room chat</button><button type="button" id="tabVip" role="tab" aria-selected="false" hidden>VIP chat</button></div>
+      <ol id="chatLog" aria-live="polite"></ol>
+      <form id="chatForm" class="inline" novalidate>
+        <input id="chatInput" name="chatInput" maxlength="200" autocomplete="off" aria-label="Chat message">
+        <button type="submit" id="chatSend">Send</button>
+      </form>
+      <div class="msg" id="chatHint" role="status"></div>
+    </section>
+    <section class="tvsec" hidden>
       <header><h3>On the TV</h3><button type="button" id="tvWatch" class="mini">Watch</button></header>
       <div id="tvNow">Nothing playing</div>
       <div id="tvBy">Post a YouTube link to start the TV.</div>
@@ -364,40 +412,28 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
       <p id="tvQueueEmpty">Queue is empty.</p>
       <ol id="tvQueue"></ol>
     </section>
-    <section class="chatsec">
-      <div class="chattabs" role="tablist"><button type="button" id="tabRoom" class="on" role="tab" aria-selected="true">Room chat</button><button type="button" id="tabVip" role="tab" aria-selected="false" hidden>VIP chat</button></div>
-      <ol id="chatLog" aria-live="polite"></ol>
-      <form id="chatForm" class="inline" novalidate>
-        <input id="chatInput" name="chatInput" maxlength="200" autocomplete="off" aria-label="Chat message">
-        <button type="submit" id="chatSend">Send</button>
-      </form>
-      <div class="msg" id="chatHint" role="status"></div>
-    </section>
-    <section class="foot">
-      <details>
-        <summary>Room ID &amp; host tools</summary>
-        <p>Your room ID (the host needs theirs for setup):</p>
-        <div class="inline"><span id="myId">not connected</span><button type="button" id="copyId" class="mini">Copy</button></div>
-        <div id="adminBox" hidden>
-          <p>You're a host here: you can delete messages, ban people, skip and remove videos.</p>
-          <div class="row"><button type="button" id="clearChat" class="danger">Clear chat</button></div>
-          <div id="vipBox" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-            <h3 style="margin:0;display:flex;justify-content:space-between;align-items:center">VIP TV <button type="button" id="vipWatch" class="mini">Watch</button></h3>
-            <div id="vipNow">Nothing playing</div>
-            <form id="vipForm" class="inline" novalidate>
-              <input id="vipInput" name="vipInput" placeholder="YouTube link for the VIP TV" autocomplete="off" spellcheck="false" aria-label="YouTube link for the VIP TV">
-              <button type="submit">Play</button>
-            </form>
-            <div class="row"><button type="button" id="vipSkip" class="mini">Skip to next</button><button type="button" id="vipStop" class="mini danger">Stop VIP TV</button></div>
-            <div style="color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.08em">VIP up next</div>
-            <p id="vipQueueEmpty">Queue is empty.</p>
-            <ol id="vipQueue" style="list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:12px"></ol>
-            <div class="msg" id="vipMsg" role="status"></div>
-          </div>
-        </div>
-      </details>
-    </section>
   </aside>
+
+  <section class="panel" id="hostPanel" hidden aria-label="Host tools">
+    <header><h2>Host tools</h2><button class="x" type="button" id="hostClose" aria-label="Close">✕</button></header>
+    <div id="adminBox" hidden>
+      <p>You're a host here: you can delete messages, ban people, skip and remove videos.</p>
+      <div class="row"><button type="button" id="clearChat" class="danger">Clear chat</button></div>
+      <div id="vipBox" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <h3 style="margin:0;display:flex;justify-content:space-between;align-items:center">VIP TV <button type="button" id="vipWatch" class="mini">Watch</button></h3>
+        <div id="vipNow">Nothing playing</div>
+        <form id="vipForm" class="inline" novalidate>
+          <input id="vipInput" name="vipInput" placeholder="YouTube link for the VIP TV" autocomplete="off" spellcheck="false" aria-label="YouTube link for the VIP TV">
+          <button type="submit">Play</button>
+        </form>
+        <div class="row"><button type="button" id="vipSkip" class="mini">Skip to next</button><button type="button" id="vipStop" class="mini danger">Stop VIP TV</button></div>
+        <div style="color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.08em">VIP up next</div>
+        <p id="vipQueueEmpty">Queue is empty.</p>
+        <ol id="vipQueue" style="list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:12px"></ol>
+        <div class="msg" id="vipMsg" role="status"></div>
+      </div>
+    </div>
+  </section>
 
   <section class="panel" id="poolPanel" hidden aria-label="Pool">
     <header><h2>Pool</h2><button class="x" type="button" id="poolClose" aria-label="Close">✕</button></header>
@@ -499,21 +535,52 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=55"></script>
-<script src="net.js?v=55"></script>
-<script src="bar.js?v=55"></script>
-<script src="pool.js?v=55"></script>
-<script src="extras.js?v=55"></script>
-<script src="poker.js?v=55"></script>
-<script src="social.js?v=55"></script>
+<script src="config.js?v=56"></script>
+<script src="net.js?v=56"></script>
+<script src="bar.js?v=56"></script>
+<script src="pool.js?v=56"></script>
+<script src="extras.js?v=56"></script>
+<script src="poker.js?v=56"></script>
+<script src="social.js?v=56"></script>
 <script>
-  document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
-  document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };
-  document.getElementById('roomBtn').onclick = () => {
-    const p = document.getElementById('room'); p.hidden = !p.hidden;
-    document.getElementById('roomBtn').setAttribute('aria-pressed', p.hidden ? 'false' : 'true');
+(function () {
+  const $ = (id) => document.getElementById(id);
+  // drop-up menus: one open at a time, closed by tapping anywhere else
+  const drops = [...document.querySelectorAll('[data-drop]')];
+  const closeDrops = (except) => { for (const b of drops) { const m = $(b.dataset.drop); if (m !== except) m.hidden = true; } };
+  for (const b of drops) b.onclick = (e) => { e.stopPropagation(); const m = $(b.dataset.drop); const open = m.hidden; closeDrops(); m.hidden = !open; };
+  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.dropup')) closeDrops(); });
+  // picking something in a menu closes it (except the suit picker)
+  for (const m of document.querySelectorAll('.dropup > .menu')) m.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON' && e.target.id !== 'copyId') m.hidden = true; });
+  $('whoBtn').onclick = () => { const p = $('whoPanel'); p.hidden = !p.hidden; };
+  $('whoClose').onclick = () => { $('whoPanel').hidden = true; };
+  // chat & TV window: closed by default; the button glows with a count when messages arrive while it's closed
+  let unread = 0;
+  const room = $('room'), badge = $('chatBadge'), btn = $('roomBtn');
+  const chatShowing = () => !room.hidden && !$('winChat').classList.contains('off') && $('winChat').classList.contains('on');
+  const paint = () => { badge.hidden = !unread; badge.textContent = unread > 99 ? '99+' : unread; btn.classList.toggle('unread', unread > 0); };
+  const setWin = (tab) => {
+    $('winChat').classList.toggle('on', tab === 'chat'); $('winTv').classList.toggle('on', tab === 'tv');
+    room.querySelector('.chatsec').hidden = tab !== 'chat'; room.querySelector('.tvsec').hidden = tab !== 'tv';
+    if (tab === 'chat') { unread = 0; paint(); const log = $('chatLog'); log.scrollTop = log.scrollHeight; }
   };
-  if (matchMedia('(max-width: 760px)').matches) { document.getElementById('room').hidden = true; document.getElementById('roomBtn').setAttribute('aria-pressed', 'false'); }
+  const openRoom = (on) => { room.hidden = !on; btn.setAttribute('aria-pressed', on ? 'true' : 'false'); if (on && $('winChat').classList.contains('on')) { unread = 0; paint(); const log = $('chatLog'); log.scrollTop = log.scrollHeight; } };
+  btn.onclick = () => openRoom(room.hidden);
+  $('roomMin').onclick = () => openRoom(false);
+  $('winChat').onclick = () => setWin('chat');
+  $('winTv').onclick = () => setWin('tv');
+  window.UI = {
+    newMessage() { if (!chatShowing()) { unread++; paint(); } },
+    openChat() { openRoom(true); setWin('chat'); },
+    openTv() { openRoom(true); setWin('tv'); }
+  };
+  // host tools window
+  $('hostBtn').onclick = () => { const p = $('hostPanel'); p.hidden = !p.hidden; };
+  $('hostClose').onclick = () => { $('hostPanel').hidden = true; };
+  new MutationObserver(() => { $('hostBtn').hidden = $('adminBox').hidden; }).observe($('adminBox'), { attributes: true, attributeFilter: ['hidden'] });
+  // the business card opens and closes on a tap
+  $('bizCard').onclick = () => $('bizCard').classList.toggle('open');
+})();
 </script>
 </body>
 </html>
