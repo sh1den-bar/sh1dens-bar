@@ -6,7 +6,8 @@
 const $ = (id) => document.getElementById(id);
 const NET = () => window.NET || {};
 const BAR = () => window.BAR;
-const SEATS = 5, START = 1000, SB = 10, BB = 20, TURN_MS = 30000, NEXT_MS = 7000;
+const SEATS = 5, SB = 10, BB = 20, TURN_MS = 30000, NEXT_MS = 7000;
+const CHIPS_PER_COIN = 10, BUYINS = [10, 50, 100];   // a buy-in in gold coins; chips are cashed back to coins when you leave
 const RANKS = '23456789TJQKA', SUITS = 'shdc';
 const SUIT_CH = { s: '♠', h: '♥', d: '♦', c: '♣' };
 let db = null, st = null, joins = {}, myHand = null, engineOn = false, wired = false, actK = 0;
@@ -61,25 +62,33 @@ const live = (p) => p.st === 'in' || p.st === 'allin';
 function push(S) { S.t = NET().ts(); S.eng = NET().uid; st = S; return db.ref('games/poker').set(S).catch(() => say("Couldn't update the table. The room's Firebase rules may need updating.")); }
 function say(t) { const m = $('pokerMsg'); if (m) m.textContent = t || ''; }
 // bring the seats in line with who has joined: newcomers sit down with 1000 chips, leavers are folded and removed
+// pay a player's chips back to their gold coins (only the dealer device, a host, does this)
+function payout(p) {
+  const coins = Math.floor((p.stack || 0) / CHIPS_PER_COIN);
+  if (db) db.ref('games/pokerjoin/' + p.uid).remove().catch(() => { });
+  if (!db || coins <= 0) return;
+  db.ref('coins/' + p.uid + '/n').transaction((n) => (n || 0) + coins).catch(() => { });
+  if (NET().say) NET().say('♠ ' + p.name + ' cashes out ' + coins + ' coins');
+}
 function syncSeats(S) {
   S.seats = S.seats || {};
   for (const k of seatKeys()) {
     const p = S.seats[k];
     if (p && !Object.values(joins).some((j) => j.uid === p.uid)) {
-      if (S.stage && S.stage !== 'wait' && live(p)) { p.st = 'fold'; p.gone = true; } else delete S.seats[k];
+      if (S.stage && S.stage !== 'wait' && live(p)) { p.st = 'fold'; p.gone = true; } else { payout(p); delete S.seats[k]; }
     }
   }
   const taken = new Set(Object.values(S.seats).map((p) => p.uid));
   for (const j of Object.values(joins).sort((a, b) => (a.t || 0) - (b.t || 0))) {
     if (taken.has(j.uid)) continue;
     let k = 's' + j.seat; if (S.seats[k]) { const f = seatKeys().find((x) => !S.seats[x]); if (!f) continue; k = f; }
-    S.seats[k] = { uid: j.uid, name: j.name, stack: START, bet: 0, inv: 0, st: 'sit' }; taken.add(j.uid);
+    S.seats[k] = { uid: j.uid, name: j.name, stack: (BUYINS.includes(j.buy) ? j.buy : 0) * CHIPS_PER_COIN, bet: 0, inv: 0, st: 'sit' }; taken.add(j.uid);
   }
 }
 function startHand() {
   const S = JSON.parse(JSON.stringify(st || {}));
   syncSeats(S);
-  for (const k of seatKeys()) { const p = S.seats[k]; if (!p) continue; if (p.gone) { delete S.seats[k]; continue; } if (p.stack <= 0) p.stack = START; p.bet = 0; p.inv = 0; p.acted = false; p.st = 'in'; }
+  for (const k of seatKeys()) { const p = S.seats[k]; if (!p) continue; if (p.gone || p.stack <= 0) { payout(p); delete S.seats[k]; continue; } p.bet = 0; p.inv = 0; p.acted = false; p.st = 'in'; }
   delete S.show; S.board = ''; S.pot = 0; S.msg = '';
   const n = Object.keys(S.seats).length;
   if (n < 2) { S.stage = 'wait'; S.toAct = -1; S.msg = 'Waiting for players (2 to start)'; return push(S); }
@@ -202,7 +211,8 @@ function engineStop() {
   engineOn = false;
   db.ref('games/pokeract').off();
   const S = JSON.parse(JSON.stringify(st || {}));
-  if (S.seats) for (const p of Object.values(S.seats)) { p.stack += p.inv || 0; p.inv = 0; p.bet = 0; p.st = 'sit'; }
+  if (S.seats) for (const p of Object.values(S.seats)) { p.stack += p.inv || 0; p.inv = 0; p.bet = 0; payout(p); }
+  S.seats = {};
   S.stage = 'closed'; S.toAct = -1; S.board = ''; S.pot = 0; delete S.show; S.msg = 'The table is closed';
   push(S); renderPanel();
 }
@@ -229,7 +239,15 @@ async function join() {
   const usedSeats = new Set(Object.keys((st && st.seats) || {}).map((k) => +k.slice(1)).concat(Object.values(joins).filter((j) => j.uid !== myUid()).map((j) => j.seat)));
   const seat = Array.from({ length: SEATS }, (_, i) => i).find((i) => !usedSeats.has(i));
   if (seat === undefined && !used.has(myUid())) { say('The table is full.'); return; }
-  try { await db.ref('games/pokerjoin/' + myUid()).set({ name: NET().myName(), seat: seat || 0, t: NET().ts() }); BAR().sitAt('poker-seat-' + (seat || 0)); say(''); }
+  if (joins[myUid()]) { say("You're already at the table."); return; }
+  const buy = +$('pkBuy').value || BUYINS[0];
+  const have = window.EXTRAS ? window.EXTRAS.myCoins() : 0;
+  if (have < buy) { say('You need ' + buy + ' gold coins to buy in (you have ' + have + ').'); return; }
+  const upd = {};
+  upd['games/pokerjoin/' + myUid()] = { name: NET().myName(), seat: seat || 0, buy, t: NET().ts() };
+  upd['coins/' + myUid() + '/n'] = have - buy;
+  upd['coins/' + myUid() + '/s'] = (window.EXTRAS ? window.EXTRAS.mySpent() : 0) + buy;
+  try { await db.ref().update(upd); BAR().sitAt('poker-seat-' + (seat || 0)); say('Bought in for ' + buy + ' coins (' + buy * CHIPS_PER_COIN + ' chips). You get your chips back as coins when you leave.'); }
   catch (e) { say("Couldn't sit down. The room's Firebase rules may need updating."); }
 }
 async function leave() { if (db) await db.ref('games/pokerjoin/' + myUid()).remove().catch(() => { }); }
@@ -281,7 +299,7 @@ function renderPanel() {
   if (me) ri.max = me.p.bet + me.p.stack;
   $('pkTimer').textContent = myTurn && S.dl ? 'Your turn · ' + Math.max(0, Math.ceil((S.dl - now()) / 1000)) + 's' : '';
   const joined = !!joins[myUid()];
-  $('pokerJoin').hidden = joined; $('pokerLeave').hidden = !joined;
+  $('pokerJoin').hidden = joined; $('pkBuy').hidden = joined; $('pokerLeave').hidden = !joined;
   $('pokerActions').hidden = !me;
   const eng = $('pokerEngine');
   eng.hidden = !NET().isAdmin;
@@ -304,7 +322,7 @@ function init() {
   db = NET().db();
   db.ref('games/poker').on('value', (s) => { if (!engineOn) st = s.val(); renderPanel(); });
   db.ref('games/pokerjoin').on('value', (s) => {
-    joins = {}; s.forEach((c) => { const v = c.val() || {}; joins[c.key] = { uid: c.key, name: v.name, seat: +v.seat || 0, t: v.t || 0 }; });
+    joins = {}; s.forEach((c) => { const v = c.val() || {}; joins[c.key] = { uid: c.key, name: v.name, seat: +v.seat || 0, t: v.t || 0, buy: +v.buy || 0 }; });
     if (engineOn && st && (st.stage === 'wait' || st.stage === 'done' || st.stage === 'closed')) { const S = JSON.parse(JSON.stringify(st)); syncSeats(S); push(S); }
     renderPanel();
   });

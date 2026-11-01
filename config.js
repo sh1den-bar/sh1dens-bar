@@ -18,12 +18,6 @@ window.BAR_CONFIG = {
   // Words to hide in chat (replaced with ***). Add your own, lowercase.
   blockedWords: [],
 
-  // What gold coins can buy. Change names and prices freely (keep each cost 10 or more).
-  rewards: [
-    { id: 'song', name: 'Pick the next jukebox song', cost: 10 },
-    { id: 'shout', name: 'Shoutout on stream', cost: 20 },
-    { id: 'video', name: 'Choose the next TV video', cost: 25 },
-    { id: 'shot', name: 'Make sh1den take a shot', cost: 60 },
-    { id: 'vip', name: 'VIP pass for 10 minutes', cost: 100 }
-  ]
+  // Coins spent in total before someone can use the VIP lounge.
+  vipAfterSpending: 1000
 };

@@ -242,9 +242,10 @@ function buildParts(look, seed) {
   // swimwear in the pool lounge: bare top and feet, swim shorts in a colour picked from the jacket choice
   const SWIM = look.outfit === 'swim';
   const SHORTS = [[30, 110, 120], [170, 40, 50], [30, 50, 110], [24, 24, 28], [220, 214, 200], [190, 140, 40], [200, 60, 120], [40, 130, 80]][look.jacket] || [30, 110, 120];
-  const JACKET = look.outfit === 'barman' ? [222, 218, 208] : SWIM ? SKIN : LOOK.jacket[look.jacket][1];
+  const GOLDSUIT = look.outfit === 'gold';
+  const JACKET = look.outfit === 'barman' ? [222, 218, 208] : GOLDSUIT ? [222, 178, 66] : SWIM ? SKIN : LOOK.jacket[look.jacket][1];
   const RIB = look.outfit === 'barman' ? [206, 202, 192] : JACKET.map((v) => v * 0.6);
-  const CARGO = LOOK.pants[look.pants][1];
+  const CARGO = GOLDSUIT ? [204, 160, 56] : LOOK.pants[look.pants][1];
   const CARGO_D = CARGO.map((v) => v * 0.74);
   const BOOT = [16, 14, 13], SOLE = [9, 8, 8], WEB = [20, 20, 19], GUN = [72, 74, 76], ZIP = [78, 78, 82];
   const RIM = [18, 18, 20], LENS = look.eyes === 2 ? [14, 14, 16] : [96, 108, 108], LENS_HI = look.eyes === 2 ? [70, 72, 80] : [170, 182, 180];
@@ -344,10 +345,10 @@ function buildParts(look, seed) {
   }
 
   // ---- body: shape, top, bottom and shoes ----
-  const TOP = look.outfit === 'barman' ? 'barman' : SWIM ? 'swim' : ['bomber', 'suit', 'suitdark', 'hoodie', 'leather', 'tank', 'turtle'][look.top || 0] || 'bomber';
-  const BOTTOM = SWIM ? 'swim' : look.outfit === 'barman' ? 'trousers' : ['cargo', 'jeans', 'trousers', 'skirt'][look.bottom || 0] || 'cargo';
-  const SHOE = SWIM ? 'bare' : look.outfit === 'barman' ? 'dress' : ['boots', 'sneakers', 'dress'][look.shoes || 0] || 'boots';
-  const TOPC = look.outfit === 'barman' ? JACKET : LOOK.jacket[look.jacket][1];
+  const TOP = look.outfit === 'barman' ? 'barman' : GOLDSUIT ? 'suitdark' : SWIM ? 'swim' : ['bomber', 'suit', 'suitdark', 'hoodie', 'leather', 'tank', 'turtle'][look.top || 0] || 'bomber';
+  const BOTTOM = SWIM ? 'swim' : look.outfit === 'barman' || GOLDSUIT ? 'trousers' : ['cargo', 'jeans', 'trousers', 'skirt'][look.bottom || 0] || 'cargo';
+  const SHOE = SWIM ? 'bare' : look.outfit === 'barman' || GOLDSUIT ? 'dress' : ['boots', 'sneakers', 'dress'][look.shoes || 0] || 'boots';
+  const TOPC = look.outfit === 'barman' || GOLDSUIT ? JACKET : LOOK.jacket[look.jacket][1];
   const BOTC = CARGO;
   const hW = F ? 1.06 : 1, lW = F ? 0.88 : 1, sX = F ? 0.9 : 1;
   const SHIRT = TOP === 'suitdark' ? [22, 22, 26] : [226, 222, 212];
@@ -2781,7 +2782,8 @@ function rebuild() {
     if (prev && prev !== ch.spot) ch.pop = 0;
     lastSpots.set(key, ch.spot);
     const sp = SPOT_BY_ID[ch.spot];
-    swapOutfit(ch, sp && (sp.cat === 5 || sp.cat === 8) ? 'swim' : '');
+    swapOutfit(ch, sp && (sp.cat === 5 || sp.cat === 8) ? 'swim' : ch.uid && perks[ch.uid] && perks[ch.uid].gold ? 'gold' : '');
+    setGoldGlow(ch, ch.outfit === 'gold');
     setGlass(ch, ch.act === 'pool' ? null : ch.drink);
     const pd = lastDrinks.get(key);
     if (ch.drink && pd !== undefined && pd !== ch.drink) bartenderSays(ch.drink, ch.name);
@@ -2950,7 +2952,8 @@ const VIEWS = {
 for (const k in VIEWS) VIEWS[k].free = !!VIEWS[k].free;
 let cam = Object.assign({}, VIEWS.bar), camT = Object.assign({}, VIEWS.bar), follow = null;
 let camDist = cam.d, velYaw = 0, velPitch = 0, lastMoveT = 0, idleT = 0;
-let isMod = false;
+let isMod = false, vipMember = false;
+const vipOk = () => isMod || vipMember;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fadeEl = document.getElementById('fade');
 // moving to a different room cuts through a quick fade instead of flying through the walls
@@ -2965,14 +2968,14 @@ function cutTo(apply) {
   setTimeout(() => { snapNow(); fadeEl.style.opacity = '0'; }, 170);
 }
 function setView(name) {
-  if ((name === 'vip' || name === 'viptv') && !isMod) return;
+  if ((name === 'vip' || name === 'viptv') && !vipOk()) return;
   if (name === 'card' && !cardOpen && !isMod) { toast('The card room is closed. Poker nights only happen when sh1den is in.'); return; }
   follow = null; velYaw = velPitch = 0;
   cutTo(() => Object.assign(camT, VIEWS[name]));
 }
 function inVip(ch) { return roomAt(ch.root.position.x, ch.root.position.z) === ROOMS.vip; }
 function focusChar(ch) {
-  if (inVip(ch) && !isMod && !ch.mine) return;
+  if (inVip(ch) && !vipOk() && !ch.mine) return;
   velYaw = velPitch = 0;
   cutTo(() => {
     follow = ch; camT.free = false; camT.d = 2.4; camT.pitch = 0.18;
@@ -3219,7 +3222,7 @@ function describe(tg) {
   const s = tg.s, owner = spotOwner.get(s.id);
   if (owner && owner.mine) return { ok: false, text: "You're here" };
   if (s.hostOnly) return { ok: !!(myChar() && myChar().host) && !owner, text: owner ? (owner.name || 'Taken') + "'s spot" : (s.lockText || "The host's chair") };
-  if (s.cat === 4 && !isMod) return { ok: false, text: 'Mods only' };
+  if (s.cat === 4 && !vipOk()) return { ok: false, text: 'VIP only: spend 1,000 coins to get in' };
   if (s.cat === 10 && !cardOpen && !(myChar() && myChar().host)) return { ok: false, text: 'Closed · private game' };
   if (owner) return { ok: false, text: 'Taken by ' + (owner.name || 'someone') };
   return { ok: true, text: s.label };
@@ -3234,7 +3237,7 @@ function pickTarget(clientX, clientY) {
   for (const tg of targets) {
     const room = tg.kind === 'spot' ? CAT_ROOM[tg.s.cat] : CAT_ROOM[tg.o.cat];
     if (here && room !== here) continue;
-    if (!isMod && room === ROOMS.vip && !(tg.kind === 'spot' && tg.s.hostOnly && myChar() && myChar().host)) continue;
+    if (!vipOk() && room === ROOMS.vip && !(tg.kind === 'spot' && tg.s.hostOnly && myChar() && myChar().host)) continue;
     if (raycaster.ray.intersectBox(tg.box, hitPoint)) {
       const d = hitPoint.distanceTo(raycaster.ray.origin);
       if (d < bestD) { bestD = d; best = tg; }
@@ -3437,8 +3440,9 @@ const wcLight = new THREE.PointLight(0xfff0d8, 1.0, 5.5, 1.5); wcLight.position.
   wcGroup.add(new THREE.Mesh(toGeometry(P), roomMat), new THREE.Mesh(toGeometry(Lg), glowMat));
 }
 // a roof over the annex: what happens in the restroom stays in the restroom, unless you're in there too
-const wcRoof = new THREE.Mesh(new THREE.PlaneGeometry(ROOMS.wc.x1 - ROOMS.wc.x0 + 0.1, ROOMS.wc.z1 - ROOMS.wc.z0 + 0.1), new THREE.MeshLambertMaterial({ color: 0x1c1a1e }));
-wcRoof.rotation.x = -Math.PI / 2; wcRoof.position.set((ROOMS.wc.x0 + ROOMS.wc.x1) / 2 + 0.02, WALL_H + 0.1, (ROOMS.wc.z0 + ROOMS.wc.z1) / 2); scene.add(wcRoof);
+// a solid slab that sits down over the wall tops on every side, so there's no gap to peek through
+const wcRoof = new THREE.Mesh(new THREE.BoxGeometry(ROOMS.wc.x1 - ROOMS.wc.x0 + 0.3, 0.22, ROOMS.wc.z1 - ROOMS.wc.z0 + 0.3), new THREE.MeshLambertMaterial({ color: 0x1c1a1e }));
+wcRoof.position.set((ROOMS.wc.x0 + ROOMS.wc.x1) / 2 + 0.05, WALL_H + 0.06, (ROOMS.wc.z0 + ROOMS.wc.z1) / 2); scene.add(wcRoof);
 const inRoom = (ch, r) => { const p = ch.root.position; return p.x >= r.x0 && p.x <= r.x1 && p.z >= r.z0 && p.z <= r.z1; };
 POST_HOOKS.push(() => {
   const me = crowd.find((c) => c.mine);
@@ -3450,8 +3454,8 @@ POST_HOOKS.push(() => {
 // ---- VIP glass: everyone but the hosts sees the lounge through a dark smoked tint, without name tags or chat
 const vipTint = new THREE.Mesh(new THREE.BoxGeometry(6.94, 3.15, 6.94), new THREE.MeshBasicMaterial({ color: 0x14040e, transparent: true, opacity: 0.74, depthWrite: false, fog: false }));
 vipTint.position.set(-1.5, 1.6, -7.5); vipTint.renderOrder = 4; scene.add(vipTint);
-const hiddenInVip = (ch) => !isMod && !ch.mine && inRoom(ch, ROOMS.vip);
-POST_HOOKS.push(() => { vipTint.visible = !isMod; });
+const hiddenInVip = (ch) => !vipOk() && !ch.mine && inRoom(ch, ROOMS.vip);
+POST_HOOKS.push(() => { vipTint.visible = !vipOk(); });
 
 // ---- painting eyes: they glow red during a blackout (and sometimes on their own)
 const EYE_UV = { 0: [[14, 11], [18, 11]], 1: [[14, 11], [18, 11]], 2: [[13.5, 12], [18.5, 12]], 3: [[14, 19], [18, 19]] };
@@ -3803,6 +3807,46 @@ POST_HOOKS.push((dt, t) => {
   renderer.setRenderTarget(c.rt); renderer.render(scene, c.cam); renderer.setRenderTarget(null);
 });
 
+// ---- VIP access: hosts, plus anyone who has spent 1,000 coins
+function applyVipAccess() {
+  const ok = vipOk();
+  $('v-vip').hidden = !ok;
+  if (roomSel) { const o = roomSel.querySelector('option[value="vip"]'); if (o) o.hidden = o.disabled = !ok; }
+}
+// ---- the gold tuxedo: a shining gold suit with a warm glow around whoever wears it
+let perks = {};
+const goldGlowTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 2, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,214,110,0.75)'); g.addColorStop(0.45, 'rgba(255,190,70,0.28)'); g.addColorStop(1, 'rgba(255,170,40,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+})();
+const goldGlows = new Set();
+function setGoldGlow(ch, on) {
+  if (on && !ch.glow) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: goldGlowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    sp.scale.set(1.5, 2.4, 1); sp.position.set(0, 1.0, 0); ch.root.add(sp); ch.glow = sp; goldGlows.add(ch);
+    // little glints that drift up around the suit
+    const n = 14, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe6a0, size: 0.03, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+    pts.frustumCulled = false; ch.root.add(pts); ch.glints = pts;
+  } else if (!on && ch.glow) { ch.root.remove(ch.glow); ch.root.remove(ch.glints); ch.glow = ch.glints = null; goldGlows.delete(ch); }
+}
+POST_HOOKS.push((dt, t) => {
+  for (const ch of goldGlows) {
+    if (!ch.glow || !crowd.includes(ch)) { goldGlows.delete(ch); continue; }
+    ch.glow.material.opacity = 0.75 + 0.25 * Math.sin(t * 2.2 + ch.phase * 6);
+    const a = ch.glints.geometry.attributes.position, n = a.count;
+    for (let i = 0; i < n; i++) {
+      const u = (t * 0.35 + i / n + ch.phase) % 1, ang = i * 2.39 + t * 0.6;
+      a.setXYZ(i, Math.cos(ang) * 0.32, 0.2 + u * 1.7, Math.sin(ang) * 0.32);
+    }
+    a.needsUpdate = true;
+    ch.glints.visible = ch.root.visible;
+  }
+});
+
 // keep the card room, Charon's tag and the VIP rules in step with each rebuild
 function rebuildHooks() { for (const f of REBUILD_HOOKS) f(); }
 
@@ -3911,7 +3955,7 @@ function updateRosterUI() {
     const b = document.createElement('button'); b.type = 'button';
     const vip = inVip(ch);
     b.textContent = ch.name + (ch.host ? ' · host' : ch.mine ? ' · you' : '') + (vip ? ' · VIP' : '');
-    if (vip && !isMod && !ch.mine) b.disabled = true;
+    if (vip && !vipOk() && !ch.mine) b.disabled = true;
     b.onclick = () => focusChar(ch);
     li.appendChild(b); ul.appendChild(li);
   }
@@ -4076,9 +4120,8 @@ window.BAR = {
   toast,
   setMod(on) {
     isMod = !!on;
-    $('v-vip').hidden = !isMod;
-    if (roomSel) { const o = roomSel.querySelector('option[value="vip"]'); if (o) o.hidden = o.disabled = !isMod; }
-    if (!isMod && roomAt(camT.tx, camT.tz) === ROOMS.vip && !(follow && follow.mine)) setView('bar');
+    applyVipAccess();
+    if (!vipOk() && roomAt(camT.tx, camT.tz) === ROOMS.vip && !(follow && follow.mine)) setView('bar');
     updateRosterUI();
     if (!creatorEl.hidden && !formEl.hidden) renderOptions();
   },
@@ -4086,6 +4129,8 @@ window.BAR = {
   focusVipTv() { setView('viptv'); },
   openCreator,
   // v42
+  setVipMember(on) { vipMember = !!on; applyVipAccess(); rebuild(); },
+  setPerks(p) { perks = p || {}; rebuild(); },
   setCardOpen,
   cardOpen: () => cardOpen,
   setVictim(v) { const was = victimNow(); victim = v && v.uid && v.until > serverNow() ? { uid: v.uid, until: v.until } : null; if (!!was !== !!victimNow() || (was && victim && was.uid !== victim.uid)) rebuild(); },

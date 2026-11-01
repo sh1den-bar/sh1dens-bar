@@ -203,8 +203,8 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 #pokerStatus, #pkTimer { color: var(--dim); min-height: 1.2em; }
 #pkAmt { width: 90px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-/* medium and short screens: rooms go into the dropdown so the button row never wraps over the panels */
-@media (max-width: 1180px) {
+/* smaller screens: rooms go into the dropdown so the button row never wraps over the panels */
+@media (max-width: 1440px) {
   .top .group { display: none; }
   #roomSelect { display: block; max-width: 46vw; }
 }
@@ -368,7 +368,8 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     <p>You earn a coin every 5 minutes you're in the bar, AFK counts. A gold coin also turns up somewhere every 10 minutes: click it first for +5.</p>
     <div class="msg" id="coinNext"></div>
     <h3>Rewards</h3>
-    <input id="redeemNote" maxlength="80" placeholder="Note for sh1den (song, video link, shoutout text)" autocomplete="off" aria-label="Note for the reward">
+    <div class="msg" id="vipProgress"></div>
+    <input id="redeemNote" maxlength="80" placeholder="YouTube link (for a priority video)" autocomplete="off" aria-label="YouTube link for a priority video">
     <div id="rewardList"></div>
     <div class="msg" id="coinsMsg" role="status"></div>
     <h3>High rollers</h3>
@@ -402,11 +403,12 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     </div>
     <div class="msg" id="pokerMsg" role="status"></div>
     <div class="row">
-      <button type="button" id="pokerJoin" class="primary">Take a seat (1000 free chips)</button>
+      <select id="pkBuy" aria-label="Buy-in"><option value="10">Buy in: 10 coins (100 chips)</option><option value="50">Buy in: 50 coins (500 chips)</option><option value="100" selected>Buy in: 100 coins (1,000 chips)</option></select>
+      <button type="button" id="pokerJoin" class="primary">Take a seat</button>
       <button type="button" id="pokerLeave" hidden>Leave the table</button>
       <button type="button" id="pokerEngine" class="mini" hidden>Open the table</button>
     </div>
-    <p>No-limit Texas Hold'em, blinds 10/20, play chips only. Minos deals; your two cards are only ever sent to you.</p>
+    <p>No-limit Texas Hold'em, blinds 10/20. Buy in with gold coins (1 coin = 10 chips); when you leave the table your chips turn back into coins. Minos deals, and your two cards are only ever sent to you.</p>
   </section>
 
   <section class="panel" id="creator" hidden aria-label="Create your character">
@@ -448,12 +450,12 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=50"></script>
-<script src="net.js?v=50"></script>
-<script src="bar.js?v=50"></script>
-<script src="pool.js?v=50"></script>
-<script src="extras.js?v=50"></script>
-<script src="poker.js?v=50"></script>
+<script src="config.js?v=51"></script>
+<script src="net.js?v=51"></script>
+<script src="bar.js?v=51"></script>
+<script src="pool.js?v=51"></script>
+<script src="extras.js?v=51"></script>
+<script src="poker.js?v=51"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

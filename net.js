@@ -41,6 +41,20 @@ NET.hostOnline = () => (!!hostUid && online.has(hostUid)) || [...online.values()
 NET.onlineList = () => [...online.entries()].map(([uid, p]) => Object.assign({ uid }, p));
 NET.charOf = (uid) => allChars.find((e) => e.uid === uid) || null;
 NET.isBanned = () => banned;
+NET.setVipMember = (on) => { if (!!on === !!NET.vipMember) return; NET.vipMember = !!on; syncVip(true); };
+// a paid priority video: it goes straight onto the cinema TV, cutting off whatever was on
+NET.playPriority = async function (link, rid) {
+  const m = String(link || '').match(YT_RE);
+  if (!db || !m) return false;
+  const id = db.ref('tv/queue').push().key, title = await fetchTitle(m[1]).catch(() => '');
+  const upd = {};
+  upd['tv/queue/' + id] = Object.assign({ v: m[1], uid: NET.uid, name: myName, t: TS }, title ? { title: String(title).slice(0, 150) } : {});
+  upd['tv/current'] = Object.assign({ v: m[1], id, uid: NET.uid, name: myName, at: TS, rid }, title ? { title: String(title).slice(0, 150) } : {});
+  upd['tv/used/' + rid] = true;
+  upd['last/' + NET.uid] = TS;
+  lastSend = Date.now();
+  try { await db.ref().update(upd); return true; } catch (e) { return false; }
+};
 NET.refreshPresence = () => { if (presRef) presRef.set(myPresence()).catch(() => { }); };
 NET.slowLeft = () => Math.max(0, lastSend + SLOW_MS - Date.now());
 // a line in the room chat that only you see (Charon, game notices)
@@ -545,7 +559,7 @@ function vipMsg(t) { const m = $('vipMsg'); if (m) m.textContent = t || ''; }
 function syncVip(force) {
   if (force) vipLoaded = null;
   // only hosts get the VIP picture; everyone else just sees the VIP card on the screen
-  const show = !!vip && NET.isAdmin;
+  const show = !!vip && (NET.isAdmin || NET.vipMember);
   $('vipIdle').hidden = show;
   $('vipNow').textContent = vip ? 'Playing, from ' + (vip.name || 'a host') : 'Nothing playing';
   if (!vipReady) return;
@@ -560,7 +574,7 @@ function syncVip(force) {
 // you only hear the VIP TV while you're looking at the VIP lounge
 const meInVip = () => !!(window.BAR.meInVip && window.BAR.meInVip());
 const meInCinema = () => !!(window.BAR.meInCinema && window.BAR.meInCinema());
-function vipAudible() { return !!vip && NET.isAdmin && entered && !mutedAll && tvVolume > 0 && meInVip(); }
+function vipAudible() { return !!vip && (NET.isAdmin || NET.vipMember) && entered && !mutedAll && tvVolume > 0 && meInVip(); }
 function vipVolume() {
   if (!vipReady) return;
   vipPlayer.setVolume(tvVolume);
@@ -588,7 +602,7 @@ function renderPokerBtn() {
 }
 function vipTick() {
   vipVolume(); applyVolume(); renderPokerBtn(); if (NET.online) updateComposer();
-  if (!vip || !vipReady || !entered || !NET.isAdmin) return;
+  if (!vip || !vipReady || !entered || !(NET.isAdmin || NET.vipMember)) return;
   const st = vipPlayer.getPlayerState(), exp = vipExpected();
   if (vipDur && exp > vipDur + 3) { if (NET.isAdmin) db.ref('viptv').remove().catch(() => { }); return; }
   if (st === 1 && Math.abs(vipPlayer.getCurrentTime() - exp) > 3 && (!vipDur || exp < vipDur - 1) && Date.now() - vipLastSeek > 10000) { vipLastSeek = Date.now(); vipPlayer.seekTo(exp, true); }

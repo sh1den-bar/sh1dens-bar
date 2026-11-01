@@ -5,13 +5,18 @@ const cfg = window.BAR_CONFIG || {};
 const $ = (id) => document.getElementById(id);
 const NET = () => window.NET || {};
 const BAR = () => window.BAR;
+// what coins buy inside the bar (kinds: prio = a video straight onto the cinema TV, event = a bar event for everyone, perk = a lasting unlock)
 const REWARDS = cfg.rewards || [
-  { id: 'shout', name: 'Shoutout on stream', cost: 20 },
-  { id: 'song', name: 'Pick the next jukebox song', cost: 10 },
-  { id: 'video', name: 'Choose the next TV video', cost: 25 },
-  { id: 'shot', name: 'Make sh1den take a shot', cost: 60 },
-  { id: 'vip', name: 'VIP pass for 10 minutes', cost: 100 }
+  { id: 'prio', kind: 'prio', name: 'Priority video: your YouTube link plays on the cinema TV right now', cost: 150 },
+  { id: 'round', kind: 'event', name: 'Buy a round for the whole bar', cost: 200 },
+  { id: 'overdrive', kind: 'event', name: 'Dance floor overdrive', cost: 120 },
+  { id: 'storm', kind: 'event', name: 'Make it storm outside', cost: 80 },
+  { id: 'gold', kind: 'perk', name: 'The gold tuxedo: a shining gold suit, yours for good', cost: 1000000 }
 ];
+const VIP_SPEND = cfg.vipAfterSpending || 1000;
+const YT = /(?:youtube\.com\/(?:watch\?(?:[^#\s]*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+let perks = {};
+const spent = () => (mine && +mine.s) || 0;
 const EVENTS = [['siren', 'Siren drive-by'], ['storm', 'Thunderstorm'], ['eyes', 'Paintings watch'], ['round', 'Round on the house'], ['coin', 'Gold coin hint'],
   ['phone', 'Phone rings'], ['cat', 'Black cat'], ['guest', 'Mystery guest'], ['overdrive', 'Dance floor overdrive'], ['blackout', 'Power cut (restroom)']];
 const COIN_MS = 600000, PASSIVE_MS = 300000, LOCK_MS = 300000;
@@ -41,7 +46,12 @@ function start() {
     const l = []; s.forEach((c) => { const v = c.val() || {}; l.push({ uid: c.key, name: v.name, n: +v.n || 0 }); });
     board = l.sort((a, b) => b.n - a.n); BAR().setLeaderboard(board); renderPanel();
   });
-  db.ref('coins/' + myUid()).on('value', (s) => { mine = s.val(); renderHud(); renderPanel(); });
+  db.ref('coins/' + myUid()).on('value', (s) => {
+    mine = s.val(); renderHud(); renderPanel();
+    const vipNow = spent() >= VIP_SPEND;
+    NET().setVipMember(vipNow); BAR().setVipMember(vipNow);
+  });
+  db.ref('perks').on('value', (s) => { perks = s.val() || {}; BAR().setPerks(perks); renderPanel(); renderGoldBtn(); });
   db.ref('events/coin').on('value', (s) => { coinClaim = s.val(); updateCoin(); });
   db.ref('events/now').on('value', (s) => {
     const v = s.val(); if (!v || !v.k || !v.t) return;
@@ -70,9 +80,11 @@ async function passive() {
   const name = NET().myName();
   busy = true;
   try {
-    if (!mine) { await db.ref('coins/' + myUid()).set({ n: 0, name, t: ts(), c: 0 }); }
-    else if (mine.name !== name) { await db.ref('coins/' + myUid()).set({ n: mine.n, name, t: mine.t, c: mine.c || 0 }); }
-    else if (now() >= (mine.t || 0) + PASSIVE_MS) { await db.ref('coins/' + myUid()).set({ n: (mine.n || 0) + 1, name, t: ts(), c: mine.c || 0 }); }
+    const keepS = (o) => (mine && mine.s !== undefined ? Object.assign(o, { s: mine.s }) : o);
+    if (!mine) { await db.ref('coins/' + myUid()).set({ n: 0, name, t: ts(), c: 0, s: 0 }); }
+    else if (mine.s === undefined) { await db.ref('coins/' + myUid()).set({ n: mine.n, name: mine.name, t: mine.t, c: mine.c || 0, s: 0 }); }
+    else if (mine.name !== name) { await db.ref('coins/' + myUid()).set(keepS({ n: mine.n, name, t: mine.t, c: mine.c || 0 })); }
+    else if (now() >= (mine.t || 0) + PASSIVE_MS) { await db.ref('coins/' + myUid()).set(keepS({ n: (mine.n || 0) + 1, name, t: ts(), c: mine.c || 0 })); }
   } catch (e) { /* the server clock may be a hair behind; try again next tick */ }
   busy = false;
 }
@@ -96,7 +108,7 @@ async function claimCoin() {
   catch (e) { BAR().toast('Too slow, someone got it.'); return; }
   try {
     const cur = (await db.ref('coins/' + myUid()).once('value')).val() || { n: 0, t: 0, c: 0 };
-    await db.ref('coins/' + myUid()).set({ n: (cur.n || 0) + 5, name: NET().myName(), t: cur.t, c: slot });
+    await db.ref('coins/' + myUid()).set(Object.assign({ n: (cur.n || 0) + 5, name: NET().myName(), t: cur.t, c: slot }, cur.s !== undefined ? { s: cur.s } : {}));
     BAR().toast('A gold coin! +5');
     NET().say('picked up a gold coin 🪙');
   } catch (e) { BAR().toast("Couldn't bank the coin. The room's Firebase rules may need updating."); }
@@ -105,17 +117,31 @@ async function claimCoin() {
 async function redeem(r) {
   if (!db || !hasChar()) { msg('Create a character first.'); return; }
   const have = (mine && mine.n) || 0;
-  if (have < r.cost) { msg('You need ' + (r.cost - have) + ' more coins for that.'); return; }
+  if (have < r.cost) { msg('You need ' + (r.cost - have).toLocaleString() + ' more coins for that.'); return; }
   const note = ($('redeemNote').value || '').trim().slice(0, 80);
+  const yt = note.match(YT);
+  if (r.kind === 'prio' && !yt) { msg('Paste a YouTube link in the box above first.'); return; }
+  if (r.kind === 'perk' && perks[myUid()] && perks[myUid()][r.id]) { msg('You already have that.'); return; }
+  if (mine.s === undefined) { try { await db.ref('coins/' + myUid() + '/s').set(0); mine.s = 0; } catch (e) { } }
   const id = db.ref('redeems').push().key, upd = {};
   upd['coins/' + myUid() + '/n'] = have - r.cost;
+  upd['coins/' + myUid() + '/s'] = spent() + r.cost;
   upd['redeems/' + id] = { uid: myUid(), name: NET().myName(), r: r.id, cost: r.cost, note, t: ts() };
-  try {
-    await db.ref().update(upd);
-    $('redeemNote').value = '';
-    msg('Redeemed: ' + r.name + '. sh1den has been told.');
-    NET().say('redeemed ' + r.name + ' (' + r.cost + ' coins)' + (note ? ': ' + note : ''));
-  } catch (e) { msg("Couldn't redeem that. The room's Firebase rules may need updating."); }
+  if (r.kind === 'perk') upd['perks/' + myUid() + '/' + r.id] = true;
+  try { await db.ref().update(upd); }
+  catch (e) { msg("Couldn't redeem that. The room's Firebase rules may need updating."); return; }
+  $('redeemNote').value = '';
+  if (r.kind === 'prio') {
+    const ok = await NET().playPriority(yt[0], id);
+    msg(ok ? 'Your video is on the cinema TV now.' : 'Paid, but the TV didn’t switch. A host can refund it.');
+    if (ok) NET().say('🪙 paid ' + r.cost + ' coins to put their video on the TV');
+  } else if (r.kind === 'event') {
+    const e = {}; e['events/now'] = { k: r.id, t: ts(), by: NET().myName(), seed: Math.floor(Math.random() * 1e6), rid: id }; e['events/used/' + id] = true;
+    try { await db.ref().update(e); msg('Done!'); NET().say('🪙 ' + r.name.toLowerCase() + '!'); }
+    catch (err) { msg('Paid, but it didn’t start. A host can refund it.'); }
+  } else {
+    msg('Yours now: ' + r.name.split(':')[0] + '.'); NET().say('🪙 just bought ' + r.name.split(':')[0].toLowerCase() + '!');
+  }
 }
 // ---------------------------------------------------------------- the private car lot: an admin's car is only parked while they're here
 function updateLot() {
@@ -163,12 +189,16 @@ function renderHud() {
 }
 function renderPanel() {
   const p = $('coinsPanel'); if (!p || p.hidden) return;
-  $('coinBal').textContent = ((mine && mine.n) || 0) + ' coins';
+  $('coinBal').textContent = ((mine && mine.n) || 0).toLocaleString() + ' coins';
+  const vp = $('vipProgress');
+  if (vp) vp.textContent = spent() >= VIP_SPEND ? '★ VIP: you can go in the VIP lounge.' : 'Spend ' + VIP_SPEND.toLocaleString() + ' coins in total to get into the VIP lounge (' + spent().toLocaleString() + ' spent so far).';
   const rl = $('rewardList'); rl.textContent = '';
   for (const r of REWARDS) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'reward';
-    b.innerHTML = '<span></span><b></b>'; b.firstChild.textContent = r.name; b.lastChild.textContent = r.cost + ' 🪙';
-    b.disabled = !hasChar() || ((mine && mine.n) || 0) < r.cost;
+    b.innerHTML = '<span></span><b></b>'; b.firstChild.textContent = r.name; b.lastChild.textContent = r.cost.toLocaleString() + ' 🪙';
+    const owned = r.kind === 'perk' && perks[myUid()] && perks[myUid()][r.id];
+    if (owned) b.lastChild.textContent = 'owned';
+    b.disabled = owned || !hasChar() || ((mine && mine.n) || 0) < r.cost;
     b.onclick = () => redeem(r); rl.appendChild(b);
   }
   const lb = $('coinBoard'); lb.textContent = '';
@@ -196,6 +226,10 @@ function renderAdmin() {
   const cl = $('coinMods'); cl.textContent = '';
   for (const c of allCoins.slice(0, 40)) {
     const li = document.createElement('li'); li.textContent = (c.name || '?') + ' · ' + c.n + ' ';
+    const gold = !!(perks[c.uid] && perks[c.uid].gold);
+    const gb = document.createElement('button'); gb.type = 'button'; gb.className = 'mini'; gb.textContent = gold ? 'Take gold tux' : 'Give gold tux';
+    gb.onclick = () => db.ref('perks/' + c.uid + '/gold').set(gold ? null : true).catch(() => msg("Couldn't change that."));
+    li.appendChild(gb);
     for (const [lab, f] of [['+10', (n) => n + 10], ['−10', (n) => Math.max(0, n - 10)], ['Reset', () => 0]]) {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'mini' + (lab === 'Reset' ? ' danger' : ''); b.textContent = lab;
       b.onclick = () => db.ref('coins/' + c.uid + '/n').set(f(c.n)).catch(() => msg("Couldn't change that."));
@@ -219,6 +253,7 @@ function buildHostTools() {
   const box = $('adminBox'); if (!box || $('hostExtras')) { renderCarPicker(); return; }
   const wrap = document.createElement('div'); wrap.id = 'hostExtras'; wrap.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-top:12px';
   wrap.innerHTML = '<h3 style="margin:0">Events</h3><p>Everyone in the bar sees these. The power cut sends someone to the restroom stall for 5 minutes.</p><div class="row" id="eventBtns"></div>' +
+    '<div class="row"><button type="button" id="goldMe" class="mini">Wear the gold tuxedo</button></div>' +
     '<h3 style="margin:6px 0 0">My car</h3><p>Parked out back while you\'re here. sh1den always gets bay 1.</p>' +
     '<div class="inline"><select id="carStyle" aria-label="Car"></select><select id="carColor" aria-label="Color"></select></div>' +
     '<div class="row"><button type="button" id="carSave" class="mini">Park it</button><button type="button" id="carRemove" class="mini danger">Remove my car</button></div><div class="msg" id="carMsg"></div>';
@@ -231,10 +266,13 @@ function buildHostTools() {
     try { await db.ref('cars/' + myUid()).set({ style: $('carStyle').value, color: +$('carColor').value, name: NET().myName() || 'host', t: ts() }); $('carMsg').textContent = 'Parked.'; }
     catch (e) { $('carMsg').textContent = "Couldn't park it. The room's Firebase rules may need updating."; }
   };
+  $('goldMe').onclick = () => { const on = !!(perks[myUid()] && perks[myUid()].gold); db.ref('perks/' + myUid() + '/gold').set(on ? null : true).catch(() => BAR().toast("Couldn't change that. The room's Firebase rules may need updating.")); };
   $('carRemove').onclick = () => db.ref('cars/' + myUid()).remove().then(() => { $('carMsg').textContent = 'Car removed.'; }).catch(() => { });
   renderCarPicker();
 }
+function renderGoldBtn() { const b = $('goldMe'); if (b) b.textContent = perks[myUid()] && perks[myUid()].gold ? 'Take off the gold tuxedo' : 'Wear the gold tuxedo'; }
 function renderCarPicker() {
+  renderGoldBtn();
   const c = cars[myUid()]; if (!c || !$('carStyle')) return;
   $('carStyle').value = c.style; $('carColor').value = String(c.color || 0);
 }
@@ -257,6 +295,9 @@ function wire() {
 }
 
 window.EXTRAS = {
+  myCoins: () => (mine && mine.n) || 0,
+  mySpent: spent,
+  hasCoinsRecord: () => !!mine,
   start, claimCoin, openCoins, adminChanged: () => { start(); adminChanged(); },
   presenceChanged() { start(); updateLot(); },
   offline() {
