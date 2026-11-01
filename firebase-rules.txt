@@ -211,6 +211,14 @@
           ".validate": false
         }
       }
+    },
+    "viptvq": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists() && !newData.exists()",
+      "$id": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+        ".validate": "newData.hasChildren(['v', 't']) && newData.child('v').isString() && newData.child('v').val().matches(/^[A-Za-z0-9_-]{11}$/) && newData.child('t').val() == now && (!newData.child('name').exists() || (newData.child('name').isString() && newData.child('name').val().length <= 25))"
+      }
     }
   }
 }

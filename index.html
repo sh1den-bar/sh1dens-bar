@@ -342,7 +342,10 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
               <input id="vipInput" name="vipInput" placeholder="YouTube link for the VIP TV" autocomplete="off" spellcheck="false" aria-label="YouTube link for the VIP TV">
               <button type="submit">Play</button>
             </form>
-            <div class="row"><button type="button" id="vipStop" class="mini danger">Stop VIP TV</button></div>
+            <div class="row"><button type="button" id="vipSkip" class="mini">Skip to next</button><button type="button" id="vipStop" class="mini danger">Stop VIP TV</button></div>
+            <div style="color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.08em">VIP up next</div>
+            <p id="vipQueueEmpty">Queue is empty.</p>
+            <ol id="vipQueue" style="list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:12px"></ol>
             <div class="msg" id="vipMsg" role="status"></div>
           </div>
         </div>
@@ -450,12 +453,12 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=51"></script>
-<script src="net.js?v=51"></script>
-<script src="bar.js?v=51"></script>
-<script src="pool.js?v=51"></script>
-<script src="extras.js?v=51"></script>
-<script src="poker.js?v=51"></script>
+<script src="config.js?v=52"></script>
+<script src="net.js?v=52"></script>
+<script src="bar.js?v=52"></script>
+<script src="pool.js?v=52"></script>
+<script src="extras.js?v=52"></script>
+<script src="poker.js?v=52"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

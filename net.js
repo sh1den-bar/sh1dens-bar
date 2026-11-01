@@ -208,6 +208,7 @@ function joined() {
 
   db.ref('pokercam').on('value', (s) => { pokerOn = s.val() === true; window.BAR.setPokerCam && window.BAR.setPokerCam(pokerOn); applyVolume(); renderPokerBtn(); });
   db.ref('viptv').on('value', (s) => { const v = s.val(); vip = v && v.v ? v : null; syncVip(); });
+  db.ref('viptvq').orderByKey().limitToFirst(30).on('value', (s) => { vipQueue = []; s.forEach((c) => { const v = c.val(); if (v && v.v) vipQueue.push(Object.assign({ key: c.key }, v)); }); renderVipQueue(); });
   setInterval(vipTick, 1000);
   db.ref('tv/current').on('value', (s) => {
     const v = s.val();
@@ -586,7 +587,7 @@ function onVipState(e) {
   if (e.data === 0) {
     const ct = vipPlayer.getCurrentTime ? vipPlayer.getCurrentTime() : 0;
     // an ad can report "ended" too; only clear the TV when the video itself is done
-    if (vipDur && ct >= vipDur - 3) { if (NET.isAdmin) db.ref('viptv').remove().catch(() => { }); }
+    if (vipDur && ct >= vipDur - 3) vipNext(vip.at);
     else vipPlayer.playVideo();
   }
 }
@@ -602,18 +603,45 @@ function renderPokerBtn() {
 }
 function vipTick() {
   vipVolume(); applyVolume(); renderPokerBtn(); if (NET.online) updateComposer();
+  if (!vip && vipQueue.length && NET.isAdmin) vipNext();
   if (!vip || !vipReady || !entered || !(NET.isAdmin || NET.vipMember)) return;
   const st = vipPlayer.getPlayerState(), exp = vipExpected();
-  if (vipDur && exp > vipDur + 3) { if (NET.isAdmin) db.ref('viptv').remove().catch(() => { }); return; }
+  if (vipDur && exp > vipDur + 3) { vipNext(vip.at); return; }
   if (st === 1 && Math.abs(vipPlayer.getCurrentTime() - exp) > 3 && (!vipDur || exp < vipDur - 1) && Date.now() - vipLastSeek > 10000) { vipLastSeek = Date.now(); vipPlayer.seekTo(exp, true); }
   if (st === 2 || st === 5 || st === -1) vipPlayer.playVideo();
 }
+// the VIP TV has its own queue: a link plays right away if the TV is free, otherwise it waits its turn
+let vipQueue = [], vipAdvancing = 0;
 async function playVip(text) {
   if (!db || !NET.isAdmin) return;
   const m = String(text || '').match(YT_RE);
   if (!m) { vipMsg('Paste a YouTube link.'); return; }
-  try { await db.ref('viptv').set({ v: m[1], at: TS, name: myName || 'host' }); vipMsg('Playing on the VIP TV.'); $('vipInput').value = ''; }
-  catch (e) { vipMsg("Couldn't start it. The room's Firebase rules may need updating."); }
+  try {
+    if (!vip) { await db.ref('viptv').set({ v: m[1], at: TS, name: myName || 'host' }); vipMsg('Playing on the VIP TV.'); }
+    else { const k = db.ref('viptvq').push().key; await db.ref('viptvq/' + k).set({ v: m[1], name: myName || 'host', t: TS }); vipMsg('Added to the VIP queue.'); }
+    $('vipInput').value = '';
+  } catch (e) { vipMsg("Couldn't add it. The room's Firebase rules may need updating."); }
+}
+// move on to the next queued video (any host's screen can do it; the first one wins)
+function vipNext(endedAt) {
+  if (!db || !NET.isAdmin || Date.now() - vipAdvancing < 4000) return;
+  vipAdvancing = Date.now();
+  const q = vipQueue[0];
+  db.ref('viptv').transaction((cur) => {
+    if (cur && (endedAt === undefined || cur.at !== endedAt)) return undefined;
+    return q ? { v: q.v, at: TS, name: q.name || 'host' } : null;
+  }).then((r) => { if (r && r.committed && q) db.ref('viptvq/' + q.key).remove().catch(() => { }); }).catch(() => { });
+}
+function renderVipQueue() {
+  const ol = $('vipQueue'); if (!ol) return;
+  ol.textContent = '';
+  vipQueue.forEach((q, i) => {
+    const li = document.createElement('li'); li.textContent = (i + 1) + '. youtu.be/' + q.v + ' · ' + (q.name || 'host') + ' ';
+    const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'mini'; rm.textContent = 'Remove';
+    rm.onclick = () => db.ref('viptvq/' + q.key).remove().catch(() => { });
+    li.appendChild(rm); ol.appendChild(li);
+  });
+  const e = $('vipQueueEmpty'); if (e) e.hidden = vipQueue.length > 0;
 }
 function applyVolume() {
   if (!playerReady) return;
@@ -631,7 +659,8 @@ function wireUI() {
   $('tabRoom').onclick = () => setChatTab('room');
   $('tabVip').onclick = () => setChatTab('vip');
   $('vipForm').addEventListener('submit', (e) => { e.preventDefault(); playVip($('vipInput').value); });
-  $('vipStop').onclick = () => { if (db && NET.isAdmin) db.ref('viptv').remove().then(() => vipMsg('VIP TV stopped.')).catch(() => vipMsg("Couldn't stop it.")); };
+  $('vipStop').onclick = () => { if (!db || !NET.isAdmin) return; const u = { viptv: null, viptvq: null }; db.ref().update(u).then(() => vipMsg('VIP TV stopped and queue cleared.')).catch(() => vipMsg("Couldn't stop it.")); };
+  $('vipSkip').onclick = () => { if (vip) { vipAdvancing = 0; vipNext(vip.at); } };
   $('chatForm').addEventListener('submit', (e) => { e.preventDefault(); sendChat($('chatInput').value); });
   $('chatInput').addEventListener('focus', () => { if (NET.online && !myName) { hint('Create your character first, then you can post.'); } });
   $('tvForm').addEventListener('submit', (e) => { e.preventDefault(); queueVideo($('tvInput').value); });
