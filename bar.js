@@ -1051,8 +1051,96 @@ function highTable(x, z) {
   S.push(cyl(V(x, 0.03, z), V(x, 1.05, z), 0.03, 0.03, BRASS, { n: 6 }));
   S.push(cyl(V(x, 1.05, z), V(x, 1.09, z), 0.32, 0.32, MARBLE, { n: 12 }));
 }
-const HIGH_TABLES = [[-2.6, 1.4], [2.6, 1.4], [-1.2, 2.9], [1.2, 2.9]];
-for (const [x, z] of HIGH_TABLES) { highTable(x, z); martini(x + 0.1, 1.09, z - 0.05); }
+const HIGH_TABLES = [];
+// a dark red carpet runner from the door to the bar, branching off to the billiards and dance doorways
+const runnerTex = canvasTex(16, 16, (x, w, h) => {
+  noiseFill(x, w, h, [52, 8, 14], 6);
+  x.fillStyle = 'rgb(74,14,22)'; for (let i = 0; i < w; i += 4) for (let j = (i / 4) % 2 ? 2 : 0; j < h; j += 4) x.fillRect(i + 1, j + 1, 2, 2);
+});
+runnerTex.wrapS = runnerTex.wrapT = THREE.RepeatWrapping;
+const runnerMat = decal({ map: runnerTex });
+function runner(x0, x1, z0, z1) {
+  const g = new THREE.PlaneGeometry(x1 - x0, z1 - z0);
+  scaleUV(g, (x1 - x0) / 0.5, (z1 - z0) / 0.5);
+  const m = new THREE.Mesh(g, runnerMat); m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 0.008, (z0 + z1) / 2); scene.add(m);
+}
+runner(-0.75, 0.75, -2.0, 3.98); runner(-4.98, -0.75, 0.8, 2.2); runner(0.75, 4.98, -0.7, 0.7);
+// a thin gold edge all the way round, open at the doorways
+const RUNNER_EDGE = [[-0.75, -2.0, -0.75, 0.8], [-0.75, 2.2, -0.75, 3.98], [0.75, -2.0, 0.75, -0.7], [0.75, 0.7, 0.75, 3.98], [-0.75, -2.0, 0.75, -2.0],
+  [-4.98, 0.8, -0.75, 0.8], [-4.98, 2.2, -0.75, 2.2], [0.75, -0.7, 4.98, -0.7], [0.75, 0.7, 4.98, 0.7]];
+for (const [ax, az, bx, bz] of RUNNER_EDGE) S.push(box(Math.min(ax, bx) - 0.015, Math.max(ax, bx) + 0.015, 0, 0.012, Math.min(az, bz) - 0.015, Math.max(az, bz) + 0.015, [150, 112, 54], 0.02));
+// lounge corners by the entrance: copper leather banquettes with puffed backs, a pink glow underneath,
+// and a low brass-and-glass table with an ice bowl, bottles, glasses and an ashtray
+const COPPER = [170, 110, 62], COPPER_D = [128, 80, 44], BANQ_BASE = [24, 20, 22], GLOW_PINK = [255, 70, 170];
+const LOUNGE_SEATS = [];
+const glowTex = canvasTex(4, 32, (x, w, h) => {
+  for (let j = 0; j < h; j++) { const k = Math.pow(j / (h - 1), 2.4); x.fillStyle = `rgb(${Math.round(200 * k)},${Math.round(30 * k)},${Math.round(120 * k)})`; x.fillRect(0, j, w, 1); }
+});
+const floorGlowMat = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+// a glow patch on the floor: bright along the edge a-b, fading out by `depth` in direction (nx, nz)
+function floorGlow(ax, az, bx, bz, nx, nz, depth) {
+  const g = new THREE.BufferGeometry(), y = 0.012;
+  const pos = new Float32Array([ax, y, az, bx, y, bz, bx + nx * depth, y, bz + nz * depth, ax, y, az, bx + nx * depth, y, bz + nz * depth, ax + nx * depth, y, az + nz * depth]);
+  const uv = new Float32Array([0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0]);
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  const m = new THREE.Mesh(g, floorGlowMat); m.renderOrder = 2; scene.add(m);
+}
+// one straight run of banquette, built facing +z (its back along local z = 0) and turned into place
+function banquette(px, pz, yaw, len) {
+  const P = [], D = 0.66;
+  P.push(box(0, len, 0.07, 0.42, 0.05, D - 0.06, BANQ_BASE, 0.03));
+  P.push(loft([rect(0.42, len, D - 0.02, len / 2, D / 2 + 0.01), rect(0.5, len, D - 0.02, len / 2, D / 2 + 0.01)], COPPER, { amt: 0.04 }));
+  P.push(box(0, len, 0.42, 0.62, 0, 0.18, COPPER_D, 0.04));
+  // puffed rolls along the back, in sections like the tufted original
+  const secs = Math.max(1, Math.round(len / 0.62)), sl = len / secs;
+  for (let k = 0; k < secs; k++) for (const [y, z, r] of [[0.66, 0.12, 0.11], [0.88, 0.09, 0.1]]) {
+    const a = k * sl + 0.03, b = (k + 1) * sl - 0.03;
+    P.push(tube([V(a, y, z), V(a + 0.04, y, z + 0.01), V((a + b) / 2, y + 0.01, z + 0.03), V(b - 0.04, y, z + 0.01), V(b, y, z)], [r * 0.7, r * 0.95, r * 1.08, r * 0.95, r * 0.7], COPPER, { n: 8 }));
+  }
+  S.push(...placeParts(P, px, pz, yaw, 0));
+  // the strip of pink light tucked under the seat
+  G.push(...placeParts([box(0.02, len - 0.02, 0.01, 0.035, D - 0.07, D - 0.05, GLOW_PINK, 0)], px, pz, yaw, 0));
+  const c = Math.cos(yaw), sn = Math.sin(yaw), W2 = (lx, lz) => [px + lx * c + lz * sn, pz - lx * sn + lz * c];
+  const [ax, az] = W2(0, D - 0.04), [bx, bz] = W2(len, D - 0.04);
+  floorGlow(ax, az, bx, bz, sn, c, 0.55);
+  return W2;
+}
+function loungeTable(x, z) {
+  const BR = [176, 134, 66], w = 0.48, d = 0.32, h = 0.46;
+  for (const [ex, ez] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) S.push(box(x + ex * w - 0.015, x + ex * w + 0.015, 0, h, z + ez * d - 0.015, z + ez * d + 0.015, BR, 0.02));
+  for (const y of [0.08, h - 0.02]) {
+    S.push(box(x - w, x + w, y, y + 0.02, z - d - 0.015, z - d + 0.015, BR, 0.02)); S.push(box(x - w, x + w, y, y + 0.02, z + d - 0.015, z + d + 0.015, BR, 0.02));
+    S.push(box(x - w - 0.015, x - w + 0.015, y, y + 0.02, z - d, z + d, BR, 0.02)); S.push(box(x + w - 0.015, x + w + 0.015, y, y + 0.02, z - d, z + d, BR, 0.02));
+  }
+  S.push(box(x - w + 0.015, x + w - 0.015, h - 0.015, h, z - d + 0.015, z + d - 0.015, [26, 30, 36], 0.03));
+  S.push(box(x - w + 0.015, x + w - 0.015, 0.095, 0.1, z - d + 0.015, z + d - 0.015, [26, 30, 36], 0.03));
+  // silver ice bowl with bottles chilling in it
+  S.push(loft([rring(h, 0.18, 0.18, x - 0.12, z, 12, 2), rring(h + 0.1, 0.34, 0.34, x - 0.12, z, 12, 2), rring(h + 0.11, 0.35, 0.35, x - 0.12, z, 12, 2)], [176, 180, 188], { amt: 0.04, cap: false }));
+  S.push(cyl(V(x - 0.12, h + 0.07, z), V(x - 0.12, h + 0.08, z), 0.15, 0.15, [200, 220, 232], { n: 12, amt: 0.08 }));
+  for (const [bx, bz, col] of [[-0.18, -0.05, [24, 70, 40]], [-0.07, 0.05, [110, 60, 20]], [-0.13, 0.08, [20, 20, 24]]]) {
+    S.push(cyl(V(x + bx, h + 0.04, z + bz), V(x + bx, h + 0.27, z + bz), 0.035, 0.035, col, { n: 8, amt: 0.04 }));
+    S.push(cyl(V(x + bx, h + 0.27, z + bz), V(x + bx, h + 0.36, z + bz), 0.013, 0.013, col, { n: 6, amt: 0.04 }));
+    S.push(cyl(V(x + bx, h + 0.36, z + bz), V(x + bx, h + 0.38, z + bz), 0.014, 0.014, [200, 170, 80], { n: 6, amt: 0.02 }));
+  }
+  // glasses, a tumbler with whiskey, an ashtray with a cigarette
+  martini(x + 0.2, h, z - 0.12); martini(x + 0.3, h, z + 0.05);
+  S.push(cyl(V(x + 0.16, h, z + 0.15), V(x + 0.16, h + 0.08, z + 0.15), 0.035, 0.038, [170, 182, 188], { n: 8, amt: 0.04 }));
+  S.push(cyl(V(x + 0.16, h + 0.005, z + 0.15), V(x + 0.16, h + 0.035, z + 0.15), 0.033, 0.033, [170, 100, 34], { n: 8, amt: 0.03 }));
+  S.push(cyl(V(x + 0.36, h, z + 0.2), V(x + 0.36, h + 0.025, z + 0.2), 0.06, 0.055, [40, 40, 46], { n: 10, amt: 0.03 }));
+  S.push(cyl(V(x + 0.33, h + 0.03, z + 0.2), V(x + 0.42, h + 0.032, z + 0.22), 0.005, 0.005, [236, 232, 224], { n: 4, amt: 0 }));
+}
+// front-left corner: along the front wall and a short leg on the billiards wall
+banquette(-2.2, 3.95, Math.PI, 2.75);
+banquette(-4.95, 3.3, Math.PI / 2, 0.66);
+loungeTable(-3.35, 2.55);
+// front-right corner: along the front wall and down the wall toward the dance room door
+banquette(4.95, 3.95, Math.PI, 2.75);
+banquette(4.95, 1.2, -Math.PI / 2, 2.1);
+loungeTable(3.45, 2.4);
+for (const x of [-4.3, -3.6, -2.9]) LOUNGE_SEATS.push([x, 3.6, Math.PI]);
+LOUNGE_SEATS.push([-4.6, 2.98, Math.PI / 2]);
+for (const x of [2.9, 3.6, 4.3]) LOUNGE_SEATS.push([x, 3.6, Math.PI]);
+for (const z of [1.55, 2.25, 2.95]) LOUNGE_SEATS.push([4.6, z, -Math.PI / 2]);
 // jukebox on the left wall
 S.push(box(-4.95, -4.45, 0, 1.2, -2.0, -1.2, LACQUER));
 S.push(cyl(V(-4.7, 1.2, -2.0), V(-4.7, 1.2, -1.2), 0.25, 0.25, LACQUER, { n: 12 }));
@@ -2019,6 +2107,7 @@ function addSpot(id, cat, act, x, z, yaw, label, hit, extra) {
 const hitBox = (x, y, z, sx, sy, sz) => ({ x, y, z, sx, sy, sz });
 // main bar
 STOOLS.forEach(([x, z], i) => addSpot('bar-stool-' + i, 1, 'sit', x, z + 0.06, Math.PI, 'Sit at the bar', hitBox(x, 0.45, z, 0.5, 0.9, 0.5)));
+LOUNGE_SEATS.forEach(([x, z, yaw], i) => addSpot('bar-sofa-' + i, 1, 'sitlow', x, z, yaw, 'Chill on the sofa', hitBox(x, 0.45, z, 0.6, 0.9, 0.6)));
 HIGH_TABLES.forEach(([x, z], i) => {
   for (const [k, ox, oz] of [['a', -0.45, 0.1], ['b', 0.45, -0.1]]) {
     const px = x + ox, pz = z + oz;
