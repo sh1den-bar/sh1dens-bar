@@ -161,7 +161,7 @@ const LOOK = {
 // the save code is one digit per option in this order (new options go on the end so older codes still work)
 const KEYS = ['jacket', 'pants', 'skin', 'head', 'hair', 'beard', 'eyes', 'smoke', 'dance', 'spot', 'body', 'top', 'bottom', 'shoes'];
 // the order the creator shows them in
-const UI_KEYS = ['body', 'skin', 'head', 'hair', 'beard', 'eyes', 'top', 'jacket', 'bottom', 'pants', 'shoes', 'smoke', 'dance', 'spot'];
+const UI_KEYS = ['body', 'skin', 'head', 'hair', 'beard', 'eyes', 'top', 'jacket', 'bottom', 'pants', 'shoes', 'dance', 'spot'];
 const LABELS = { body: 'Body', jacket: 'Top color', pants: 'Bottom color', top: 'Top', bottom: 'Bottom', shoes: 'Shoes', skin: 'Skin', head: 'Hair / hat', hair: 'Hair color', beard: 'Beard', eyes: 'Eyes', smoke: 'Smoke', dance: 'Dance move', spot: 'Hangout' };
 const CODE_RE = /^\d{10,16}$/;
 
@@ -2375,6 +2375,24 @@ function addChar(look, name, opts) {
 let roster = [];
 let myEntry = null, myUid = null;
 const lastSpots = new Map(), lastDrinks = new Map();
+// smokes aren't part of a look any more: a cigarette from the bartender (10 min) or a cigar from the VIP humidor (30 min)
+const serverNow = () => (window.NET && window.NET.now ? window.NET.now() : Date.now());
+function withSmoke(look, e) {
+  const on = !!(e && e.k && e.e > serverNow());
+  return Object.assign({}, look, { smoke: on ? (e.k === 'cigar' ? 2 : 1) : 0 });
+}
+let localSmoke = null;
+function giveSmoke(kind) {
+  const me = myChar();
+  if (!me) { openCreator(); return; }
+  if (me.host) { toast('You always have your cigar.'); return; }
+  const mins = kind === 'cigar' ? 30 : 10;
+  if (window.NET && window.NET.online && window.NET.setSmoke) window.NET.setSmoke(kind, mins);
+  else { localSmoke = { k: kind, e: Date.now() + mins * 60000 }; rebuild(); }
+  toast(kind === 'cigar' ? 'A cigar from the humidor. It lasts 30 minutes.' : 'The bartender lights you a cigarette. It lasts 10 minutes.');
+}
+// when a smoke burns out, take it away
+setInterval(() => { const t = serverNow(); if (crowd.some((c) => c.smokeUntil && c.smokeUntil < t)) rebuild(); }, 10000);
 function wantFrom(ch, e) {
   if (!ch || !e) return ch;
   ch.want = e.s && SPOT_BY_ID[e.s] ? e.s : null; ch.wantT = e.t || 0; ch.drink = e.d || '';
@@ -2401,9 +2419,15 @@ function rebuild() {
     if (seen.has(key)) continue; seen.add(key);
     const mine = myUid ? e.uid === myUid : !!(myEntry && myEntry.name.toLowerCase() === key);
     if (mine) haveMine = true;
-    wantFrom(addChar(codeToLook(e.code), e.name, { mine, uid: e.uid }), e);
+    const ch = addChar(withSmoke(codeToLook(e.code), e), e.name, { mine, uid: e.uid });
+    ch.smokeUntil = ch.look.smoke ? e.e : 0;
+    wantFrom(ch, e);
   }
-  if (myEntry && !haveMine && !seen.has(myEntry.name.toLowerCase())) wantFrom(addChar(codeToLook(myEntry.code), myEntry.name, { mine: true, uid: myUid }), { s: myState.s, d: myState.d, t: 1 });
+  if (myEntry && !haveMine && !seen.has(myEntry.name.toLowerCase())) {
+    const ch = addChar(withSmoke(codeToLook(myEntry.code), localSmoke), myEntry.name, { mine: true, uid: myUid });
+    ch.smokeUntil = ch.look.smoke && localSmoke ? localSmoke.e : 0;
+    wantFrom(ch, { s: myState.s, d: myState.d, t: 1 });
+  }
   if (!(window.NET && window.NET.online)) { const me = crowd.find((c) => c.mine); if (me && !me.want) wantFrom(me, { s: myState.s, d: myState.d, t: 1 }); }
   placeAll();
   // pop people in when they moved, and hand out their drinks
@@ -2807,6 +2831,7 @@ const OBJECTS = [
   { id: 'jukebox', label: 'Change the music', hit: hitBox(-4.7, 0.75, -1.6, 0.6, 1.5, 0.9), cat: 1, floor: [-4.25, -1.6], size: 0.45 },
   { id: 'djbooth', label: 'Change the music', hit: hitBox(13.25, 0.6, 0, 0.8, 1.2, 2.7), cat: 0, floor: [12.5, 0], size: 0.6 },
   { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, TV.z, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, TV.z], size: 0.7 },
+  { id: 'humidor', label: 'Take a cigar (30 min)', hit: hitBox(1.0, 1.0, -4.26, 1.1, 1.96, 0.5), cat: 4, floor: [1.0, -4.85], size: 0.6 },
   { id: 'minibar', label: 'Pour yourself a drink', hit: hitBox(-16.67, 1.5, 2.15, 0.65, 3.0, 2.8), cat: 3, floor: [-16.1, 2.15], size: 0.8 },
   { id: 'pooltable', label: 'Play pool', hit: hitBox(PT.x, 0.45, PT.z, PT.l, 0.9, PT.w), cat: 3, floor: [PT.x, PT.z], size: 1.2 }
 ];
@@ -2906,8 +2931,9 @@ function activate(tg, x, y) {
   if (!info.ok) return;
   if (tg.kind === 'spot') { if (/^pool-cue-/.test(tg.s.id) && window.POOL) { window.POOL.open(); return; } goTo(tg.s.id); return; }
   const id = tg.o.id;
-  if (id === 'bartender') { drinkFrom = 'bar'; openDrinkMenu(x, y); }
-  else if (id === 'minibar') { drinkFrom = 'minibar'; openDrinkMenu(x, y); }
+  if (id === 'bartender') { drinkFrom = 'bar'; $('dmCig').hidden = false; openDrinkMenu(x, y); }
+  else if (id === 'minibar') { drinkFrom = 'minibar'; $('dmCig').hidden = true; openDrinkMenu(x, y); }
+  else if (id === 'humidor') giveSmoke('cigar');
   else if (id === 'jukebox' || id === 'djbooth') changeMusic();
   else if (id === 'tv') { setView('tv'); const p = document.getElementById('room'); if (p && p.hidden) document.getElementById('roomBtn').click(); }
   else if (id === 'pooltable') {
@@ -2964,6 +2990,9 @@ if (drinkMenu) {
   }
   const none = document.createElement('button'); none.type = 'button'; none.className = 'quiet'; none.textContent = 'Put my drink down';
   none.onclick = () => orderDrinkNone(); drinkMenu.appendChild(none);
+  const cig = document.createElement('button'); cig.type = 'button'; cig.id = 'dmCig'; cig.textContent = 'A cigarette (10 min)';
+  cig.onclick = () => { closeDrinkMenu(); giveSmoke('cig'); };
+  drinkMenu.insertBefore(cig, none);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrinkMenu(); });
 }
 function orderDrinkNone() { closeDrinkMenu(); goTo(myState.s || (myChar() && myChar().spot) || '', ''); }
@@ -3163,7 +3192,8 @@ function refreshDraft() {
 }
 function openCreator() {
   // new characters start without a cigarette; they can pick one in the Smoke option
-  draft = myEntry ? codeToLook(myEntry.code) : Object.assign(randomLook(Math.random), { smoke: 0 });
+  // smokes come from the bartender and the humidor now, so the preview never has one
+  draft = Object.assign(myEntry ? codeToLook(myEntry.code) : randomLook(Math.random), { smoke: 0 });
   if (draft.spot === 4 && !isMod) draft.spot = 1;
   $('nm').value = myEntry ? myEntry.name : '';
   $('nmErr').hidden = true;
@@ -3175,7 +3205,7 @@ function closeCreator() {
   $('creator').hidden = true; setView('room');
 }
 $('nm').addEventListener('input', () => { if (draftChar) refreshDraft(); });
-$('rand').onclick = () => { draft = Object.assign(randomLook(Math.random), { smoke: draft ? draft.smoke : 0 }); refreshDraft(); };
+$('rand').onclick = () => { draft = Object.assign(randomLook(Math.random), { smoke: 0 }); refreshDraft(); };
 let saving = false;
 $('form').addEventListener('submit', async (e) => {
   e.preventDefault();

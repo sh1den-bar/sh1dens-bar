@@ -18,12 +18,18 @@ let msgs = [], triedLocalSave = false, pokerOn = false, pokerEmptySince = 0;
 let vip = null, vipPlayer = null, vipReady = false, vipLoaded = null, vipDur = 0, vipLastSeek = 0;
 let allChars = [], online = new Map(), lastCrowdKey = '', myAct = { s: '', d: '' };
 // t is when you took your spot (server time); it decides who keeps a seat if two people click it at once
-const myPresence = () => (myAct.s || myAct.d ? { s: myAct.s, d: myAct.d, t: myAct.t || TS } : true);
+const smoking = () => !!(myAct.k && myAct.e > Date.now() + offset);
+const myPresence = () => {
+  if (!(myAct.s || myAct.d || smoking())) return true;
+  const p = { s: myAct.s || '', d: myAct.d || '', t: myAct.t || TS };
+  if (smoking()) { p.k = myAct.k; p.e = myAct.e; }
+  return p;
+};
 // only people who have the bar open right now are shown (the bartender is always there)
 function pushCrowd() {
   const here = allChars.filter((e) => online.has(e.uid) || e.uid === NET.uid).slice(-80)
-    .map((e) => { const p = online.get(e.uid) || (e.uid === NET.uid ? { s: myAct.s, d: myAct.d, t: 0 } : {}); return Object.assign({}, e, { s: p.s || '', d: p.d || '', t: p.t || 0 }); });
-  const key = here.map((e) => e.uid + e.name + e.code + e.s + e.d + e.t).join('|');
+    .map((e) => { const p = online.get(e.uid) || (e.uid === NET.uid ? { s: myAct.s, d: myAct.d, t: 0, k: myAct.k, e: myAct.e } : {}); return Object.assign({}, e, { s: p.s || '', d: p.d || '', t: p.t || 0, k: typeof p.k === 'string' ? p.k : '', e: +p.e || 0 }); });
+  const key = here.map((e) => e.uid + e.name + e.code + e.s + e.d + e.t + e.k + e.e).join('|');
   if (key === lastCrowdKey) return;
   lastCrowdKey = key;
   window.BAR.setRegulars(here);
@@ -98,8 +104,16 @@ function joined() {
   setInterval(() => { pres.set(myPresence()).catch(() => { }); }, 60000);
   NET.setActivity = function (spot, drink) {
     const moved = (spot || '') !== myAct.s;
-    myAct = { s: spot || '', d: drink || '', t: moved ? 0 : myAct.t };
+    myAct = { s: spot || '', d: drink || '', t: moved ? 0 : myAct.t, k: myAct.k, e: myAct.e };
     pres.set(myPresence()).catch(() => window.BAR.toast(banned ? "You're banned from this room." : "Couldn't move there. The room's Firebase rules may need updating."));
+  };
+  // a cigarette or cigar lasts a while, even across a page refresh
+  try { const sm = JSON.parse(localStorage.getItem('sh1den-bar-smoke') || 'null'); if (sm && sm.e > Date.now()) { myAct.k = sm.k; myAct.e = sm.e; pres.set(myPresence()).catch(() => { }); } } catch (e) { }
+  NET.setSmoke = function (kind, minutes) {
+    myAct.k = kind; myAct.e = now() + minutes * 60000;
+    try { localStorage.setItem('sh1den-bar-smoke', JSON.stringify({ k: myAct.k, e: Date.now() + minutes * 60000 })); } catch (e) { }
+    pres.set(myPresence()).catch(() => { });
+    pushCrowd();
   };
   db.ref('presence').on('value', (s) => {
     const n = s.numChildren();
