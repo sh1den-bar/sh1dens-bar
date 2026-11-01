@@ -56,13 +56,14 @@ canvas { position: relative; z-index: 1; width: 100%; height: 100%; display: blo
 
 /* the TV screen that sits on the bar wall */
 #tvHold { position: absolute; left: -9999px; top: 0; }
-#tvScreen { width: 960px; height: 540px; background: #050506; overflow: hidden; backface-visibility: hidden; position: relative; }
-#tvScreen iframe { width: 960px; height: 540px; border: 0; display: block; filter: contrast(1.08) saturate(0.88); }
-#tvScreen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+#tvScreen, #vipScreen { width: 960px; height: 540px; background: #050506; overflow: hidden; backface-visibility: hidden; position: relative; }
+#tvScreen iframe, #vipScreen iframe { width: 960px; height: 540px; border: 0; display: block; filter: contrast(1.08) saturate(0.88); }
+#tvScreen::after, #vipScreen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
   background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(0,0,0,0.22) 3px 5px); }
-#tvIdle { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; background: #0b0a0a;
+#tvIdle, #vipIdle { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; background: #0b0a0a;
   font-family: var(--display); color: #6f6a64; font-size: 46px; line-height: 1.1; padding: 40px; }
-#tvIdle b { display: block; color: var(--neon); font-weight: 400; font-size: 76px; font-family: var(--deco); text-shadow: 0 0 12px rgba(226,180,103,0.5); }
+#vipIdle b { color: #ff4fa8; text-shadow: 0 0 14px rgba(255,60,160,0.6); }
+#tvIdle b, #vipIdle b { display: block; color: var(--neon); font-weight: 400; font-size: 76px; font-family: var(--deco); text-shadow: 0 0 12px rgba(226,180,103,0.5); }
 
 .hud { position: absolute; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; z-index: 2; }
@@ -172,6 +173,10 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
       <div id="ytPlayer"></div>
       <div id="tvIdle"><div><b>SH1DEN TV</b><span id="tvIdleText">Post a YouTube link in the room chat</span></div></div>
     </div>
+    <div id="vipScreen">
+      <div id="vipPlayer"></div>
+      <div id="vipIdle"><div><b>VIP</b><span>Hosts only</span></div></div>
+    </div>
   </div>
 
   <div class="hud top">
@@ -241,6 +246,16 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
         <div id="adminBox" hidden>
           <p>You're a host here: you can delete messages, ban people, skip and remove videos.</p>
           <div class="row"><button type="button" id="clearChat" class="danger">Clear chat</button></div>
+          <div id="vipBox" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+            <h3 style="margin:0">VIP TV</h3>
+            <div id="vipNow">Nothing playing</div>
+            <form id="vipForm" class="inline" novalidate>
+              <input id="vipInput" name="vipInput" placeholder="YouTube link for the VIP TV" autocomplete="off" spellcheck="false" aria-label="YouTube link for the VIP TV">
+              <button type="submit">Play</button>
+            </form>
+            <div class="row"><button type="button" id="vipStop" class="mini danger">Stop VIP TV</button></div>
+            <div class="msg" id="vipMsg" role="status"></div>
+          </div>
         </div>
       </details>
     </section>
@@ -285,9 +300,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=31"></script>
-<script src="net.js?v=31"></script>
-<script src="bar.js?v=31"></script>
+<script src="config.js?v=32"></script>
+<script src="net.js?v=32"></script>
+<script src="bar.js?v=32"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

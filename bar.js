@@ -813,9 +813,8 @@ const woodTex = canvasTex(32, 32, (x, w, h) => {
 });
 // oxblood carpet with gold pattern (vip)
 const vipTex = canvasTex(16, 16, (x, w, h) => {
-  noiseFill(x, w, h, [40, 10, 12], 6);
-  x.fillStyle = 'rgb(96,70,34)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
-  for (let k = 0; k < 5; k++) x.fillRect(8 - k + 2, 3 + k * 2, 1, 1);
+  noiseFill(x, w, h, [18, 14, 16], 5);
+  x.fillStyle = 'rgb(30,22,26)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
 });
 // lacquered deco wall panel with brass strips and a fan frieze
 const wallTex = canvasTex(64, 128, (x, w, h) => {
@@ -1163,6 +1162,84 @@ for (const z of [-8.75, -6.75]) {
 S.push(tube([V(-5.4, 0.9, -8.75), V(-5.43, 0.72, -8.25), V(-5.45, 0.66, -7.75), V(-5.43, 0.72, -7.25), V(-5.4, 0.9, -6.75)], [0.022, 0.022, 0.022, 0.022, 0.022], VELVET, { n: 5 }));
 sconceZ(-6.2, -10.97, 1); sconceZ(-12.0, -10.97, 1);
 
+
+// gothic portraits in the billiards room: original vampire nobles, each with a pool cue instead of a sword
+function paintingTex(kind) {
+  return canvasTex(32, 44, (x, w, h) => {
+    const P = (c, i, j, ww, hh) => { x.fillStyle = c; x.fillRect(i, j, ww || 1, hh || 1); };
+    const grad = (top, bot) => { for (let j = 0; j < h; j++) { const k = j / (h - 1); P(`rgb(${Math.round(top[0] + (bot[0] - top[0]) * k)},${Math.round(top[1] + (bot[1] - top[1]) * k)},${Math.round(top[2] + (bot[2] - top[2]) * k)})`, 0, j, w, 1); } };
+    const ell = (c, cx, cy, rx, ry) => { for (let j = -ry; j <= ry; j++) { const hw = Math.round(rx * Math.sqrt(Math.max(0, 1 - (j * j) / (ry * ry)))); P(c, cx - hw, cy + j, hw * 2 + 1, 1); } };
+    const body = (c, y0, w0, w1) => { for (let j = y0; j < h; j++) { const ww = Math.round(w0 + (w1 - w0) * (j - y0) / (h - 1 - y0)); P(c, 16 - (ww >> 1), j, ww, 1); } };
+    const cue = (x0, y0, x1, y1) => {
+      const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+      for (let k = 0; k <= n; k++) {
+        const t = k / n, i = Math.round(x0 + (x1 - x0) * t), j = Math.round(y0 + (y1 - y0) * t);
+        P(t < 0.3 ? '#3a2010' : t < 0.34 ? '#c8b070' : t > 0.95 ? '#e8e6dc' : '#b48a52', i, j, t < 0.3 ? 2 : 1, 1);
+      }
+      P('#4a6ab0', x1, y1, 1, 1);
+    };
+    if (kind === 0) {            // the countess, by a moonlit arch
+      grad([44, 6, 16], [10, 2, 4]);
+      P('#1c1640', 10, 4, 12, 13); ell('#1c1640', 16, 4, 6, 3); ell('#d8d0b8', 16, 8, 3, 3);
+      P('#0c0808', 9, 6, 14, 24);
+      body('#5a0a14', 20, 12, 26); P('#1a0408', 11, 19, 3, 4); P('#1a0408', 18, 19, 3, 4);
+      ell('#d9c8bc', 16, 12, 4, 5); P('#d9c8bc', 15, 17, 3, 3);
+      P('#6a0a10', 14, 11); P('#6a0a10', 18, 11); P('#a0101c', 15, 15, 3, 1);
+      for (let i = 12; i < 21; i += 2) P('#c8a040', i, 22);
+      cue(4, 43, 27, 5); P('#d9c8bc', 20, 16, 2, 2); P('#d9c8bc', 10, 32, 2, 2);
+    } else if (kind === 1) {     // the duke, cape and high collar, cue held like a staff
+      grad([20, 10, 26], [5, 2, 8]); ell('#3a1a0a', 5, 30, 4, 6); P('#ffb050', 5, 27, 1, 2);
+      body('#0c0a0e', 18, 14, 32);
+      for (let j = 20; j < 34; j++) { const ww = Math.round((j - 20) * 0.6); P('#7a0c14', 16 - ww, j, 1, 1); P('#7a0c14', 15 + ww, j, 1, 1); }
+      P('#0c0a0e', 8, 12, 4, 9); P('#0c0a0e', 20, 12, 4, 9); P('#7a0c14', 9, 13, 2, 7); P('#7a0c14', 21, 13, 2, 7);
+      ell('#d4c4b6', 16, 11, 4, 5); P('#d4c4b6', 15, 16, 3, 3);
+      P('#0a0808', 12, 5, 8, 3); P('#0a0808', 15, 8, 2, 1);
+      P('#c8a040', 14, 11); P('#c8a040', 18, 11); P('#0a0808', 13, 10, 2, 1); P('#0a0808', 17, 10, 2, 1); P('#6a1018', 15, 14, 3, 1);
+      P('#e0dcd0', 14, 18, 4, 3);
+      cue(26, 43, 26, 2); P('#d4c4b6', 25, 26, 3, 2);
+    } else if (kind === 2) {     // the host: bald, round shades, moustache and pointed chin beard, cigar
+      grad([28, 8, 34], [4, 2, 6]); ell('#7a0e48', 16, 12, 10, 10); ell('#9a1660', 16, 12, 7, 7);
+      body('#101012', 23, 18, 30); P('#1e1e22', 14, 23, 4, 6); P('#28282c', 15, 23, 2, 9);
+      ell('#9a6650', 16, 13, 5, 7); P('#9a6650', 14, 20, 5, 3); P('#b07a62', 14, 8, 3, 2);
+      for (const cx of [13, 18]) { P('#111', cx - 1, 11, 3, 1); P('#111', cx - 1, 13, 3, 1); P('#111', cx - 2, 12, 1, 1); P('#111', cx + 2, 12, 1, 1); P('#5a7070', cx - 1, 12, 3, 1); }
+      P('#111', 15, 12, 2, 1);
+      P('#0a0808', 13, 16, 7, 1); P('#0a0808', 12, 17, 2, 2); P('#0a0808', 19, 17, 2, 2);
+      P('#0a0808', 15, 18, 2, 5); P('#0a0808', 16, 23, 1, 1);
+      P('#5a3018', 18, 17, 4, 1); P('#ff4010', 22, 17, 1, 1); P('#b0b0b0', 23, 15, 1, 1); P('#909090', 24, 13, 1, 1);
+      cue(3, 41, 29, 21);
+    } else {                     // a hooded figure in a gothic window under a full moon
+      grad([10, 10, 30], [3, 3, 8]);
+      P('#1a2050', 6, 10, 20, 26); ell('#1a2050', 16, 10, 10, 7); ell('#e0dcc8', 16, 10, 4, 4);
+      for (const [bx, by] of [[9, 6], [22, 5], [25, 12]]) { P('#050508', bx - 1, by, 1, 1); P('#050508', bx + 1, by, 1, 1); P('#050508', bx, by + 1, 1, 1); }
+      ell('#060408', 16, 19, 5, 6); body('#060408', 22, 12, 30);
+      P('#ff2020', 14, 19); P('#ff2020', 18, 19);
+      cue(6, 43, 26, 8); P('#3a3040', 21, 23, 2, 2);
+    }
+    // darker edges, like old varnish
+    x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(0, 0, w, 1); x.fillRect(0, h - 1, w, 1); x.fillRect(0, 0, 1, h); x.fillRect(w - 1, 0, 1, h);
+  });
+}
+function painting(kind, px, pz, yaw, cy) {
+  const GOLD = [150, 112, 54], GOLD_D = [96, 72, 36], cw = 0.72, ch = 0.99, f = 0.07;
+  const parts = [];
+  parts.push(box(-cw / 2 - f, cw / 2 + f, cy + ch / 2, cy + ch / 2 + f, 0.012, 0.075, GOLD, 0.03));
+  parts.push(box(-cw / 2 - f, cw / 2 + f, cy - ch / 2 - f, cy - ch / 2, 0.012, 0.075, GOLD, 0.03));
+  parts.push(box(-cw / 2 - f, -cw / 2, cy - ch / 2, cy + ch / 2, 0.012, 0.075, GOLD_D, 0.03));
+  parts.push(box(cw / 2, cw / 2 + f, cy - ch / 2, cy + ch / 2, 0.012, 0.075, GOLD_D, 0.03));
+  parts.push(box(-cw / 2, cw / 2, cy - ch / 2, cy + ch / 2, 0.012, 0.03, [8, 6, 6], 0.02));
+  // a little brass picture light over the frame
+  parts.push(box(-0.22, 0.22, cy + ch / 2 + f + 0.06, cy + ch / 2 + f + 0.1, 0.06, 0.18, GOLD, 0.03));
+  parts.push(cyl(V(0, cy + ch / 2 + f + 0.08, 0.012), V(0, cy + ch / 2 + f + 0.08, 0.1), 0.012, 0.012, GOLD_D, { n: 4 }));
+  S.push(...placeParts(parts, px, pz, yaw, 0));
+  G.push(...placeParts([box(-0.2, 0.2, cy + ch / 2 + f + 0.055, cy + ch / 2 + f + 0.062, 0.08, 0.17, [255, 226, 170], 0)], px, pz, yaw, 0));
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(cw, ch), new THREE.MeshLambertMaterial({ map: paintingTex(kind) }));
+  m.position.set(px + Math.sin(yaw) * 0.034, cy, pz + Math.cos(yaw) * 0.034); m.rotation.y = yaw; scene.add(m);
+}
+painting(0, -11.6, -4.0, Math.PI, 1.85);
+painting(3, -6.6, -4.0, Math.PI, 1.85);
+painting(1, -7.9, -11.0, 0, 1.85);
+painting(2, -13.0, -8.9, Math.PI / 2, 2.0);
+
 // ===== VIP LOUNGE: dark panels, pink neon, a glowing disc behind a tall plant, cognac leather sofas =====
 const FX = -1.1;                       // centre of the feature wall
 const PINK = [255, 46, 150], PINK_HI = [255, 120, 200];
@@ -1246,6 +1323,18 @@ function sofa(cx, cz, yaw, len, curve, seats) {
 sofa(FX, -10.15, 0, 2.6, 0.08, [0, -0.82, 0.82]);                    // the host sits in the middle
 sofa(-3.45, -8.05, Math.PI / 2 - 0.3, 1.9, 0.32, [-0.42, 0.42]);
 sofa(0.95, -8.05, -Math.PI / 2 + 0.3, 1.9, 0.32, [-0.42, 0.42]);
+// the VIP's own TV, on its front wall (hosts choose what plays on it)
+const VTV = { x: -1.5, y: 1.68, z: -4.07, w: 2.4, h: 1.35 };
+{
+  const T = [];
+  T.push(box(VTV.x - VTV.w / 2 - 0.06, VTV.x + VTV.w / 2 + 0.06, VTV.y - VTV.h / 2 - 0.06, VTV.y + VTV.h / 2 + 0.06, -4.065, -4.015, [10, 10, 12], 0.02));
+  // low media console with a pink light underneath
+  T.push(box(VTV.x - 1.1, VTV.x + 1.1, 0.06, 0.48, -4.46, -4.015, [16, 14, 16], 0.03));
+  T.push(box(VTV.x - 1.12, VTV.x + 1.12, 0.48, 0.51, -4.48, -4.015, [60, 58, 62], 0.02));
+  for (const dx of [-0.37, 0.37]) T.push(box(VTV.x + dx - 0.005, VTV.x + dx + 0.005, 0.1, 0.44, -4.465, -4.455, [40, 30, 34], 0.02));
+  S.push(...T);
+  G.push(box(VTV.x - 1.05, VTV.x + 1.05, 0.045, 0.06, -4.44, -4.05, PINK, 0));
+}
 succulent(1.5, 0, -4.5, 2.2);
 
 // ===== CHANGING ROOM (between the VIP and the pool lounge, only reachable from the pool) =====
@@ -1719,6 +1808,8 @@ outSignMesh.position.set(0, 3.75, 4.27); scene.add(outSignMesh);
 // so walls and people in front of the TV hide it properly
 const tvGlass = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), decal({ color: 0x000000, opacity: 0, blending: THREE.NoBlending, fog: false }));
 tvGlass.position.set(TV.x, TV.y, TV.z); tvGlass.rotation.y = Math.PI / 2; scene.add(tvGlass);
+const vipGlass = new THREE.Mesh(new THREE.PlaneGeometry(VTV.w, VTV.h), decal({ color: 0x000000, opacity: 0, blending: THREE.NoBlending, fog: false }));
+vipGlass.position.set(VTV.x, VTV.y, VTV.z); vipGlass.rotation.y = Math.PI; scene.add(vipGlass);
 const tvLight = new THREE.PointLight(0x9aa6ff, 0, 6, 1.5); tvLight.position.set(-11.6, TV.y, TV.z); scene.add(tvLight);
 let tvOn = false, cssRenderer = null, cssScene = null;
 if (THREE.CSS3DRenderer && document.getElementById('tvScreen')) {
@@ -1731,6 +1822,13 @@ if (THREE.CSS3DRenderer && document.getElementById('tvScreen')) {
   el.style.pointerEvents = 'none';
   obj.position.set(TV.x + 0.008, TV.y, TV.z); obj.rotation.y = Math.PI / 2; obj.scale.setScalar(TV.w / 960);
   cssScene.add(obj);
+  const vel = document.getElementById('vipScreen');
+  if (vel) {
+    const vobj = new THREE.CSS3DObject(vel);
+    vel.style.pointerEvents = 'none';
+    vobj.position.set(VTV.x, VTV.y, VTV.z - 0.008); vobj.rotation.y = Math.PI; vobj.scale.setScalar(VTV.w / 960);
+    cssScene.add(vobj);
+  }
 }
 
 // dance floor tiles and light beams
@@ -2748,6 +2846,7 @@ window.BAR = {
   bubble: showBubble,
   setDucked,
   setTvOn(on) { tvOn = !!on; },
+  viewRoom() { if (camT.free) return 'map'; const r = roomAt(cam.tx, cam.tz); for (const k in ROOMS) if (ROOMS[k] === r) return k; return ''; },
   getMyState() { return myState; },
   _parts(look) { const r = buildParts(Object.assign(randomLook(Math.random), look), 1); return { B: r.B, B2: r.B2 }; },
   setJukebox(i, by, fresh) {

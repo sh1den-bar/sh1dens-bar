@@ -15,6 +15,7 @@ let db = null, TS = null, offset = 0, banned = false, myName = null, lastSend = 
 let current = null, queue = [], curDur = 0, durWritten = false, errored = false, tooLong = false, advancing = false;
 let player = null, playerReady = false, loadedId = null, entered = false, mutedAll = false, tvVolume = 70;
 let msgs = [], triedLocalSave = false;
+let vip = null, vipPlayer = null, vipReady = false, vipLoaded = null, vipDur = 0, vipLastSeek = 0;
 let allChars = [], online = new Map(), lastCrowdKey = '', myAct = { s: '', d: '' };
 // t is when you took your spot (server time); it decides who keeps a seat if two people click it at once
 const myPresence = () => (myAct.s || myAct.d ? { s: myAct.s, d: myAct.d, t: myAct.t || TS } : true);
@@ -148,6 +149,8 @@ function joined() {
   });
   chat.on('child_removed', (s) => { msgs = msgs.filter((m) => m.key !== s.key); renderChat(); });
 
+  db.ref('viptv').on('value', (s) => { const v = s.val(); vip = v && v.v ? v : null; syncVip(); });
+  setInterval(vipTick, 1000);
   db.ref('tv/current').on('value', (s) => {
     const v = s.val();
     current = v && v.v ? v : null;
@@ -346,6 +349,11 @@ function showIdle(on, text) {
 }
 function loadYouTube() {
   window.onYouTubeIframeAPIReady = function () {
+    if ($('vipPlayer')) vipPlayer = new YT.Player('vipPlayer', {
+      width: 960, height: 540,
+      playerVars: { controls: 0, disablekb: 1, rel: 0, playsinline: 1, iv_load_policy: 3, fs: 0, modestbranding: 1, origin: location.origin },
+      events: { onReady: () => { vipReady = true; syncVip(true); }, onStateChange: onVipState }
+    });
     player = new YT.Player('ytPlayer', {
       width: 960, height: 540,
       playerVars: { controls: 0, disablekb: 1, rel: 0, playsinline: 1, iv_load_policy: 3, fs: 0, modestbranding: 1, origin: location.origin },
@@ -432,22 +440,73 @@ function driftCheck() {
   }
   if (st === 2 || st === 5 || st === -1) player.playVideo();
 }
+
+// ---------------------------------------------------------------- the VIP TV: one video at a time, chosen by hosts
+const vipExpected = () => (vip ? (now() - vip.at) / 1000 : 0);
+function vipMsg(t) { const m = $('vipMsg'); if (m) m.textContent = t || ''; }
+function syncVip(force) {
+  if (force) vipLoaded = null;
+  $('vipIdle').hidden = !!vip;
+  $('vipNow').textContent = vip ? 'Playing, from ' + (vip.name || 'a host') : 'Nothing playing';
+  if (!vipReady) return;
+  if (!vip) { if (vipLoaded) vipPlayer.stopVideo(); vipLoaded = null; vipDur = 0; return; }
+  const key = vip.v + '@' + vip.at;
+  if (vipLoaded === key) return;
+  vipLoaded = key; vipDur = 0;
+  const start = Math.max(0, vipExpected());
+  if (entered) vipPlayer.loadVideoById({ videoId: vip.v, startSeconds: start }); else vipPlayer.cueVideoById({ videoId: vip.v, startSeconds: start });
+  vipVolume();
+}
+// you only hear the VIP TV while you're looking at the VIP lounge
+function vipAudible() { return !!vip && entered && !mutedAll && tvVolume > 0 && window.BAR.viewRoom && window.BAR.viewRoom() === 'vip'; }
+function vipVolume() {
+  if (!vipReady) return;
+  vipPlayer.setVolume(tvVolume);
+  if (vipAudible()) vipPlayer.unMute(); else vipPlayer.mute();
+}
+function onVipState(e) {
+  if (!vip) return;
+  if (e.data === 1) { const d = vipPlayer.getDuration(); if (d > 0) vipDur = d; }
+  if (e.data === 0) {
+    const ct = vipPlayer.getCurrentTime ? vipPlayer.getCurrentTime() : 0;
+    // an ad can report "ended" too; only clear the TV when the video itself is done
+    if (vipDur && ct >= vipDur - 3) { if (NET.isAdmin) db.ref('viptv').remove().catch(() => { }); }
+    else vipPlayer.playVideo();
+  }
+}
+function vipTick() {
+  vipVolume(); updateDuck();
+  if (!vip || !vipReady || !entered) return;
+  const st = vipPlayer.getPlayerState(), exp = vipExpected();
+  if (vipDur && exp > vipDur + 3) { if (NET.isAdmin) db.ref('viptv').remove().catch(() => { }); return; }
+  if (st === 1 && Math.abs(vipPlayer.getCurrentTime() - exp) > 3 && (!vipDur || exp < vipDur - 1) && Date.now() - vipLastSeek > 10000) { vipLastSeek = Date.now(); vipPlayer.seekTo(exp, true); }
+  if (st === 2 || st === 5 || st === -1) vipPlayer.playVideo();
+}
+async function playVip(text) {
+  if (!db || !NET.isAdmin) return;
+  const m = String(text || '').match(YT_RE);
+  if (!m) { vipMsg('Paste a YouTube link.'); return; }
+  try { await db.ref('viptv').set({ v: m[1], at: TS, name: myName || 'host' }); vipMsg('Playing on the VIP TV.'); $('vipInput').value = ''; }
+  catch (e) { vipMsg("Couldn't start it. The room's Firebase rules may need updating."); }
+}
 function applyVolume() {
   if (!playerReady) return;
   player.setVolume(tvVolume);
   if (mutedAll || tvVolume === 0) player.mute(); else player.unMute();
   updateDuck();
 }
-function updateDuck() { window.BAR.setDucked(!!current && entered && !mutedAll && tvVolume > 0); }
-NET.setMuted = function (m) { mutedAll = !!m; applyVolume(); };
-NET.onEnter = function (withSound) { entered = true; mutedAll = !withSound; syncTv(true); applyVolume(); };
+function updateDuck() { window.BAR.setDucked((!!current && entered && !mutedAll && tvVolume > 0) || vipAudible()); }
+NET.setMuted = function (m) { mutedAll = !!m; applyVolume(); vipVolume(); };
+NET.onEnter = function (withSound) { entered = true; mutedAll = !withSound; syncTv(true); applyVolume(); syncVip(true); };
 
 // ---------------------------------------------------------------- UI wiring
 function wireUI() {
+  $('vipForm').addEventListener('submit', (e) => { e.preventDefault(); playVip($('vipInput').value); });
+  $('vipStop').onclick = () => { if (db && NET.isAdmin) db.ref('viptv').remove().then(() => vipMsg('VIP TV stopped.')).catch(() => vipMsg("Couldn't stop it.")); };
   $('chatForm').addEventListener('submit', (e) => { e.preventDefault(); sendChat($('chatInput').value); });
   $('chatInput').addEventListener('focus', () => { if (NET.online && !myName) { hint('Create your character first, then you can post.'); } });
   $('tvForm').addEventListener('submit', (e) => { e.preventDefault(); queueVideo($('tvInput').value); });
-  $('tvVol').addEventListener('input', () => { tvVolume = parseInt($('tvVol').value, 10) || 0; applyVolume(); });
+  $('tvVol').addEventListener('input', () => { tvVolume = parseInt($('tvVol').value, 10) || 0; applyVolume(); vipVolume(); });
   $('tvSkip').onclick = () => { if (current) { advancing = false; advance(current.id); } };
   $('tvWatch').onclick = () => window.BAR.focusTv();
   $('clearChat').onclick = async () => {
