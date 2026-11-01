@@ -124,6 +124,8 @@ button.danger { border-color: #6a2620; color: #ff8a7a; }
 #chatLog li { line-height: 1.45; overflow-wrap: anywhere; }
 #chatLog li.sys { color: var(--dim); }
 #chatLog b { font-weight: 500; }
+#chatLog .viptag { color: #ff4fa8; font-size: 11px; letter-spacing: 0.08em; }
+#chatLog li.vip { background: rgba(255,60,160,0.07); }
 #myId { font-size: 11px; color: var(--dim); overflow-wrap: anywhere; user-select: all; }
 details summary { cursor: pointer; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
 details[open] { display: flex; flex-direction: column; gap: 8px; }
@@ -300,9 +302,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=32"></script>
-<script src="net.js?v=32"></script>
-<script src="bar.js?v=32"></script>
+<script src="config.js?v=33"></script>
+<script src="net.js?v=33"></script>
+<script src="bar.js?v=33"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

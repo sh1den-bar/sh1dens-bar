@@ -86,7 +86,7 @@ function joined() {
   $('myId').textContent = NET.uid;
   window.BAR.setMyUid(NET.uid);
   db.ref('.info/serverTimeOffset').on('value', (s) => { offset = s.val() || 0; });
-  db.ref('admins/' + NET.uid).on('value', (s) => { NET.isAdmin = s.exists(); $('adminBox').hidden = !NET.isAdmin; window.BAR.setMod(NET.isAdmin); renderChat(); renderQueue(); renderNow(); });
+  db.ref('admins/' + NET.uid).on('value', (s) => { NET.isAdmin = s.exists(); listenVipChat(); $('adminBox').hidden = !NET.isAdmin; window.BAR.setMod(NET.isAdmin); renderChat(); renderQueue(); renderNow(); });
   db.ref('bans/' + NET.uid).on('value', (s) => { banned = s.exists(); updateComposer(); });
 
   const pres = db.ref('presence/' + NET.uid);
@@ -203,10 +203,36 @@ function canPost(target) {
   if (wait > 0 && !NET.isAdmin) { say('Slow mode: wait ' + Math.ceil(wait / 1000) + 's.'); return false; }
   return true;
 }
+// VIP chat: what hosts say while sitting in the VIP lounge is only stored where hosts can read it
+let vipChatOn = false;
+function listenVipChat() {
+  if (!NET.isAdmin || vipChatOn) return;
+  vipChatOn = true;
+  const vc = db.ref('vipchat').limitToLast(60);
+  vc.on('child_added', (s) => {
+    const v = s.val(); if (!v || typeof v.text !== 'string') return;
+    msgs.push({ key: s.key, uid: v.uid, name: v.name, text: v.text, t: v.t, vip: true });
+    msgs.sort((a, b) => (a.t || 0) - (b.t || 0));
+    while (msgs.length > 90) msgs.shift();
+    renderChat();
+    if (v.t && v.t > joinedAt + offset - 4000) window.BAR.bubble(v.uid, clean(v.text));
+  });
+  vc.on('child_removed', (s) => { msgs = msgs.filter((m) => !(m.vip && m.key === s.key)); renderChat(); });
+}
+const inVipChat = () => NET.isAdmin && window.BAR.meInVip && window.BAR.meInVip();
 async function sendChat(text) {
   text = text.trim();
   if (!text) return;
   if (/^\/tv\s+/i.test(text)) { const ok = await queueVideo(text.replace(/^\/tv\s+/i, '')); if (ok) $('chatInput').value = ''; return; }
+  // in the VIP, start a message with /all to say it to the whole bar instead
+  const toAll = /^\/all\s+/i.test(text);
+  if (toAll) text = text.replace(/^\/all\s+/i, '');
+  if (inVipChat() && !toAll) {
+    if (!myName) { hint('Create your character first, then you can post.'); return; }
+    try { const key = db.ref('vipchat').push().key; await db.ref('vipchat/' + key).set({ uid: NET.uid, name: myName, text: clean(text).slice(0, MAX_LEN), t: TS }); $('chatInput').value = ''; hint(''); }
+    catch (e) { hint("Couldn't send to the VIP chat. The room's Firebase rules may need updating."); }
+    return;
+  }
   if (!canPost('chat')) return;
   const key = db.ref('chat').push().key;
   const upd = {};
@@ -227,6 +253,8 @@ function renderChat() {
   }
   for (const m of msgs) {
     const li = document.createElement('li');
+    if (m.vip) li.className = 'vip';
+    if (m.vip) { const tag = document.createElement('span'); tag.className = 'viptag'; tag.textContent = 'VIP '; li.appendChild(tag); }
     const nm = document.createElement('b'); nm.textContent = (m.name || 'someone') + ' '; nm.style.color = nameColor(m.name || '');
     const tx = document.createElement('span'); tx.textContent = clean(m.text);
     li.append(nm, tx);
@@ -238,7 +266,7 @@ function renderChat() {
     }
     if (NET.isAdmin) {
       const del = document.createElement('button'); del.type = 'button'; del.className = 'mini'; del.textContent = 'Delete';
-      del.onclick = () => db.ref('chat/' + m.key).remove().catch((e) => hint(friendly(e)));
+      del.onclick = () => db.ref((m.vip ? 'vipchat/' : 'chat/') + m.key).remove().catch((e) => hint(friendly(e)));
       li.appendChild(del);
       if (m.uid && m.uid !== NET.uid) {
         const ban = document.createElement('button'); ban.type = 'button'; ban.className = 'mini danger'; ban.textContent = 'Ban';
@@ -270,6 +298,7 @@ function updateComposer() {
   if (!NET.online) { ph = 'Chat is offline'; off = true; }
   else if (banned) { ph = "You're banned from this room"; off = true; }
   else if (!myName) { ph = 'Create your character to chat'; }
+  else if (inVipChat()) { ph = 'VIP chat, hosts only (start with /all to talk to everyone)'; }
   inp.placeholder = ph; inp.disabled = off; send.disabled = off;
   $('tvInput').disabled = off; $('tvAdd').disabled = off;
 }
@@ -475,7 +504,7 @@ function onVipState(e) {
   }
 }
 function vipTick() {
-  vipVolume(); updateDuck();
+  vipVolume(); updateDuck(); if (NET.online) updateComposer();
   if (!vip || !vipReady || !entered) return;
   const st = vipPlayer.getPlayerState(), exp = vipExpected();
   if (vipDur && exp > vipDur + 3) { if (NET.isAdmin) db.ref('viptv').remove().catch(() => { }); return; }
@@ -512,7 +541,7 @@ function wireUI() {
   $('clearChat').onclick = async () => {
     const b = $('clearChat');
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Click again to clear'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Clear chat'; }, 4000); return; }
-    try { await db.ref('chat').remove(); hint('Chat cleared.'); } catch (e) { hint(friendly(e)); }
+    try { await db.ref('chat').remove(); await db.ref('vipchat').remove().catch(() => { }); hint('Chat cleared.'); } catch (e) { hint(friendly(e)); }
   };
   $('copyId').onclick = () => {
     const txt = $('myId').textContent;

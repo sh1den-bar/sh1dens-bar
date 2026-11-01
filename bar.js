@@ -1292,12 +1292,50 @@ const rugTex = canvasTex(32, 32, (x, w, h) => {
 });
 const rug = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 2.2), decal({ map: rugTex }));
 rug.rotation.x = -Math.PI / 2; rug.position.set(FX, 0.006, -8.55); scene.add(rug);
-const WOOD_T = [92, 56, 30];
-S.push(cyl(V(FX, 0, -8.75), V(FX, 0.36, -8.75), 0.34, 0.34, WOOD_T, { n: 16, amt: 0.04 }));
-for (let y = 0.06; y < 0.36; y += 0.075) S.push(cyl(V(FX, y, -8.75), V(FX, y + 0.012, -8.75), 0.345, 0.345, [70, 42, 22], { n: 16, amt: 0.02, cap: false }));
-S.push(cyl(V(FX + 0.62, 0, -8.05), V(FX + 0.62, 0.27, -8.05), 0.26, 0.26, WOOD_T, { n: 14, amt: 0.04 }));
-S.push(cyl(V(FX - 0.08, 0.36, -8.8), V(FX - 0.08, 0.39, -8.8), 0.06, 0.05, [30, 30, 34], { n: 8 }));
-S.push(box(FX + 0.1, FX + 0.34, 0.36, 0.38, -8.7, -8.55, [180, 170, 150], 0.04));
+// a big round glass table: chrome rim and pedestal, a crystal ashtray, cigars, cutters, cards and chips
+const CHROME_C = [170, 174, 182], CIGAR = [92, 58, 32], BAND = [196, 156, 64];
+const GT = { x: FX, z: -8.6, r: 0.8, y: 0.44 };
+S.push(cyl(V(GT.x, 0, GT.z), V(GT.x, 0.03, GT.z), 0.36, 0.34, CHROME_C, { n: 16, amt: 0.03 }));
+S.push(cyl(V(GT.x, 0.03, GT.z), V(GT.x, GT.y - 0.02, GT.z), 0.055, 0.055, CHROME_C, { n: 10, amt: 0.03 }));
+S.push(cyl(V(GT.x, GT.y - 0.02, GT.z), V(GT.x, GT.y - 0.015, GT.z), 0.25, 0.25, CHROME_C, { n: 12, amt: 0.03 }));
+S.push(cyl(V(GT.x, GT.y - 0.022, GT.z), V(GT.x, GT.y + 0.002, GT.z), GT.r + 0.012, GT.r + 0.012, CHROME_C, { n: 28, amt: 0.02, cap: false }));
+const tableGlassMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.38, depthWrite: false }));
+const tableGlass = new THREE.Mesh(toGeometry([cyl(V(GT.x, GT.y - 0.02, GT.z), V(GT.x, GT.y, GT.z), GT.r, GT.r, [150, 190, 200], { n: 28, amt: 0.02 })]), tableGlassMat);
+tableGlass.renderOrder = 2; scene.add(tableGlass);
+// crystal ashtray, cut like a diamond, with two cigars resting on it (one still burning)
+{
+  const ax = GT.x, az = GT.z, y = GT.y + 0.001;
+  S.push(loft([rring(y, 0.17, 0.17, ax, az, 8, 2), rring(y + 0.03, 0.27, 0.27, ax, az, 8, 2), rring(y + 0.055, 0.29, 0.29, ax, az, 8, 2), rring(y + 0.062, 0.25, 0.25, ax, az, 8, 2)], [196, 212, 224], { amt: 0.14 }));
+  S.push(cyl(V(ax, y + 0.05, az), V(ax, y + 0.0625, az), 0.1, 0.1, [36, 38, 44], { n: 8, amt: 0.03 }));
+  for (const [dx, dz, ex, ez, lit] of [[0.02, 0.01, 0.2, 0.07, true], [-0.03, -0.01, -0.19, -0.1, false]]) {
+    S.push(cyl(V(ax + dx, y + 0.068, az + dz), V(ax + ex, y + 0.064, az + ez), 0.011, 0.011, CIGAR, { n: 6, amt: 0.03 }));
+    const bx = ax + dx + (ex - dx) * 0.78, bz = az + dz + (ez - dz) * 0.78;
+    S.push(cyl(V(bx - (ex - dx) * 0.04, y + 0.065, bz - (ez - dz) * 0.04), V(bx + (ex - dx) * 0.04, y + 0.065, bz + (ez - dz) * 0.04), 0.0118, 0.0118, BAND, { n: 6, amt: 0.02 }));
+    if (lit) { S.push(cyl(V(ax + dx, y + 0.068, az + dz), V(ax + dx - (ex - dx) * 0.12, y + 0.068, az + dz - (ez - dz) * 0.12), 0.0112, 0.0112, [150, 148, 144], { n: 6, amt: 0.05 })); G.push(cyl(V(ax + dx - (ex - dx) * 0.12, y + 0.068, az + dz - (ez - dz) * 0.12), V(ax + dx - (ex - dx) * 0.13, y + 0.068, az + dz - (ez - dz) * 0.13), 0.0105, 0.009, [255, 90, 30], { n: 6, amt: 0 })); }
+  }
+  // loose cigars
+  for (const [x0, z0, ang] of [[0.36, 0.2, 0.4], [0.4, 0.26, 0.55], [-0.42, -0.3, 2.2]]) {
+    const L = 0.15, c = Math.cos(ang), sn = Math.sin(ang);
+    S.push(cyl(V(ax + x0, y + 0.011, az + z0), V(ax + x0 + c * L, y + 0.011, az + z0 + sn * L), 0.011, 0.011, CIGAR, { n: 6, amt: 0.03 }));
+    S.push(cyl(V(ax + x0 + c * L * 0.72, y + 0.011, az + z0 + sn * L * 0.72), V(ax + x0 + c * L * 0.8, y + 0.011, az + z0 + sn * L * 0.8), 0.0118, 0.0118, BAND, { n: 6, amt: 0.02 }));
+  }
+  // cigar cutters
+  for (const [x0, z0, col] of [[-0.36, 0.22, CHROME_C], [0.28, -0.36, [24, 24, 28]]]) {
+    S.push(box(ax + x0 - 0.035, ax + x0 + 0.035, y, y + 0.012, az + z0 - 0.015, az + z0 + 0.015, col, 0.03));
+    S.push(cyl(V(ax + x0, y + 0.012, az + z0), V(ax + x0, y + 0.0125, az + z0), 0.01, 0.01, [6, 6, 6], { n: 6, amt: 0 }));
+  }
+  // playing cards, a deck and some poker chips
+  const cards = [];
+  [[0.12, 0.42, 0.3], [0.2, 0.46, -0.5], [0.05, 0.5, 1.1], [-0.18, 0.44, 0.7], [-0.52, 0.05, 1.6], [0.5, -0.12, 2.6]].forEach(([x0, z0, ang], k) => {
+    const yy = y + 0.0012 * k;
+    const card = [box(-0.032, 0.032, yy, yy + 0.0012, -0.045, 0.045, [236, 232, 224], 0.02), box(-0.008, 0.008, yy + 0.0012, yy + 0.0016, -0.012, 0.012, k % 2 ? [190, 20, 30] : [16, 16, 18], 0)];
+    S.push(...placeParts(card, ax + x0, az + z0, ang, 0));
+  });
+  S.push(...placeParts([box(-0.032, 0.032, y, y + 0.025, -0.045, 0.045, [236, 232, 224], 0.02), box(-0.03, 0.03, y + 0.025, y + 0.0256, -0.043, 0.043, [150, 20, 30], 0.02)], ax - 0.3, az - 0.42, 0.2, 0));
+  [[-0.5, 0.3, [180, 24, 30], 6], [-0.44, 0.36, [20, 20, 24], 4], [-0.54, 0.38, [230, 228, 220], 8]].forEach(([x0, z0, col, n]) => {
+    for (let k = 0; k < n; k++) S.push(cyl(V(ax + x0, y + k * 0.0042, az + z0), V(ax + x0, y + k * 0.0042 + 0.0038, az + z0), 0.02, 0.02, k % 2 ? col : col.map((v) => v * 0.85), { n: 8, amt: 0.02 }));
+  });
+}
 // cognac leather sofas: a long one under the disc and two curved ones facing each other
 const VIP_CHAIRS = [];
 function sofaParts(len, curve) {
@@ -1335,7 +1373,44 @@ const VTV = { x: -1.5, y: 1.68, z: -4.07, w: 2.4, h: 1.35 };
   S.push(...T);
   G.push(box(VTV.x - 1.05, VTV.x + 1.05, 0.045, 0.06, -4.44, -4.05, PINK, 0));
 }
-succulent(1.5, 0, -4.5, 2.2);
+succulent(-4.55, 0, -4.45, 2.2);
+// a tall glass-front humidor beside the TV, stocked with cigars (a few gaps where some have been smoked)
+{
+  const HX0 = 0.45, HX1 = 1.55, HZ0 = -4.5, HZ1 = -4.02, WOOD_H = [48, 28, 18], CEDAR = [150, 96, 58];
+  S.push(box(HX0, HX1, 0, 0.12, HZ0, HZ1, WOOD_H));
+  S.push(box(HX0, HX1, 1.9, 1.96, HZ0 - 0.02, HZ1, WOOD_H));
+  S.push(box(HX0, HX0 + 0.05, 0.12, 1.9, HZ0, HZ1, WOOD_H)); S.push(box(HX1 - 0.05, HX1, 0.12, 1.9, HZ0, HZ1, WOOD_H));
+  S.push(box(HX0 + 0.05, HX1 - 0.05, 0.12, 1.9, HZ1 - 0.04, HZ1, CEDAR, 0.05));
+  const shelves = [0.5, 0.9, 1.3, 1.66];
+  for (const sy of shelves) S.push(box(HX0 + 0.05, HX1 - 0.05, sy - 0.02, sy, HZ0 + 0.03, HZ1 - 0.04, CEDAR, 0.04));
+  // bundles of cigars lying side by side, three high; some bundles are short or gone (already smoked)
+  shelves.forEach((sy, row) => {
+    for (let k = 0; k < 6; k++) {
+      const x0 = HX0 + 0.09 + k * 0.158, missing = (k * 5 + row * 3) % 7;
+      const high = missing === 0 ? 0 : missing === 3 ? 1 : missing === 5 ? 2 : 3;
+      for (let lay = 0; lay < high; lay++) for (const dz of [0.08, 0.104, 0.128]) {
+        const y = sy + 0.011 + lay * 0.021;
+        S.push(cyl(V(x0, y, HZ0 + dz), V(x0 + 0.14, y, HZ0 + dz), 0.0105, 0.0105, (k + lay) % 3 ? CIGAR : [110, 70, 38], { n: 5, amt: 0.05 }));
+        if (dz === 0.08) S.push(cyl(V(x0 + 0.1, y, HZ0 + dz), V(x0 + 0.113, y, HZ0 + dz), 0.0113, 0.0113, BAND, { n: 5, amt: 0.02 }));
+      }
+    }
+  });
+  // two open cigar boxes on the bottom
+  for (const [bx0, bx1] of [[HX0 + 0.08, HX0 + 0.48], [HX0 + 0.56, HX1 - 0.08]]) {
+    S.push(box(bx0, bx1, 0.12, 0.2, HZ0 + 0.06, HZ1 - 0.08, [120, 74, 40], 0.04));
+    S.push(box(bx0 + 0.01, bx1 - 0.01, 0.2, 0.201, HZ0 + 0.07, HZ1 - 0.09, [70, 40, 22], 0.02));
+    for (let x = bx0 + 0.03; x < bx1 - 0.02; x += 0.03) S.push(cyl(V(x, 0.212, HZ0 + 0.09), V(x, 0.212, HZ1 - 0.11), 0.011, 0.011, CIGAR, { n: 5, amt: 0.05 }));
+    S.push(box(bx0, bx1, 0.2, 0.42, HZ1 - 0.1, HZ1 - 0.08, [120, 74, 40], 0.04));
+  }
+  // glass door in a thin frame, a brass handle, a warm light inside, and a little hygrometer
+  for (const [x0, x1, y0, y1] of [[HX0, HX1, 0.12, 0.16], [HX0, HX1, 1.86, 1.9], [HX0, HX0 + 0.05, 0.12, 1.9], [HX1 - 0.05, HX1, 0.12, 1.9]]) S.push(box(x0, x1, y0, y1, HZ0 - 0.03, HZ0, WOOD_H, 0.03));
+  S.push(box(HX1 - 0.09, HX1 - 0.07, 0.8, 1.2, HZ0 - 0.06, HZ0 - 0.03, BRASS, 0.02));
+  G.push(box(HX0 + 0.08, HX1 - 0.08, 1.84, 1.86, HZ0 + 0.04, HZ1 - 0.06, [255, 214, 160], 0));
+  S.push(cyl(V(HX0 + 0.22, 1.7, HZ0 - 0.035), V(HX0 + 0.22, 1.7, HZ0 - 0.045), 0.045, 0.045, BRASS, { n: 10, amt: 0.02 }));
+  S.push(cyl(V(HX0 + 0.22, 1.7, HZ0 - 0.045), V(HX0 + 0.22, 1.7, HZ0 - 0.047), 0.037, 0.037, [230, 224, 200], { n: 10, amt: 0 }));
+  const humGlass = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0 - 0.1, 1.7), new THREE.MeshLambertMaterial({ color: 0x8fa4b0, transparent: true, opacity: 0.16, depthWrite: false }));
+  humGlass.position.set((HX0 + HX1) / 2, 1.01, HZ0 - 0.015); humGlass.rotation.y = Math.PI; humGlass.renderOrder = 2; scene.add(humGlass);
+}
 
 // ===== CHANGING ROOM (between the VIP and the pool lounge, only reachable from the pool) =====
 const changeTileTex = canvasTex(16, 16, (x, w, h) => {
@@ -1897,7 +1972,7 @@ addSpot('pool-cue-1', 3, 'pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 
 // VIP lounge: the host's armchair is his alone
 VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'lounge' : 'sitlow', x, z, yaw,
   i === 0 ? "The host's seat" : 'Sink into the sofa', hitBox(x, 0.45, z, 0.7, 0.9, 0.7), { hostOnly: i === 0 }));
-[[-4.5, -9.8, Math.PI / 4], [1.5, -10.4, -Math.PI / 4], [-4.5, -4.6, Math.PI * 0.8], [1.4, -5.4, -Math.PI * 0.8]].forEach(([x, z, yaw], i) =>
+[[-4.5, -9.8, Math.PI / 4], [1.5, -10.4, -Math.PI / 4], [-3.7, -4.75, Math.PI * 0.85], [1.4, -5.4, -Math.PI * 0.8]].forEach(([x, z, yaw], i) =>
   addSpot('vip-stand-' + i, 4, 'lean', x, z, yaw, 'Hang out in the lounge', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // pool lounge: wading in the water, daybeds, and standing room around the edge
 // seats in the water: backs against the long sides of the pool, facing the middle
@@ -2846,6 +2921,7 @@ window.BAR = {
   bubble: showBubble,
   setDucked,
   setTvOn(on) { tvOn = !!on; },
+  meInVip() { const me = crowd.find((c) => c.mine); const sp = me && SPOT_BY_ID[me.spot]; return !!sp && sp.cat === 4; },
   viewRoom() { if (camT.free) return 'map'; const r = roomAt(cam.tx, cam.tz); for (const k in ROOMS) if (ROOMS[k] === r) return k; return ''; },
   getMyState() { return myState; },
   _parts(look) { const r = buildParts(Object.assign(randomLook(Math.random), look), 1); return { B: r.B, B2: r.B2 }; },
