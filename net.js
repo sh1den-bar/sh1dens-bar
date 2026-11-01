@@ -19,11 +19,35 @@ let vip = null, vipPlayer = null, vipReady = false, vipLoaded = null, vipDur = 0
 let allChars = [], online = new Map(), lastCrowdKey = '', myAct = { s: '', d: '' };
 // t is when you took your spot (server time); it decides who keeps a seat if two people click it at once
 const smoking = () => !!(myAct.k && myAct.e > Date.now() + offset);
+// h: this device is the host's (an admin posting as sh1denfps), o: opted out of spooky events
+const actingHost = () => NET.isAdmin && !!myName && myName.toLowerCase() === 'sh1denfps';
+const optedOut = () => { try { return localStorage.getItem('sh1den-bar-spooky') === 'off'; } catch (e) { return false; } };
 const myPresence = () => {
-  if (!(myAct.s || myAct.d || smoking())) return true;
+  if (!(myAct.s || myAct.d || smoking() || actingHost() || optedOut())) return true;
   const p = { s: myAct.s || '', d: myAct.d || '', t: myAct.t || TS };
   if (smoking()) { p.k = myAct.k; p.e = myAct.e; }
+  if (actingHost()) p.h = true;
+  if (optedOut()) p.o = true;
   return p;
+};
+let hostUid = null, myChar = null, presRef = null;
+// an admin without a character of their own (say, the host on his phone) chats as sh1denfps
+function refreshName() {
+  const was = myName;
+  myName = myChar ? myChar.name : NET.isAdmin ? 'sh1denfps' : null;
+  if (was !== myName) { updateComposer(); if (presRef) presRef.set(myPresence()).catch(() => { }); }
+}
+NET.hostOnline = () => (!!hostUid && online.has(hostUid)) || [...online.values()].some((p) => p && p.h === true);
+NET.onlineList = () => [...online.entries()].map(([uid, p]) => Object.assign({ uid }, p));
+NET.charOf = (uid) => allChars.find((e) => e.uid === uid) || null;
+NET.isBanned = () => banned;
+NET.refreshPresence = () => { if (presRef) presRef.set(myPresence()).catch(() => { }); };
+NET.slowLeft = () => Math.max(0, lastSend + SLOW_MS - Date.now());
+// a line in the room chat that only you see (Charon, game notices)
+NET.sysChat = function (name, text) {
+  msgs.push({ key: 'sys' + Date.now() + Math.random(), sys: true, name, text: String(text), t: now() });
+  while (msgs.length > 90) msgs.shift();
+  renderChat();
 };
 // only people who have the bar open right now are shown (the bartender is always there)
 function pushCrowd() {
@@ -72,6 +96,8 @@ NET.start = function () {
     status('Room offline');
     hint('The room chat and TV are not set up yet. Characters are saved in this browser only.');
     showIdle(true, 'TV offline');
+    window.BAR.setCardOpen(true);
+    if (window.EXTRAS) window.EXTRAS.offline();
     return;
   }
   try { firebase.initializeApp(cfg.firebase); } catch (e) { /* already initialised */ }
@@ -92,10 +118,11 @@ function joined() {
   $('myId').textContent = NET.uid;
   window.BAR.setMyUid(NET.uid);
   db.ref('.info/serverTimeOffset').on('value', (s) => { offset = s.val() || 0; });
-  db.ref('admins/' + NET.uid).on('value', (s) => { NET.isAdmin = s.exists(); listenVipChat(); $('adminBox').hidden = !NET.isAdmin; window.BAR.setMod(NET.isAdmin); renderChat(); renderQueue(); renderNow(); });
+  db.ref('admins/' + NET.uid).on('value', (s) => { NET.isAdmin = s.exists(); listenVipChat(); $('adminBox').hidden = !NET.isAdmin; window.BAR.setMod(NET.isAdmin); refreshName(); renderChat(); renderQueue(); renderNow(); syncVip(true); if (window.EXTRAS) window.EXTRAS.adminChanged(); if (window.POKER) window.POKER.adminChanged(); });
+  db.ref('names/sh1denfps').on('value', (s) => { hostUid = s.val(); window.BAR.setCardOpen(NET.hostOnline()); });
   db.ref('bans/' + NET.uid).on('value', (s) => { banned = s.exists(); updateComposer(); });
 
-  const pres = db.ref('presence/' + NET.uid);
+  const pres = presRef = db.ref('presence/' + NET.uid);
   db.ref('.info/connected').on('value', (s) => {
     if (s.val()) { pres.onDisconnect().remove(); pres.set(myPresence()).catch(() => pres.set(true)); }
     else status('Reconnecting…');
@@ -123,6 +150,8 @@ function joined() {
     const mine = online.get(NET.uid);
     if (mine && mine.t && mine.s === myAct.s) myAct.t = mine.t;
     pushCrowd();
+    window.BAR.setCardOpen(NET.hostOnline());
+    if (window.EXTRAS) window.EXTRAS.presenceChanged();
   });
   // the jukebox is shared: whoever changes it changes it for everyone
   let firstJuke = true;
@@ -142,7 +171,7 @@ function joined() {
     allChars = list.sort((a, b) => a.t - b.t);
     pushCrowd();
     const mine = allChars.find((e) => e.uid === NET.uid);
-    myName = mine ? mine.name : null;
+    myChar = mine || null; refreshName();
     if (mine) window.BAR.setMine({ name: mine.name, code: mine.code });
     else if (!triedLocalSave) {
       // a character made while the room was offline: try to bring it into the room
@@ -159,7 +188,7 @@ function joined() {
     msgs.push({ key: s.key, uid: v.uid, name: v.name, text: v.text, t: v.t });
     if (msgs.length > 60) msgs.shift();
     renderChat();
-    if (v.t && v.t > joinedAt + offset - 4000) window.BAR.bubble(v.uid, clean(v.text));
+    if (v.t && v.t > joinedAt + offset - 4000) window.BAR.bubble(v.uid, clean(v.text), v.name);
   });
   chat.on('child_removed', (s) => { msgs = msgs.filter((m) => m.key !== s.key); renderChat(); });
 
@@ -216,7 +245,7 @@ NET.saveChar = async function (name, code, oldName) {
   upd['chars/' + NET.uid] = { name, code, t: TS };
   try {
     await db.ref().update(upd);
-    myName = name; updateComposer();
+    myChar = { name, code }; refreshName(); updateComposer();
     return { ok: true };
   } catch (e) {
     if (lower === 'sh1denfps') return { ok: false, msg: 'That name belongs to the host.' };
@@ -294,6 +323,7 @@ function renderChat() {
   }
   for (const m of shown) {
     const li = document.createElement('li');
+    if (m.sys) { li.className = 'charon'; const nm = document.createElement('b'); nm.textContent = m.name + ' '; const tx = document.createElement('span'); tx.textContent = m.text; li.append(nm, tx); log.appendChild(li); continue; }
     const nm = document.createElement('b'); nm.textContent = (m.name || 'someone') + ' '; nm.style.color = nameColor(m.name || '');
     const tx = document.createElement('span'); tx.textContent = clean(m.text);
     li.append(nm, tx);
@@ -514,10 +544,12 @@ const vipExpected = () => (vip ? (now() - vip.at) / 1000 : 0);
 function vipMsg(t) { const m = $('vipMsg'); if (m) m.textContent = t || ''; }
 function syncVip(force) {
   if (force) vipLoaded = null;
-  $('vipIdle').hidden = !!vip;
+  // only hosts get the VIP picture; everyone else just sees the VIP card on the screen
+  const show = !!vip && NET.isAdmin;
+  $('vipIdle').hidden = show;
   $('vipNow').textContent = vip ? 'Playing, from ' + (vip.name || 'a host') : 'Nothing playing';
   if (!vipReady) return;
-  if (!vip) { if (vipLoaded) vipPlayer.stopVideo(); vipLoaded = null; vipDur = 0; return; }
+  if (!show) { if (vipLoaded) vipPlayer.stopVideo(); vipLoaded = null; vipDur = 0; return; }
   const key = vip.v + '@' + vip.at;
   if (vipLoaded === key) return;
   vipLoaded = key; vipDur = 0;
@@ -527,7 +559,7 @@ function syncVip(force) {
 }
 // you only hear the VIP TV while you're looking at the VIP lounge
 const meInVip = () => !!(window.BAR.meInVip && window.BAR.meInVip());
-function vipAudible() { return !!vip && entered && !mutedAll && tvVolume > 0 && meInVip(); }
+function vipAudible() { return !!vip && NET.isAdmin && entered && !mutedAll && tvVolume > 0 && meInVip(); }
 function vipVolume() {
   if (!vipReady) return;
   vipPlayer.setVolume(tvVolume);
@@ -555,7 +587,7 @@ function renderPokerBtn() {
 }
 function vipTick() {
   vipVolume(); applyVolume(); renderPokerBtn(); if (NET.online) updateComposer();
-  if (!vip || !vipReady || !entered) return;
+  if (!vip || !vipReady || !entered || !NET.isAdmin) return;
   const st = vipPlayer.getPlayerState(), exp = vipExpected();
   if (vipDur && exp > vipDur + 3) { if (NET.isAdmin) db.ref('viptv').remove().catch(() => { }); return; }
   if (st === 1 && Math.abs(vipPlayer.getCurrentTime() - exp) > 3 && (!vipDur || exp < vipDur - 1) && Date.now() - vipLastSeek > 10000) { vipLastSeek = Date.now(); vipPlayer.seekTo(exp, true); }

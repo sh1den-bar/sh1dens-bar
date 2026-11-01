@@ -716,6 +716,72 @@ function pose(ch, act, beat, t) {
     b.shL.rotation.x = -0.75; b.shL.rotation.z = -0.32; b.elL.rotation.x = -1.45;
     b.shR.rotation.x = -0.7 + 0.07 * Math.sin(w); b.shR.rotation.z = 0.36 + 0.05 * Math.cos(w); b.elR.rotation.x = -1.4 + 0.05 * Math.sin(w * 2);
     b.head.rotation.x = 0.32 - 0.34 * look; b.head.rotation.y = 0.45 * look * Math.sin(t * 0.13);
+  } else if (act === 'walk') {
+    const w = t * 7.5 + ph * 4, k = Math.sin(w);
+    b.thL.rotation.x = -0.45 * k; b.thR.rotation.x = 0.45 * k;
+    b.knL.rotation.x = 0.5 * Math.max(0, k); b.knR.rotation.x = 0.5 * Math.max(0, -k);
+    b.shL.rotation.x = 0.35 * k; b.shR.rotation.x = -0.35 * k; b.elL.rotation.x = b.elR.rotation.x = -0.3;
+    b.hips.position.y = 0.95 - 0.02 * Math.abs(Math.cos(w)); b.spine.rotation.x = 0.04;
+  } else if (act === 'bt_wipe') {
+    // wiping the counter in slow circles
+    const w = t * 2.2 + ph;
+    b.spine.rotation.x = 0.32;
+    b.shR.rotation.x = -1.0 + 0.12 * Math.sin(w); b.shR.rotation.z = 0.2 + 0.18 * Math.cos(w); b.elR.rotation.x = -0.5;
+    b.shL.rotation.x = -0.55; b.shL.rotation.z = -0.2; b.elL.rotation.x = -0.9;
+    b.head.rotation.x = 0.3;
+  } else if (act === 'bt_reach') {
+    // tidying the bottles on the back shelf
+    const u = 0.5 + 0.5 * Math.sin(t * 1.3 + ph);
+    b.shR.rotation.x = -2.0 - 0.35 * u; b.elR.rotation.x = -0.35; b.shR.rotation.z = 0.15;
+    b.shL.rotation.x = -0.4; b.elL.rotation.x = -0.8;
+    b.head.rotation.x = -0.35; b.spine.rotation.x = -0.06;
+  } else if (act === 'bt_lean') {
+    // both hands on the counter, watching the room
+    b.spine.rotation.x = 0.3;
+    b.shL.rotation.x = b.shR.rotation.x = -0.95; b.shL.rotation.z = -0.32; b.shR.rotation.z = 0.32;
+    b.elL.rotation.x = b.elR.rotation.x = -0.2;
+    b.head.rotation.x = -0.2; b.head.rotation.y = 0.45 * Math.sin(t * 0.25 + ph);
+    b.thL.rotation.x = 0.12; b.knL.rotation.x = 0.15;
+  } else if (act === 'bt_watch') {
+    // checking his pocket watch
+    b.shR.rotation.x = -0.9; b.elR.rotation.x = -1.5; b.shR.rotation.z = 0.25;
+    b.shL.rotation.x = -0.6; b.elL.rotation.x = -1.3; b.shL.rotation.z = -0.3;
+    b.head.rotation.x = 0.5; b.spine.rotation.x = 0.06;
+  } else if (act === 'bt_board') {
+    // looking up at the leaderboard, hands behind his back
+    b.shL.rotation.x = b.shR.rotation.x = 0.45; b.elL.rotation.x = b.elR.rotation.x = -0.9;
+    b.shL.rotation.z = 0.15; b.shR.rotation.z = -0.15;
+    b.head.rotation.x = -0.32 + 0.04 * Math.sin(t * 0.8); b.spine.rotation.x = -0.04;
+  } else if (act === 'bt_pour') {
+    // pouring, then sliding the glass across
+    const u = (t * 0.8 + ph) % 1;
+    b.spine.rotation.x = 0.2;
+    b.shR.rotation.x = -1.3; b.shR.rotation.z = 0.25 + 0.5 * Math.max(0, Math.sin(u * PI)); b.elR.rotation.x = -0.6;
+    b.shL.rotation.x = -1.1 + 0.4 * u; b.elL.rotation.x = -0.4; b.shL.rotation.z = -0.15;
+    b.head.rotation.x = 0.35;
+  } else if (act === 'bt_light') {
+    // leaning over the bar with a lighter
+    const f = Math.max(0, Math.sin(t * 4));
+    b.spine.rotation.x = 0.35;
+    b.shR.rotation.x = -1.45; b.elR.rotation.x = -0.5; b.shR.rotation.z = 0.05 * f;
+    b.shL.rotation.x = -1.3; b.elL.rotation.x = -0.8; b.shL.rotation.z = -0.35;
+    b.head.rotation.x = 0.1;
+  } else if (act === 'deal') {
+    // the croupier: hands over the felt, dealing now and then
+    const d = Math.max(0, Math.sin(t * 1.1 + ph * 3) - 0.6) * 2.5;
+    b.spine.rotation.x = 0.16;
+    b.shL.rotation.x = -0.95; b.elL.rotation.x = -0.7; b.shL.rotation.z = -0.2;
+    b.shR.rotation.x = -0.95 - 0.35 * d; b.elR.rotation.x = -0.7 + 0.5 * d; b.shR.rotation.z = 0.2 + 0.4 * d;
+    b.head.rotation.x = 0.28; b.head.rotation.y = 0.35 * Math.sin(t * 0.3 + ph);
+  } else if (act === 'slump') {
+    // found in the stall: slumped on the seat, head down, arms hanging
+    b.hips.position.y = 0.95 - 0.5;
+    b.thL.rotation.x = b.thR.rotation.x = -1.35; b.knL.rotation.x = b.knR.rotation.x = 1.2;
+    b.thL.rotation.z = 0.25; b.thR.rotation.z = -0.25;
+    b.spine.rotation.x = 0.55; b.spine.rotation.z = 0.15;
+    b.head.rotation.x = 0.9; b.head.rotation.z = 0.35;
+    b.shL.rotation.x = 0.15; b.shR.rotation.x = 0.1; b.shL.rotation.z = 0.05; b.shR.rotation.z = -0.05;
+    b.elL.rotation.x = b.elR.rotation.x = -0.1;
   }
   // holding a drink: take a sip every so often (sitting at the bar already has its own sip)
   if (ch.glass && act !== 'sit' && act !== 'pool' && act !== 'dance') {
@@ -740,11 +806,15 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x04060a, 7, 17);
 const camera = new THREE.PerspectiveCamera(46, 1, 0.15, 80);
 
+const signFont = '"Limelight", "Poiret One", Georgia, serif';
 const ROOMS = {
+  // the restroom sits inside the dance room's front corner, so it is listed first
+  wc: { x0: 11.85, x1: 13.95, z0: 2.05, z1: 3.95, name: 'Restroom', hidden: true },
+  card: { x0: -17, x1: -11.8, z0: -4, z1: 4, name: 'Card room' },
   bar: { x0: -5, x1: 5, z0: -4, z1: 4, name: 'Main bar' },
   dance: { x0: 5, x1: 14, z0: -4, z1: 4, name: 'Dance room' },
   tv: { x0: -13, x1: -5, z0: -11, z1: -4, name: 'TV room' },
-  pool: { x0: -17, x1: -5, z0: -4, z1: 4, name: 'Pool room' },
+  pool: { x0: -11.8, x1: -5, z0: -4, z1: 4, name: 'Pool room' },
   vip: { x0: -5, x1: 2, z0: -11, z1: -4, name: 'VIP lounge' },
   swim: { x0: 5, x1: 14, z0: -12, z1: -4, name: 'Pool lounge' },
   change: { x0: 2, x1: 5, z0: -11, z1: -4, name: 'Changing room' },
@@ -859,6 +929,25 @@ const luxCarpetTex = canvasTex(32, 32, (x, w, h) => {
   x.fillStyle = 'rgb(88,62,28)'; for (let k = 0; k < w; k += 4) { x.fillRect(k, 16, 1, 1); x.fillRect(16, k, 1, 1); }
 });
 luxCarpetTex.wrapS = luxCarpetTex.wrapT = THREE.RepeatWrapping;
+// card room: black marble with gold veins, black lacquer walls with gold inlay
+const cardFloorTex = canvasTex(32, 32, (x, w, h) => {
+  noiseFill(x, w, h, [12, 11, 13], 4);
+  x.fillStyle = 'rgb(46,42,40)'; for (let k = 0; k < 40; k++) x.fillRect(Math.floor((k * 7 + Math.sin(k) * 9 + 32) % w), Math.floor((k * 5) % h), 1, 1);
+  x.fillStyle = 'rgb(150,112,52)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+});
+const lacquerWallTex = canvasTex(32, 64, (x, w, h) => {
+  noiseFill(x, w, h, [9, 8, 10], 2);
+  x.fillStyle = 'rgb(18,16,18)'; x.fillRect(4, 6, 24, 30); x.fillRect(4, 42, 24, 18);
+  x.fillStyle = 'rgb(160,122,58)'; x.fillRect(4, 6, 24, 1); x.fillRect(4, 35, 24, 1); x.fillRect(4, 6, 1, 30); x.fillRect(27, 6, 1, 30);
+  x.fillRect(4, 42, 24, 1); x.fillRect(4, 59, 24, 1); x.fillRect(0, 39, w, 1);
+});
+// restroom: small white tiles, dark grout, a black-and-white floor
+const wcTileTex = canvasTex(32, 64, (x, w, h) => {
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const g = i % 4 === 0 || j % 4 === 0; const v = g ? 70 : 196 + rr() * 14; x.fillStyle = `rgb(${v},${v},${v + 4})`; x.fillRect(i, j, 1, 1); }
+  x.fillStyle = 'rgb(20,20,22)'; x.fillRect(0, 40, w, 3);
+});
+const wcFloorTex = canvasTex(8, 8, (x, w, h) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { x.fillStyle = ((i >> 2) + (j >> 2)) % 2 ? '#141416' : '#cfcac0'; x.fillRect(i, j, 1, 1); } });
+for (const t of [cardFloorTex, lacquerWallTex, wcTileTex, wcFloorTex]) t.wrapS = t.wrapT = THREE.RepeatWrapping;
 greenWallTex.wrapS = greenWallTex.wrapT = THREE.RepeatWrapping;
 // vip: dark fluted wood panels (lit pink from above by the cove lights)
 const redWallTex = canvasTex(32, 64, (x, w, h) => {
@@ -908,6 +997,8 @@ floorFor(ROOMS.bar, marbleTex, 2);
 floorFor(ROOMS.dance, concreteTex, 2);
 floorFor(ROOMS.tv, carpetTex, 0.8);
 floorFor(ROOMS.pool, luxCarpetTex, 1.4);
+floorFor(ROOMS.card, cardFloorTex, 1.2);
+const wcFloor = floorFor(ROOMS.wc, wcFloorTex, 0.6);
 floorFor(ROOMS.vip, vipTex, 0.8);
 swimFloorTex.wrapS = swimFloorTex.wrapT = THREE.RepeatWrapping;
 floorFor(ROOMS.swim, swimFloorTex, 1.5);
@@ -919,7 +1010,9 @@ const wallMats = {
   deco: ps1(new THREE.MeshLambertMaterial({ map: wallTex })),
   green: ps1(new THREE.MeshLambertMaterial({ map: greenWallTex })),
   red: ps1(new THREE.MeshLambertMaterial({ map: redWallTex })),
-  brick: ps1(new THREE.MeshLambertMaterial({ map: brickTex }))
+  brick: ps1(new THREE.MeshLambertMaterial({ map: brickTex })),
+  lacquer: ps1(new THREE.MeshLambertMaterial({ map: lacquerWallTex })),
+  tile: ps1(new THREE.MeshLambertMaterial({ map: wcTileTex }))
 };
 const DOOR_PARTS = [];
 function wallPlane(ax, az, bx, bz, nx, nz, y0, y1, mat, texW) {
@@ -963,7 +1056,20 @@ roomWalls(ROOMS.dance, { left: [DOOR.barDance], back: [[3.6, 5.4]] }, wallMats.d
 roomWalls(ROOMS.swim, { front: [[3.6, 5.4]], left: [[5.0, 6.2]] }, wallMats.brick);
 roomWalls(ROOMS.change, { right: [[4.0, 5.2]] }, wallMats.brick);
 roomWalls(ROOMS.tv, { front: [DOOR.tvPool], right: [DOOR.poolVip] }, wallMats.deco);
-roomWalls(ROOMS.pool, { back: [[7, 8.6]], right: [DOOR.barTv] }, wallMats.green);
+roomWalls(ROOMS.pool, { back: [[1.8, 3.4]], right: [DOOR.barTv], left: [[6.2, 7.6]] }, wallMats.green);
+roomWalls(ROOMS.card, { right: [[6.2, 7.6]] }, wallMats.lacquer);
+// the restroom: inside walls only show when you're in there; the walls facing the dance room always do
+const WC_MESHES = [];
+{
+  const r = ROOMS.wc;
+  const inner = (ax, az, bx, bz, nx, nz, y0, y1) => WC_MESHES.push(wallPlane(ax, az, bx, bz, nx, nz, y0, y1, wallMats.tile, 1.2));
+  inner(r.x0, r.z0, r.x1, r.z0, 0, 1, 0, WALL_H); inner(r.x0, r.z1, r.x1, r.z1, 0, -1, 0, WALL_H); inner(r.x1, r.z0, r.x1, r.z1, -1, 0, 0, WALL_H);
+  inner(r.x0, r.z0, r.x0, 2.7, 1, 0, 0, WALL_H); inner(r.x0, 3.5, r.x0, r.z1, 1, 0, 0, WALL_H); inner(r.x0, 2.7, r.x0, 3.5, 1, 0, DOOR_H, WALL_H);
+  // seen from the dance floor: a plain wall with a door
+  wallPlane(11.8, 2.0, 11.8, 2.7, -1, 0, 0, WALL_H, wallMats.deco, 2); wallPlane(11.8, 3.5, 11.8, 4.0, -1, 0, 0, WALL_H, wallMats.deco, 2);
+  wallPlane(11.8, 2.7, 11.8, 3.5, -1, 0, DOOR_H, WALL_H, wallMats.deco, 2);
+  wallPlane(11.8, 2.0, 14.0, 2.0, 0, -1, 0, WALL_H, wallMats.deco, 2);
+}
 roomWalls(ROOMS.vip, { left: [DOOR.poolVip], back: [[0.6, 1.8]] }, wallMats.red);
 
 RNG = rngFrom(7);
@@ -1298,76 +1404,79 @@ function chandelierLinear(cx, cz, y, len, d) {
   G.push(box(cx - len / 2, cx + len / 2, y + 0.045, y + 0.055, cz - d / 2, cz + d / 2, [255, 238, 210], 0));
 }
 chandelierLinear(PT.x, PT.z, 2.25, 1.7, 0.3);
-// cue rack on the back wall
-S.push(box(-14.3, -12.7, 0.9, 1.0, -3.98, -3.88, [44, 26, 16]));
-S.push(box(-14.3, -12.7, 1.6, 1.7, -3.98, -3.88, [44, 26, 16]));
-for (let k = 0; k < 6; k++) S.push(cyl(V(-14.15 + k * 0.28, 0.92, -3.92), V(-14.15 + k * 0.28, 2.3, -3.92), 0.014, 0.008, [150, 110, 70], { n: 4 }));
-// a small self-serve bar on the left wall: backlit bottle shelves, a black counter with a pink glow underneath
+// cue rack on the wall to the card room
+S.push(box(-11.79, -11.69, 0.9, 1.0, -3.3, -1.7, LUX_BLACK)); S.push(box(-11.79, -11.69, 1.6, 1.7, -3.3, -1.7, LUX_BLACK));
+S.push(box(-11.7, -11.68, 1.66, 1.68, -3.3, -1.7, LUX_GOLD, 0.02));
+for (let k = 0; k < 6; k++) S.push(cyl(V(-11.73, 0.92, -3.15 + k * 0.28), V(-11.73, 2.3, -3.15 + k * 0.28), 0.014, 0.008, [150, 110, 70], { n: 4 }));
+// a small self-serve bar along the front wall: backlit bottle shelves, a black counter with a pink glow underneath
+const MINIBAR = { px: -8.9, pz: 3.985, len: 2.6 };
 {
-  const BX0 = -16.985, BX1 = -16.36, BZ0 = 0.8, BZ1 = 3.5;
-  S.push(box(BX0, BX1 - 0.03, 0.05, 1.0, BZ0, BZ1, LUX_BLACK, 0.03));
-  for (let z = BZ0 + 0.3; z < BZ1 - 0.1; z += 0.45) S.push(box(BX1 - 0.032, BX1 - 0.028, 0.12, 0.95, z - 0.004, z + 0.004, LUX_GOLD, 0.02));
-  S.push(box(BX0, BX1, 1.0, 1.04, BZ0 - 0.02, BZ1 + 0.02, [34, 34, 40], 0.05));
-  S.push(box(BX1 - 0.005, BX1 + 0.005, 1.0, 1.04, BZ0 - 0.02, BZ1 + 0.02, LUX_GOLD, 0.02));
-  G.push(box(BX1 - 0.06, BX1 - 0.035, 0.012, 0.035, BZ0 + 0.02, BZ1 - 0.02, GLOW_PINK, 0));
-  floorGlow(BX1 - 0.03, BZ0 + 0.02, BX1 - 0.03, BZ1 - 0.02, 1, 0, 0.6);
-  // backlit shelves above the counter, warm light under each one
-  S.push(box(BX0, BX0 + 0.015, 1.04, 2.75, BZ0, BZ1, [10, 9, 11], 0.02));
-  for (const [z0, z1] of [[BZ0 - 0.03, BZ0], [BZ1, BZ1 + 0.03]]) S.push(box(BX0, BX0 + 0.27, 1.04, 2.78, z0, z1, LUX_BLACK, 0.02));
+  const L = MINIBAR.len, P = [], Gl = [], D = 0.6;
+  P.push(box(0, L, 0.05, 1.0, 0, D - 0.03, LUX_BLACK, 0.03));
+  for (let x = 0.3; x < L - 0.1; x += 0.45) P.push(box(x - 0.004, x + 0.004, 0.12, 0.95, D - 0.032, D - 0.028, LUX_GOLD, 0.02));
+  P.push(box(-0.02, L + 0.02, 1.0, 1.04, 0, D, [34, 34, 40], 0.05));
+  P.push(box(-0.02, L + 0.02, 1.0, 1.04, D - 0.005, D + 0.005, LUX_GOLD, 0.02));
+  Gl.push(box(0.02, L - 0.02, 0.012, 0.035, D - 0.06, D - 0.035, GLOW_PINK, 0));
+  P.push(box(0, L, 1.04, 2.75, 0, 0.015, [10, 9, 11], 0.02));
+  for (const [x0, x1] of [[-0.03, 0], [L, L + 0.03]]) P.push(box(x0, x1, 1.04, 2.78, 0, 0.27, LUX_BLACK, 0.02));
   const BOTTLE_C = [[24, 70, 40], [120, 64, 20], [170, 150, 110], [30, 50, 90], [130, 30, 30], [210, 210, 200], [20, 20, 24]];
   [1.45, 1.9, 2.35].forEach((sy, row) => {
-    S.push(box(BX0, BX0 + 0.26, sy - 0.025, sy, BZ0, BZ1, [26, 24, 28], 0.02));
-    G.push(box(BX0 + 0.02, BX0 + 0.24, sy - 0.03, sy - 0.025, BZ0 + 0.02, BZ1 - 0.02, [255, 232, 196], 0));
-    for (let z = BZ0 + 0.12, k = row * 3; z < BZ1 - 0.08; z += 0.16 + ((k * 5) % 3) * 0.03, k++) {
-      if (row === 1 && k % 4 === 0) {   // a few short tumblers between the bottles
-        S.push(cyl(V(BX0 + 0.13, sy, z), V(BX0 + 0.13, sy + 0.08, z), 0.032, 0.035, [170, 182, 188], { n: 8, amt: 0.04 }));
-        continue;
-      }
+    P.push(box(0, L, sy - 0.025, sy, 0, 0.26, [26, 24, 28], 0.02));
+    Gl.push(box(0.02, L - 0.02, sy - 0.03, sy - 0.025, 0.02, 0.24, [255, 232, 196], 0));
+    for (let x = 0.12, k = row * 3; x < L - 0.08; x += 0.16 + ((k * 5) % 3) * 0.03, k++) {
+      if (row === 1 && k % 4 === 0) { P.push(cyl(V(x, sy, 0.13), V(x, sy + 0.08, 0.13), 0.032, 0.035, [170, 182, 188], { n: 8, amt: 0.04 })); continue; }
       const c = BOTTLE_C[k % BOTTLE_C.length], hgt = 0.2 + ((k * 3) % 4) * 0.025;
-      S.push(cyl(V(BX0 + 0.13, sy, z), V(BX0 + 0.13, sy + hgt, z), 0.035, 0.032, c, { n: 7, amt: 0.04 }));
-      S.push(cyl(V(BX0 + 0.13, sy + hgt, z), V(BX0 + 0.13, sy + hgt + 0.07, z), 0.012, 0.012, c, { n: 5, amt: 0.04 }));
+      P.push(cyl(V(x, sy, 0.13), V(x, sy + hgt, 0.13), 0.035, 0.032, c, { n: 7, amt: 0.04 }));
+      P.push(cyl(V(x, sy + hgt, 0.13), V(x, sy + hgt + 0.07, 0.13), 0.012, 0.012, c, { n: 5, amt: 0.04 }));
     }
   });
-  // on the counter: an ice bucket with a bottle, a decanter and a few glasses ready to pour
-  S.push(cyl(V(-16.68, 1.04, 1.4), V(-16.68, 1.22, 1.4), 0.09, 0.11, LUX_CHROME, { n: 10, amt: 0.04 }));
-  S.push(cyl(V(-16.68, 1.15, 1.4), V(-16.68, 1.42, 1.4), 0.035, 0.035, [24, 70, 40], { n: 7, amt: 0.04 }));
-  S.push(cyl(V(-16.66, 1.04, 2.3), V(-16.66, 1.2, 2.3), 0.07, 0.05, [170, 120, 60], { n: 8, amt: 0.05 }));
-  S.push(cyl(V(-16.66, 1.2, 2.3), V(-16.66, 1.3, 2.3), 0.02, 0.03, [200, 210, 220], { n: 6, amt: 0.04 }));
-  for (const z of [2.7, 2.85, 3.0]) S.push(cyl(V(-16.6, 1.04, z), V(-16.6, 1.12, z), 0.032, 0.035, [170, 182, 188], { n: 8, amt: 0.04 }));
-  martini(-16.55, 1.04, 1.9); martini(-16.55, 1.04, 2.05);
-  // two red velvet stools
-  for (const z of [1.7, 3.0]) {
-    S.push(cyl(V(-15.95, 0, z), V(-15.95, 0.02, z), 0.2, 0.18, LUX_CHROME, { n: 10 }));
-    S.push(cyl(V(-15.95, 0.02, z), V(-15.95, 0.66, z), 0.025, 0.025, LUX_CHROME, { n: 6 }));
-    S.push(loft([rring(0.66, 0.38, 0.38, -15.95, z, 12, 2), rring(0.74, 0.42, 0.42, -15.95, z, 12, 2), rring(0.78, 0.36, 0.36, -15.95, z, 12, 2)], [124, 16, 30], { smooth: true }));
+  P.push(cyl(V(0.6, 1.04, 0.32), V(0.6, 1.22, 0.32), 0.09, 0.11, LUX_CHROME, { n: 10, amt: 0.04 }));
+  P.push(cyl(V(0.6, 1.15, 0.32), V(0.6, 1.42, 0.32), 0.035, 0.035, [24, 70, 40], { n: 7, amt: 0.04 }));
+  P.push(cyl(V(1.5, 1.04, 0.34), V(1.5, 1.2, 0.34), 0.07, 0.05, [170, 120, 60], { n: 8, amt: 0.05 }));
+  P.push(cyl(V(1.5, 1.2, 0.34), V(1.5, 1.3, 0.34), 0.02, 0.03, [200, 210, 220], { n: 6, amt: 0.04 }));
+  for (const x of [1.9, 2.05, 2.2]) P.push(cyl(V(x, 1.04, 0.4), V(x, 1.12, 0.4), 0.032, 0.035, [170, 182, 188], { n: 8, amt: 0.04 }));
+  for (const lx of [0.8, 1.9]) {
+    P.push(cyl(V(lx, 0, 0.95), V(lx, 0.02, 0.95), 0.2, 0.18, LUX_CHROME, { n: 10 }));
+    P.push(cyl(V(lx, 0.02, 0.95), V(lx, 0.66, 0.95), 0.025, 0.025, LUX_CHROME, { n: 6 }));
+    P.push(loft([rring(0.66, 0.38, 0.38, lx, 0.95, 12, 2), rring(0.74, 0.42, 0.42, lx, 0.95, 12, 2), rring(0.78, 0.36, 0.36, lx, 0.95, 12, 2)], [124, 16, 30], { smooth: true }));
   }
+  S.push(...placeParts(P, MINIBAR.px, MINIBAR.pz, Math.PI, 0)); G.push(...placeParts(Gl, MINIBAR.px, MINIBAR.pz, Math.PI, 0));
+  martini(MINIBAR.px - 1.05, 1.04, MINIBAR.pz - 0.42); martini(MINIBAR.px - 1.2, 1.04, MINIBAR.pz - 0.42);
+  floorGlow(MINIBAR.px - 0.02, MINIBAR.pz - D + 0.03, MINIBAR.px - L + 0.02, MINIBAR.pz - D + 0.03, 0, -1, 0.6);
 }
-sconceZ(-11.4, -3.97, 1); sconceZ(-15.6, -3.97, 1);
-// poker table: oval, black padded rail, green felt, six chairs; cards and chips at every seat
-const PK = { x: -13.9, z: -0.3, w: 2.3, d: 1.25 };
+sconceZ(-10.9, -3.97, 1);
+// ===== CARD ROOM: black lacquer, gold, a smoked mirror wall; the poker table runs lengthwise with the dealer at the side =====
+const PK = { x: -14.6, z: 0.0, w: 1.25, d: 2.3 };
 const FELT = [130, 20, 30], RAIL = [14, 12, 14], PK_WOOD = [20, 18, 20];
 S.push(cyl(V(PK.x, 0, PK.z), V(PK.x, 0.04, PK.z), 0.5, 0.48, RAIL, { n: 12 }));
 S.push(cyl(V(PK.x, 0.04, PK.z), V(PK.x, 0.66, PK.z), 0.18, 0.22, RAIL, { n: 10 }));
-S.push(loft([rring(0.62, PK.w - 0.2, PK.d - 0.15, PK.x, PK.z, 20, 2), rring(0.74, PK.w + 0.1, PK.d + 0.1, PK.x, PK.z, 20, 2)], PK_WOOD, { amt: 0.04 }));
+S.push(loft([rring(0.62, PK.w - 0.15, PK.d - 0.2, PK.x, PK.z, 20, 2), rring(0.74, PK.w + 0.1, PK.d + 0.1, PK.x, PK.z, 20, 2)], PK_WOOD, { amt: 0.04 }));
 S.push(loft([rring(0.74, PK.w, PK.d, PK.x, PK.z, 24, 2), rring(0.775, PK.w, PK.d, PK.x, PK.z, 24, 2)], FELT, { amt: 0.03 }));
 S.push(loft([rring(0.74, PK.w + 0.22, PK.d + 0.22, PK.x, PK.z, 24, 2), rring(0.795, PK.w + 0.24, PK.d + 0.24, PK.x, PK.z, 24, 2), rring(0.815, PK.w + 0.1, PK.d + 0.1, PK.x, PK.z, 24, 2), rring(0.79, PK.w - 0.01, PK.d - 0.01, PK.x, PK.z, 24, 2)], RAIL, { amt: 0.03, smooth: true, cap: false }));
-S.push(loft([rring(0.776, PK.w - 0.5, PK.d - 0.42, PK.x, PK.z, 24, 2), rring(0.7775, PK.w - 0.5, PK.d - 0.42, PK.x, PK.z, 24, 2)], [200, 170, 90], { amt: 0.02, cap: false }));
+S.push(loft([rring(0.776, PK.w - 0.42, PK.d - 0.5, PK.x, PK.z, 24, 2), rring(0.7775, PK.w - 0.42, PK.d - 0.5, PK.x, PK.z, 24, 2)], [200, 170, 90], { amt: 0.02, cap: false }));
 S.push(loft([rring(0.7, PK.w + 0.255, PK.d + 0.255, PK.x, PK.z, 24, 2), rring(0.725, PK.w + 0.255, PK.d + 0.255, PK.x, PK.z, 24, 2)], LUX_CHROME, { amt: 0.02, cap: false }));
+// the house logo on the felt, at the far end from the dealer
+const CARD_SIGNS = [];
+const feltLogo = goldSign("SH1DEN'S", 256, 64, 40); CARD_SIGNS.push(feltLogo);
+const logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.155), decal({ map: feltLogo.tex, transparent: true }));
+logoMesh.rotation.x = -Math.PI / 2; logoMesh.rotation.z = Math.PI / 2; logoMesh.position.set(PK.x - 0.25, 0.782, PK.z); scene.add(logoMesh);
 // whiskey glasses resting on the rail
-for (const a of [0.4, 2.3, 4.4]) { const gx = PK.x + Math.cos(a) * (PK.w / 2 + 0.06), gz = PK.z + Math.sin(a) * (PK.d / 2 + 0.06);
+for (const a of [2.2, 3.4, 4.1]) { const gx = PK.x + Math.cos(a) * (PK.w / 2 + 0.06), gz = PK.z + Math.sin(a) * (PK.d / 2 + 0.06);
   S.push(cyl(V(gx, 0.815, gz), V(gx, 0.895, gz), 0.034, 0.037, [170, 182, 188], { n: 8, amt: 0.04 })); S.push(cyl(V(gx, 0.82, gz), V(gx, 0.85, gz), 0.032, 0.032, [170, 100, 34], { n: 8, amt: 0.03 })); }
-// community cards and the pot in the middle, a dealer button
-for (let k = 0; k < 5; k++) S.push(box(PK.x - 0.2 + k * 0.1 - 0.032, PK.x - 0.2 + k * 0.1 + 0.032, 0.776, 0.778, PK.z - 0.045, PK.z + 0.045, [236, 232, 224], 0.02));
-for (let k = 0; k < 5; k++) S.push(box(PK.x - 0.2 + k * 0.1 - 0.01, PK.x - 0.2 + k * 0.1 + 0.01, 0.778, 0.7785, PK.z - 0.015, PK.z + 0.015, k % 2 ? [190, 20, 30] : [16, 16, 18], 0));
 const CHIP_COLS = [[180, 24, 30], [20, 20, 24], [230, 228, 220], [30, 70, 160], [30, 120, 60]];
 const chipStack = (x, z, col, n) => { for (let k = 0; k < n; k++) S.push(cyl(V(x, 0.776 + k * 0.0042, z), V(x, 0.776 + k * 0.0042 + 0.0038, z), 0.02, 0.02, k % 2 ? col : col.map((v) => v * 0.82), { n: 8, amt: 0.02 })); };
-chipStack(PK.x - 0.05, PK.z + 0.16, CHIP_COLS[0], 7); chipStack(PK.x + 0.03, PK.z + 0.18, CHIP_COLS[1], 5); chipStack(PK.x + 0.1, PK.z + 0.15, CHIP_COLS[3], 4);
-S.push(cyl(V(PK.x + 0.55, 0.776, PK.z - 0.3), V(PK.x + 0.55, 0.784, PK.z - 0.3), 0.03, 0.03, [236, 232, 224], { n: 10, amt: 0.02 }));
+// the dealer's chip tray in front of him
+{
+  const tx = PK.x + PK.w / 2 - 0.12;
+  S.push(box(tx - 0.07, tx + 0.07, 0.776, 0.8, PK.z - 0.3, PK.z + 0.3, [26, 22, 24], 0.03));
+  for (let k = 0; k < 6; k++) for (let j = 0; j < 7; j++) S.push(cyl(V(tx - 0.035 + (k % 2) * 0.07, 0.79, PK.z - 0.26 + k * 0.004 + j * 0.075), V(tx - 0.035 + (k % 2) * 0.07, 0.83, PK.z - 0.26 + k * 0.004 + j * 0.075), 0.019, 0.019, CHIP_COLS[j % 5], { n: 6, amt: 0.03 }));
+}
+// six seats around the oval; the one facing the dealer side is his place, so five chairs for players
 const POKER_SEATS = [];
-for (let i = 0; i < 6; i++) {
-  const a = Math.PI * 2 * i / 6 + Math.PI / 6, ca = Math.cos(a), sa = Math.sin(a);
+const DEALER = { x: PK.x + PK.w / 2 + 0.42, z: PK.z, yaw: -Math.PI / 2 };
+for (let i = 1; i < 6; i++) {
+  const a = Math.PI * 2 * i / 6, ca = Math.cos(a), sa = Math.sin(a);
   const ex = PK.x + ca * (PK.w / 2 + 0.5), ez = PK.z + sa * (PK.d / 2 + 0.5), yaw = Math.atan2(PK.x - ex, PK.z - ez);
-  // chair
   // red velvet, button-tufted, on chrome legs
   const VEL = [124, 16, 30], VEL_D = [92, 10, 22];
   const chair = [loft([rect(0.38, 0.5, 0.48, 0, 0), rect(0.47, 0.52, 0.5, 0, 0), rect(0.5, 0.48, 0.46, 0, 0)], VEL, { amt: 0.03 }),
@@ -1375,14 +1484,55 @@ for (let i = 0; i < 6; i++) {
   for (const by of [0.6, 0.72, 0.84]) for (const bx of [-0.16, 0, 0.16]) chair.push(box(bx - 0.008, bx + 0.008, by - 0.008, by + 0.008, -0.188 - (by - 0.48) * 0.08, -0.176 - (by - 0.48) * 0.08, VEL_D, 0));
   for (const [lx, lz] of [[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.2], [0.2, 0.2]]) chair.push(cyl(V(lx, 0, lz), V(lx * 0.9, 0.38, lz * 0.9), 0.014, 0.018, LUX_CHROME, { n: 5 }));
   S.push(...placeParts(chair, ex, ez, yaw, 0));
-  POKER_SEATS.push([ex + Math.sin(yaw) * 0.02, ez + Math.cos(yaw) * 0.02, yaw]);
-  // that seat's hole cards and chips on the felt
-  const cx = PK.x + ca * (PK.w / 2 - 0.22), cz = PK.z + sa * (PK.d / 2 - 0.2);
-  S.push(...placeParts([box(-0.032, 0.032, 0.776, 0.7772, -0.045, 0.045, [150, 20, 30], 0.02), box(-0.012, 0.052, 0.7772, 0.7784, -0.035, 0.055, [150, 20, 30], 0.02)], cx, cz, yaw, 0));
-  chipStack(cx + Math.cos(yaw) * 0.12, cz - Math.sin(yaw) * 0.12, CHIP_COLS[i % 5], 3 + (i * 3) % 6);
-  chipStack(cx + Math.cos(yaw) * 0.17, cz - Math.sin(yaw) * 0.17, CHIP_COLS[(i + 2) % 5], 2 + (i * 5) % 5);
+  POKER_SEATS.push([ex + Math.sin(yaw) * 0.02, ez + Math.cos(yaw) * 0.02, yaw, ca, sa]);
 }
 chandelierRound(PK.x, PK.z, 2.5, 0.62);
+// smoked mirror on the left wall, gold coves along the top of every wall, a deep red oval rug
+{
+  const mirTex = canvasTex(16, 32, (x, w, h) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const k = 0.5 + 0.5 * Math.sin((i + j * 0.6) * 0.35); x.fillStyle = `rgb(${Math.round(22 + 16 * k)},${Math.round(20 + 14 * k)},${Math.round(24 + 18 * k)})`; x.fillRect(i, j, 1, 1); } });
+  const mir = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 1.8), decal({ map: mirTex }));
+  mir.position.set(-16.96, 1.75, 0); mir.rotation.y = Math.PI / 2; scene.add(mir);
+  S.push(box(-16.99, -16.93, 0.8, 0.85, -2.55, 2.55, LUX_GOLD, 0.02)); S.push(box(-16.99, -16.93, 2.65, 2.7, -2.55, 2.55, LUX_GOLD, 0.02));
+  const r = ROOMS.card;
+  for (const [x0, x1, z0, z1] of [[r.x0, r.x1, r.z0, r.z0 + 0.05], [r.x0, r.x1, r.z1 - 0.05, r.z1], [r.x0, r.x0 + 0.05, r.z0, r.z1], [r.x1 - 0.05, r.x1, r.z0, 2.2], [r.x1 - 0.05, r.x1, 3.6, r.z1]])
+    G.push(box(x0, x1, 3.0, 3.03, z0, z1, [255, 214, 150], 0));
+  const rugTex2 = canvasTex(32, 32, (x, w, h) => {
+    noiseFill(x, w, h, [70, 8, 16], 6);
+    x.strokeStyle = 'rgb(170,128,58)'; x.lineWidth = 1; x.beginPath(); x.ellipse(16, 16, 14, 14, 0, 0, 7); x.stroke(); x.beginPath(); x.ellipse(16, 16, 11, 11, 0, 0, 7); x.stroke();
+  });
+  const rug2 = new THREE.Mesh(new THREE.CircleGeometry(1, 32), decal({ map: rugTex2 }));
+  rug2.rotation.x = -Math.PI / 2; rug2.scale.set(1.7, 2.6, 1); rug2.position.set(PK.x, 0.024, PK.z); scene.add(rug2);
+}
+// champagne trolley by the front wall, a glass case of high-value chips in the back corner
+{
+  const cx = -16.2, cz = 3.2;
+  S.push(box(cx - 0.35, cx + 0.35, 0.78, 0.8, cz - 0.22, cz + 0.22, LUX_GOLD, 0.02)); S.push(box(cx - 0.35, cx + 0.35, 0.25, 0.27, cz - 0.22, cz + 0.22, LUX_GOLD, 0.02));
+  for (const [ex, ez] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) S.push(cyl(V(cx + ex * 0.33, 0.06, cz + ez * 0.2), V(cx + ex * 0.33, 0.8, cz + ez * 0.2), 0.012, 0.012, LUX_GOLD, { n: 4 }));
+  for (const [ex, ez] of [[-1, -1], [1, 1]]) S.push(cyl(V(cx + ex * 0.33, 0.06, cz + ez * 0.2), V(cx + ex * 0.33, 0.0, cz + ez * 0.2), 0.05, 0.05, [20, 20, 22], { n: 8 }));
+  S.push(cyl(V(cx - 0.12, 0.8, cz), V(cx - 0.12, 0.98, cz), 0.1, 0.12, LUX_CHROME, { n: 10, amt: 0.04 }));
+  S.push(cyl(V(cx - 0.12, 0.9, cz), V(cx - 0.12, 1.2, cz), 0.04, 0.04, [20, 40, 24], { n: 7, amt: 0.04 }));
+  S.push(cyl(V(cx - 0.12, 1.2, cz), V(cx - 0.12, 1.24, cz), 0.025, 0.025, [210, 180, 90], { n: 6, amt: 0.02 }));
+  for (const [ox, oz] of [[0.12, -0.08], [0.22, 0.06], [0.1, 0.1]]) { S.push(cyl(V(cx + ox, 0.8, cz + oz), V(cx + ox, 0.88, cz + oz), 0.004, 0.004, [200, 210, 220], { n: 4 })); S.push(cyl(V(cx + ox, 0.88, cz + oz), V(cx + ox, 0.92, cz + oz), 0.006, 0.045, [200, 210, 220], { n: 8, amt: 0.05 })); }
+  const qx = -16.4, qz = -3.35;
+  S.push(box(qx - 0.4, qx + 0.4, 0, 0.9, qz - 0.3, qz + 0.3, LUX_BLACK, 0.03)); S.push(box(qx - 0.41, qx + 0.41, 0.9, 0.93, qz - 0.31, qz + 0.31, LUX_GOLD, 0.02));
+  for (let k = 0; k < 4; k++) for (let j = 0; j < 3; j++) { const col = CHIP_COLS[(k + j) % 5]; for (let c = 0; c < 6; c++) S.push(cyl(V(qx - 0.27 + k * 0.18, 0.93 + c * 0.0045, qz - 0.15 + j * 0.15), V(qx - 0.27 + k * 0.18, 0.934 + c * 0.0045, qz - 0.15 + j * 0.15), 0.022, 0.022, c % 2 ? col : col.map((v) => v * 0.8), { n: 8, amt: 0.02 })); }
+  G.push(box(qx - 0.38, qx + 0.38, 1.42, 1.44, qz - 0.28, qz + 0.28, [255, 236, 200], 0));
+  const caseGlass = new THREE.Mesh(toGeometry([box(qx - 0.4, qx + 0.4, 0.93, 1.45, qz - 0.3, qz + 0.3, [180, 200, 210], 0)]), new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.18, depthWrite: false }));
+  caseGlass.renderOrder = 2; scene.add(caseGlass);
+}
+// the door to the card room: shut, roped off and signed whenever the host is away
+doorFrame(-11.8, 2.2, -11.8, 3.6);
+const cardClosed = new THREE.Group(); scene.add(cardClosed);
+{
+  const P = [box(-11.84, -11.76, 0, DOOR_H, 2.22, 2.89, [20, 16, 18]), box(-11.84, -11.76, 0, DOOR_H, 2.91, 3.58, [20, 16, 18])];
+  for (const z of [2.84, 2.96]) P.push(box(-11.74, -11.7, 1.0, 1.35, z - 0.012, z + 0.012, LUX_GOLD, 0.02));
+  for (const z of [2.45, 3.35]) { P.push(cyl(V(-11.35, 0, z), V(-11.35, 0.03, z), 0.13, 0.12, BRASS_D, { n: 8 })); P.push(cyl(V(-11.35, 0.03, z), V(-11.35, 0.95, z), 0.025, 0.025, BRASS, { n: 6 })); }
+  P.push(tube([V(-11.35, 0.9, 2.45), V(-11.38, 0.68, 2.9), V(-11.35, 0.9, 3.35)], [0.022, 0.022, 0.022], VELVET, { n: 5 }));
+  cardClosed.add(new THREE.Mesh(toGeometry(P), roomMat));
+  const sign = goldSign('CLOSED · PRIVATE GAME', 320, 40, 22); CARD_SIGNS.push(sign);
+  const sm = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.18), decal({ map: sign.tex, transparent: true }));
+  sm.position.set(-11.7, 1.75, 2.9); sm.rotation.y = Math.PI / 2; cardClosed.add(sm);
+}
 // a red version of the entrance banquettes in the corner between the cinema and bar doors
 const VELVET_R = [126, 16, 30], VELVET_RD = [92, 10, 22], POOL_SOFA = [];
 banquette(-8.25, -3.95, 0, 3.2, VELVET_R, VELVET_RD);
@@ -1456,7 +1606,9 @@ function paintingTex(kind) {
     x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(0, 0, w, 1); x.fillRect(0, h - 1, w, 1); x.fillRect(0, 0, 1, h); x.fillRect(w - 1, 0, 1, h);
   });
 }
+const PAINTINGS = [];
 function painting(kind, px, pz, yaw, cy) {
+  PAINTINGS.push({ kind, px, pz, yaw, cy });
   const GOLD = [150, 112, 54], GOLD_D = [96, 72, 36], cw = 0.72, ch = 0.99, f = 0.07;
   const parts = [];
   parts.push(box(-cw / 2 - f, cw / 2 + f, cy + ch / 2, cy + ch / 2 + f, 0.012, 0.075, GOLD, 0.03));
@@ -1475,7 +1627,7 @@ function painting(kind, px, pz, yaw, cy) {
 painting(0, -15.2, 4.0, Math.PI, 1.85);
 painting(3, -6.8, 4.0, Math.PI, 1.85);
 painting(1, -6.8, -4.0, 0, 1.85);
-painting(2, -17.0, -1.6, Math.PI / 2, 2.0);
+painting(2, -14.4, -4.0, 0, 2.0);
 
 // ===== VIP LOUNGE: dark panels, pink neon, a glowing disc behind a tall plant, cognac leather sofas =====
 const FX = -1.1;                       // centre of the feature wall
@@ -1768,6 +1920,7 @@ function yzRing(x, yb, yt, w, n, pw) {
   }
   return pts;
 }
+const CHROME_GRILLE = [190, 192, 198];
 const GLASS_D = [16, 20, 26], RUBBER = [12, 12, 13], RIM_C = [120, 122, 128];
 function carWheels(P, xs, track, r, w) {
   for (const x of xs) for (const e of [-1, 1]) {
@@ -1792,6 +1945,34 @@ function carParts(kind, color, opts) {
     }
     carWheels(P, [-1.55, 1.55], 1.86, 0.42, 0.3);
     P.push(box(-2.3, 2.3, 0.28, 0.34, -1.0, 1.0, dark, 0.03));
+  } else if (kind === 'super') {
+    // an original wedge supercar: very low, wide haunches, a small canopy set forward, a fixed rear wing
+    const prof = [[-2.25, 0.32, 0.78, 1.7], [-2.0, 0.25, 0.86, 1.96], [-1.2, 0.22, 0.88, 2.02], [0, 0.2, 0.78, 1.98], [1.2, 0.2, 0.62, 1.98], [1.9, 0.22, 0.5, 1.9], [2.3, 0.27, 0.4, 1.7]];
+    P.push(loft(prof.map(([x, b, t, w]) => yzRing(x, b, t, w, 18, 3.4)), color, { amt: 0.025, smooth: true }));
+    P.push(loft([yzRing(-1.3, 0.8, 0.86, 1.6, 16, 3.2), yzRing(-0.9, 0.8, 1.12, 1.42, 16, 3.2), yzRing(0.1, 0.75, 1.14, 1.36, 16, 3.2), yzRing(0.9, 0.62, 0.68, 1.6, 16, 3.2)], GLASS_D, { amt: 0.03, smooth: true }));
+    P.push(box(-2.3, -2.0, 1.02, 1.06, -0.85, 0.85, [10, 10, 11], 0.02));
+    for (const e of [-1, 1]) {
+      P.push(box(-2.2, -2.1, 0.8, 1.02, e * 0.6 - 0.02, e * 0.6 + 0.02, [10, 10, 11], 0.02));
+      P.push(box(-0.6, 0.3, 0.3, 0.55, e * 0.98 - 0.02, e * 0.98 + 0.02, [10, 10, 11], 0.02));
+      L.push(box(1.95, 2.25, 0.46, 0.5, e * 0.6 - 0.2, e * 0.6 + 0.2, head, 0));
+    }
+    L.push(box(-2.27, -2.22, 0.66, 0.7, -0.8, 0.8, tail, 0));
+    P.push(box(2.2, 2.42, 0.18, 0.22, -0.85, 0.85, [10, 10, 11], 0.02));
+    carWheels(P, [-1.4, 1.4], 1.78, 0.36, 0.3);
+  } else if (kind === 'saloon') {
+    // an original long luxury saloon: upright chrome grille, long bonnet, formal roofline
+    P.push(loft([yzRing(-2.6, 0.36, 0.92, 1.8, 14, 3.6), yzRing(-2.4, 0.3, 1.0, 1.92, 14, 3.6), yzRing(2.3, 0.3, 0.98, 1.92, 14, 3.6), yzRing(2.6, 0.38, 0.86, 1.84, 14, 3.6)], color, { amt: 0.025, smooth: true }));
+    P.push(loft([yzRing(-1.9, 0.98, 1.02, 1.8, 14, 3.6), yzRing(-1.5, 0.98, 1.52, 1.64, 14, 3.6), yzRing(0.5, 0.98, 1.52, 1.64, 14, 3.6), yzRing(1.15, 0.98, 1.02, 1.8, 14, 3.6)], GLASS_D, { amt: 0.03 }));
+    P.push(box(-1.45, 0.45, 1.5, 1.56, -0.8, 0.8, color, 0.03));
+    for (const x of [-0.5]) P.push(box(x - 0.05, x + 0.05, 0.98, 1.5, -0.83, 0.83, color, 0.03));
+    P.push(box(2.6, 2.64, 0.45, 0.88, -0.38, 0.38, CHROME_GRILLE, 0.03));
+    for (let z = -0.32; z <= 0.33; z += 0.08) P.push(box(2.64, 2.65, 0.47, 0.86, z - 0.01, z + 0.01, [40, 40, 44], 0.02));
+    for (const e of [-1, 1]) {
+      L.push(box(2.52, 2.64, 0.72, 0.84, e * 0.68 - 0.18, e * 0.68 + 0.18, head, 0));
+      L.push(box(-2.64, -2.56, 0.7, 0.86, e * 0.72 - 0.14, e * 0.72 + 0.14, tail, 0));
+      P.push(box(-2.3, 2.3, 0.62, 0.64, e * 0.96 - 0.01, e * 0.96 + 0.01, CHROME_GRILLE, 0.02));
+    }
+    carWheels(P, [-1.6, 1.6], 1.8, 0.37, 0.28);
   } else if (kind === 'sedan') {
     P.push(loft([yzRing(-2.3, 0.35, 0.86, 1.72, 12, 3.5), yzRing(-2.1, 0.28, 0.92, 1.8, 12, 3.5), yzRing(2.05, 0.28, 0.86, 1.8, 12, 3.5), yzRing(2.3, 0.36, 0.72, 1.72, 12, 3.5)], color, { amt: 0.03 }));
     P.push(loft([yzRing(-1.7, 0.86, 0.95, 1.7, 12, 3.5), yzRing(-1.15, 0.86, 1.42, 1.56, 12, 3.5), yzRing(0.35, 0.86, 1.42, 1.56, 12, 3.5), yzRing(1.05, 0.86, 0.93, 1.7, 12, 3.5)], GLASS_D, { amt: 0.03 }));
@@ -2040,15 +2221,57 @@ groundPlane(5, AL.x1, AL.z0, -12.02, wetTex, 3, 0);
   scaleUV(g, w / 3.2, 7 / 6.4);
   const m = new THREE.Mesh(g, windowMat); m.position.set((AL.x0 + AL.x1) / 2, 3.5, AL.z0 - 0.02); scene.add(m);
 }
-// a wall lamp over where the coupe is parked
-S.push(box(-0.9, -0.5, 2.9, 3.0, -11.24, -11.02, [30, 30, 34], 0.03));
-G.push(box(-0.85, -0.55, 2.86, 2.9, -11.2, -11.06, [255, 232, 200], 0));
-const carLamp = pLight(0xffe8d0, 1.1, 7, -0.7, 2.7, -12.2);
-// the red open-top coupe, pulled up right by the back door (driver's side to the door, wheels still turned)
-const COUPE = { x: -0.7, z: -12.62, yaw: Math.PI + 0.05 };
-parkCar('coupe', [176, 18, 24], COUPE.x, COUPE.z, COUPE.yaw, 0, { steer: 0.32 });
-// car-local point -> world [x, z]
-function coupeAt(lx, lz) { const c = Math.cos(COUPE.yaw), s = Math.sin(COUPE.yaw); return [lx * c + lz * s + COUPE.x, -lx * s + lz * c + COUPE.z]; }
+// ===== PRIVATE LOT: numbered bays for the hosts' cars; a car is only here while its owner is online =====
+const LOT_BAYS = [-3.8, -0.6, 2.6, 5.8, 9.0, -7.0, -10.2, 12.2];     // bay 1 is right by the back door
+const LOT_Z = -16.3;
+for (const x of [-11.8, -8.6, -5.4, -2.2, 1.0, 4.2, 7.4, 10.6, 13.8]) S.push(box(x - 0.04, x + 0.04, 0, 0.03, -19.0, -14.2, [200, 198, 190], 0.02));
+for (const bx of LOT_BAYS) S.push(box(bx - 0.7, bx + 0.7, 0, 0.12, -18.75, -18.55, [90, 90, 94], 0.04));
+// a boom barrier at the lot's exit, two tall lot lamps
+S.push(box(14.3, 14.55, 0, 1.1, -19.0, -18.75, [40, 40, 44], 0.03));
+for (let k = 0; k < 8; k++) S.push(box(14.38, 14.48, 0.95, 1.05, -18.75 + k * 0.6, -18.75 + (k + 1) * 0.6, k % 2 ? [220, 220, 216] : [190, 30, 30], 0.02));
+for (const lx of [-2.2, 7.4]) {
+  S.push(cyl(V(lx, 0, -18.8), V(lx, 4.4, -18.8), 0.06, 0.05, [24, 24, 28], { n: 6 }));
+  S.push(box(lx - 0.35, lx + 0.35, 4.35, 4.45, -18.9, -18.3, [30, 30, 34], 0.03));
+  G.push(box(lx - 0.3, lx + 0.3, 4.33, 4.35, -18.85, -18.35, [255, 236, 210], 0));
+}
+const carLamp = pLight(0xffe8d0, 1.3, 13, 2.6, 4.2, -16.0);
+// reserved plates on the wall at the head of each bay, with the owner's name when they're here
+const lotPlates = LOT_BAYS.map((bx, i) => {
+  const c = document.createElement('canvas'); c.width = 160; c.height = 48;
+  const tex = new THREE.CanvasTexture(c); tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.encoding = THREE.sRGBEncoding;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.33), decal({ map: tex }));
+  m.position.set(bx, 1.75, -18.97); scene.add(m);
+  const draw = (name) => {
+    const x = c.getContext('2d');
+    x.fillStyle = '#0d0c0e'; x.fillRect(0, 0, 160, 48); x.strokeStyle = '#b8924a'; x.lineWidth = 2; x.strokeRect(2, 2, 156, 44);
+    x.fillStyle = '#e7c98a'; x.font = '20px "Limelight", Georgia, serif'; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText(String(i + 1), 10, 25);
+    x.font = '11px "IBM Plex Mono", monospace'; x.fillStyle = name ? '#efe2c2' : '#7d705a'; x.fillText(name ? name.slice(0, 14) : 'RESERVED', 36, 25);
+    tex.needsUpdate = true;
+  };
+  draw(''); return { draw, name: '' };
+});
+// the cars themselves: rebuilt whenever someone arrives, leaves or repaints
+const lotCars = new Map();
+function setLotCars(list) {
+  const want = new Map((list || []).map((c) => [c.uid, c]));
+  for (const [uid, g] of lotCars) {
+    const c = want.get(uid);
+    if (!c || g.userData.key !== c.style + c.color + c.bay) { scene.remove(g); lotCars.delete(uid); }
+  }
+  lotPlates.forEach((p, i) => { const c = (list || []).find((o) => o.bay === i); const nm = c ? c.name : ''; if (nm !== p.name) { p.name = nm; p.draw(nm); } });
+  for (const c of list || []) {
+    if (lotCars.has(c.uid) || c.bay < 0 || c.bay >= LOT_BAYS.length) continue;
+    const col = CAR_COLORS[c.color] || CAR_COLORS[0];
+    const parts = carParts(CAR_STYLES.includes(c.style) ? c.style : 'super', col[1]);
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(toGeometry(parts.P), roomMat)); g.add(new THREE.Mesh(toGeometry(parts.L), glowMat));
+    g.position.set(LOT_BAYS[c.bay], 0, LOT_Z); g.rotation.y = -Math.PI / 2; g.userData.key = c.style + c.color + c.bay;
+    scene.add(g); lotCars.set(c.uid, g);
+  }
+}
+const CAR_STYLES = ['coupe', 'super', 'saloon', 'suv'];
+const CAR_STYLE_NAMES = { coupe: 'Open-top coupe', super: 'Wedge supercar', saloon: 'Luxury saloon', suv: 'Armoured SUV' };
+const CAR_COLORS = [['Racing red', [176, 18, 24]], ['Black', [14, 14, 16]], ['Midnight blue', [18, 26, 60]], ['Gunmetal', [62, 64, 70]], ['Pearl white', [222, 220, 212]], ['Royal purple', [70, 20, 90]], ['Emerald', [16, 80, 52]], ['Gold', [176, 140, 60]]];
 // back door: steps and a caged lamp over it
 S.push(box(-4.6, -3.0, 0, 0.16, -11.6, -11.02, [50, 50, 54], 0.03));
 S.push(box(-4.05, -3.55, 2.56, 2.66, -11.24, -11.02, [30, 30, 34], 0.03));
@@ -2084,7 +2307,6 @@ const jukeFace = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.7), decal({ map:
 }) }));
 jukeFace.position.set(-4.43, 0.8, -1.6); jukeFace.rotation.y = Math.PI / 2; scene.add(jukeFace);
 
-const signFont = '"Limelight", "Poiret One", Georgia, serif';
 function goldSign(text, w, h, px) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const tex = new THREE.CanvasTexture(c); tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.encoding = THREE.sRGBEncoding;
@@ -2114,6 +2336,9 @@ function doorSign(text, x, z, rotY) {
 doorSign('DANCE', 4.97, 0, -Math.PI / 2); doorSign('BAR', 5.03, 0, Math.PI / 2);
 doorSign('BILLIARDS', -4.97, 1.5, Math.PI / 2); doorSign('BAR', -5.03, 1.5, -Math.PI / 2);
 doorSign('CINEMA', -9.2, -3.97, 0); doorSign('BILLIARDS', -9.2, -4.03, Math.PI);
+doorSign('CARD ROOM', -11.77, 2.9, Math.PI / 2); doorSign('BILLIARDS', -11.83, 2.9, -Math.PI / 2);
+doorSign('RESTROOM', 11.77, 3.1, -Math.PI / 2); doorSign('DANCE', 11.88, 3.1, Math.PI / 2);
+SIGNS.push(...CARD_SIGNS);
 doorSign('POOL', 9.5, -3.97, 0); doorSign('DANCE', 9.5, -4.03, Math.PI);
 doorSign('VIP', -5.03, -7.75, -Math.PI / 2); doorSign('CINEMA', -4.97, -7.75, Math.PI / 2);
 doorSign('BACKSTREET', -3.8, -10.97, 0); doorSign('POOL', 4.97, -6.4, -Math.PI / 2); doorSign('CHANGING', 5.03, -6.4, Math.PI / 2); doorSign('VIP', -3.8, -11.05, Math.PI);
@@ -2131,19 +2356,27 @@ const tvHoleMat = tvGlass.material;
 // the poker broadcast: a camera straight above the poker table, shown on the cinema TV with a high-stakes overlay
 const pokerRT = new THREE.WebGLRenderTarget(640, 360, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
 const pokerCam = new THREE.PerspectiveCamera(33, 640 / 360, 2.9, 8);   // the near plane cuts away the chandelier
-pokerCam.up.set(0, 0, -1); pokerCam.position.set(PK.x, 4.6, PK.z + 0.1); pokerCam.lookAt(PK.x, 0, PK.z + 0.1);
+pokerCam.up.set(1, 0, 0); pokerCam.position.set(PK.x, 4.6, PK.z); pokerCam.lookAt(PK.x, 0, PK.z);
 const pokerScreenMat = new THREE.MeshBasicMaterial({ map: pokerRT.texture, fog: false });
 const pokerHud = document.createElement('canvas'); pokerHud.width = 640; pokerHud.height = 360;
 const pokerHudTex = new THREE.CanvasTexture(pokerHud); pokerHudTex.minFilter = THREE.LinearFilter;
 const pokerHudMesh = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), new THREE.MeshBasicMaterial({ map: pokerHudTex, transparent: true, fog: false, depthWrite: false }));
 pokerHudMesh.position.set(TV.x + 0.006, TV.y, TV.z); pokerHudMesh.rotation.y = Math.PI / 2; pokerHudMesh.visible = false; pokerHudMesh.renderOrder = 3; scene.add(pokerHudMesh);
-let pokerOn = false, pokerFrame = 0, pokerHudAt = 0;
+let pokerOn = false, pokerFrame = 0, pokerHudAt = 0, pokerState = null;
 function setPokerCam(on) {
   pokerOn = !!on;
   tvGlass.material = pokerOn ? pokerScreenMat : tvHoleMat;
   pokerHudMesh.visible = pokerOn;
 }
 const pokerPlayers = () => crowd.filter((c) => c.spot && c.spot.startsWith('poker-seat-') && c.root.visible !== false);
+const SUIT_CH = { s: '♠', h: '♥', d: '♦', c: '♣' };
+function drawCard(x, px, py, w, h, c) {
+  x.fillStyle = '#f4efe4'; x.fillRect(px, py, w, h); x.strokeStyle = '#b8924a'; x.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1);
+  const red = c[1] === 'h' || c[1] === 'd';
+  x.fillStyle = red ? '#b01820' : '#141414'; x.font = 'bold 15px "IBM Plex Mono", monospace'; x.textBaseline = 'middle'; x.textAlign = 'center';
+  x.fillText(c[0] === 'T' ? '10' : c[0], px + w / 2, py + h * 0.32); x.font = '18px serif'; x.fillText(SUIT_CH[c[1]] || '', px + w / 2, py + h * 0.7);
+  x.textAlign = 'left';
+}
 function drawPokerHud() {
   const x = pokerHud.getContext('2d'), w = 640, h = 360;
   x.clearRect(0, 0, w, h);
@@ -2173,11 +2406,18 @@ function drawPokerHud() {
     x.strokeStyle = 'rgba(214,170,90,0.8)'; x.strokeRect(px - tw / 2 + 0.5, py - 29.5, tw - 1, 19);
     x.fillStyle = '#efe2c2'; x.fillText(ch.name, px - tw / 2 + 8, py - 20);
   }
+  // the board and the pot, from the live game
+  const st = pokerState;
+  if (st && st.board && st.board.length) {
+    const cw = 34, chh = 48, x0 = w / 2 - (st.board.length * (cw + 6)) / 2;
+    st.board.forEach((c, i) => drawCard(x, x0 + i * (cw + 6), h / 2 - chh / 2, cw, chh, c));
+  }
+  if (st && st.pot) { x.fillStyle = 'rgba(8,6,6,0.82)'; x.fillRect(w / 2 - 60, h / 2 + 32, 120, 22); x.fillStyle = '#e7c98a'; x.font = '13px "IBM Plex Mono", monospace'; x.textAlign = 'center'; x.fillText('POT ' + st.pot.toLocaleString(), w / 2, h / 2 + 44); x.textAlign = 'left'; }
   // lower third
-  x.fillStyle = 'rgba(8,6,6,0.82)'; x.fillRect(20, h - 52, 250, 32);
+  x.fillStyle = 'rgba(8,6,6,0.82)'; x.fillRect(20, h - 52, 300, 32);
   x.fillStyle = '#b8a27a'; x.font = '12px "IBM Plex Mono", monospace';
-  const n = pokerPlayers().length;
-  x.fillText(n ? n + (n === 1 ? ' PLAYER' : ' PLAYERS') + ' AT THE TABLE · BLINDS 500/1,000' : 'TABLE OPEN · TAKE A SEAT', 32, h - 36);
+  const n = st && st.players ? st.players : pokerPlayers().length;
+  x.fillText(n ? n + (n === 1 ? ' PLAYER' : ' PLAYERS') + ' AT THE TABLE · BLINDS 10/20' + (st && st.stage ? ' · ' + st.stage.toUpperCase() : '') : 'TABLE OPEN · TAKE A SEAT', 32, h - 36);
   pokerHudTex.needsUpdate = true;
 }
 const vipGlass = new THREE.Mesh(new THREE.PlaneGeometry(VTV.w, VTV.h), decal({ color: 0x000000, opacity: 0, blending: THREE.NoBlending, fog: false }));
@@ -2264,11 +2504,18 @@ COUCH_SEATS.forEach(([x, z], i) => addSpot('cinema-seat-' + i, 2, 'sitlow', x, z
 // billiards
 addSpot('pool-cue-0', 3, 'pool', PT.x - PT.l / 2 - 0.55, PT.z - 0.25, Math.PI / 2, 'Play pool', hitBox(PT.x - PT.l / 2 - 0.5, 0.8, PT.z - 0.25, 0.6, 1.6, 0.6));
 addSpot('pool-cue-1', 3, 'pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 2, 'Play pool', hitBox(PT.x + PT.l / 2 + 0.5, 0.8, PT.z + 0.2, 0.6, 1.6, 0.6));
-[1.7, 3.0].forEach((z, i) => addSpot('pool-stool-' + i, 3, 'sit', -15.95, z, -Math.PI / 2, 'Sit at the self-serve bar', hitBox(-15.95, 0.45, z, 0.45, 0.9, 0.45)));
+[-9.7, -10.8].forEach((x, i) => addSpot('pool-stool-' + i, 3, 'sit', x, 3.035, 0, 'Sit at the self-serve bar', hitBox(x, 0.45, 3.035, 0.45, 0.9, 0.45)));
 POOL_SOFA.forEach(([x, z, yaw], i) => addSpot('pool-sofa-' + i, 3, 'sitlow', x, z, yaw, 'Chill on the sofa', hitBox(x, 0.45, z, 0.6, 0.9, 0.6)));
-POKER_SEATS.forEach(([x, z, yaw], i) => addSpot('poker-seat-' + i, 3, 'poker', x, z, yaw, 'Sit in on poker', hitBox(x, 0.45, z, 0.55, 0.9, 0.55)));
-[[-12.4, -3.1, 0.4], [-8.0, 2.8, Math.PI], [-11.8, -2.6, 0.5], [-6.0, 2.9, Math.PI + 0.6], [-11.2, 3.3, Math.PI - 0.4]].forEach(([x, z, yaw], i) =>
+[[-11.3, -3.45, 0.6], [-7.9, 3.0, Math.PI + 0.3], [-10.2, -3.4, 0.2], [-6.0, 2.9, Math.PI + 0.6]].forEach(([x, z, yaw], i) =>
   addSpot('pool-watch-' + i, 3, 'lean', x, z, yaw, 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
+// card room: five seats at the table (the dealer has the sixth), and room to stand and watch
+POKER_SEATS.forEach(([x, z, yaw], i) => addSpot('poker-seat-' + i, 10, 'poker', x, z, yaw, 'Sit in on poker', hitBox(x, 0.45, z, 0.55, 0.9, 0.55)));
+[[-12.5, -3.2], [-16.3, 1.6], [-12.6, -1.9], [-16.2, -2.0]].forEach(([x, z], i) =>
+  addSpot('card-watch-' + i, 10, 'lean', x, z, yawTo(x, z, PK.x, PK.z), 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
+// restroom: the sink, and the stall (nobody chooses the stall)
+addSpot('wc-sink', 9, 'lean', 12.35, 2.5, Math.PI, 'Wash your hands', hitBox(12.35, 0.9, 2.5, 0.45, 1.8, 0.45));
+addSpot('wc-wait', 9, 'lean', 12.3, 3.55, -Math.PI / 2 + 0.4, 'Wait for the stall', hitBox(12.3, 0.9, 3.55, 0.45, 1.8, 0.45));
+SPOT_BY_ID['wc-stall-0'] = { id: 'wc-stall-0', cat: 9, act: 'slump', x: 13.42, z: 2.52, yaw: -Math.PI / 2, label: '', hit: hitBox(0, -9, 0, 0, 0, 0) };
 // VIP lounge: the host's armchair is his alone
 VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'lounge' : 'sitlow', x, z, yaw,
   i === 0 ? "The host's seat" : 'Sink into the sofa', hitBox(x, 0.45, z, 0.7, 0.9, 0.7), { hostOnly: i === 0 }));
@@ -2288,16 +2535,8 @@ const standHit = (x, z) => hitBox(x, 0.9, z, 0.45, 1.8, 0.45);
 [[-1.75, 4.45, 0.15], [1.75, 4.45, -0.15]].forEach(([x, z, yaw], i) => addSpot('street-door-' + i, 6, 'lean', x, z, yaw, 'Hang out by the door', standHit(x, z)));
 [[-3.9, 4.4, 0.35], [3.9, 4.4, -0.35], [-7.8, 4.4, 0.2], [7.8, 4.4, -0.2]].forEach(([x, z, yaw], i) => addSpot('street-wall-' + i, 6, 'lean', x, z, yaw, 'Lean on the wall outside', standHit(x, z)));
 PARKED.forEach((x, i) => addSpot('street-suv-' + i, 6, 'lean', x + 0.6, ST.curb0 - 0.32, Math.PI, 'Lean on the SUV', standHit(x + 0.6, ST.curb0 - 0.32)));
-// the backstreet: by the coupe, at the back door, on the crates
-[[-1.4, -13.95, 0], [0.4, -13.95, 0], [-1.2, -11.32, Math.PI], [-3.4, -13.2, Math.PI / 2 + 0.3]].forEach(([x, z, yaw], i) => addSpot('alley-car-' + i, 7, 'lean', x, z, yaw, 'Check out the car', standHit(x, z)));
-{
-  // sitting in the coupe: the driver's seat is the host's, anyone can ride along
-  const fwd = Math.atan2(Math.cos(COUPE.yaw), -Math.sin(COUPE.yaw));
-  [[-0.4, 'alley-car-drive', "Sh1den's seat", true], [0.4, 'alley-car-ride', 'Ride along', false]].forEach(([lz, id, label, hostOnly]) => {
-    const [x, z] = coupeAt(-0.24, lz);
-    addSpot(id, 7, 'sitlow', x, z, fwd, label, hitBox(x, 0.95, z, 0.5, 0.8, 0.5), { y: 0.57, hostOnly, lockText: "Sh1den's seat" });
-  });
-}
+// the backstreet: by the cars in the lot, at the back door, on the crates
+[-2.2, 1.0, 4.2, 7.4].forEach((x, i) => addSpot('alley-car-' + i, 7, 'lean', x, -13.3, Math.PI, 'Hang out by the cars', standHit(x, -13.3)));
 addSpot('alley-door-0', 7, 'lean', -3.9, -11.85, Math.PI - 0.3, 'Step out back', standHit(-3.9, -11.85));
 CRATES.forEach(([x, z], i) => addSpot('alley-crate-' + i, 7, 'sitlow', x, z, Math.PI / 2, 'Sit on a crate', hitBox(x, 0.4, z, 0.65, 0.8, 0.65)));
 [[2.6, -11.45, Math.PI], [-8.6, -12.7, Math.PI - 0.4], [3.6, -12.4, Math.PI + 0.5]].forEach(([x, z, yaw], i) => addSpot('alley-wall-' + i, 7, 'lean', x, z, yaw, 'Hang out in the backstreet', standHit(x, z)));
@@ -2317,7 +2556,7 @@ addSpot('change-locker-0', 8, 'lean', 2.75, -7.5, -Math.PI / 2, 'Lean on the loc
 }
 function overflowSpot(idx) {
   const a = idx * 2.4, rx = 3.0 + (idx % 3) * 0.4, rz = 2.9 + (idx % 2) * 0.4;
-  const x = Math.min(13.0, DF.x + Math.cos(a) * rx), z = Math.max(-3.6, Math.min(3.6, DF.z + Math.sin(a) * rz));
+  const x = Math.min(13.0, DF.x + Math.cos(a) * rx), z = Math.max(-3.6, Math.min(x > 11.5 ? 1.7 : 3.6, DF.z + Math.sin(a) * rz));
   return { id: 'overflow-' + idx, cat: 0, act: 'dance', x, z, yaw: yawTo(x, z, DF.x, DF.z) };
 }
 
@@ -2332,11 +2571,14 @@ function placeAll() {
   const people = crowd.filter((ch) => !ch.npc && ch !== draftChar);
   const claim = (ch, s) => { spotOwner.set(s.id, ch); putAt(ch, s); ch.placed = true; };
   for (const ch of people) ch.placed = false;
+  // 0. whoever was found in the restroom stays slumped in the stall for a while
+  const vic = victimNow();
+  if (vic) { const ch = people.find((c) => c.uid && c.uid === vic.uid); if (ch) claim(ch, SPOT_BY_ID['wc-stall-0']); }
   // 1. people who clicked somewhere, earliest click first (a seat goes to whoever took it first)
   const chosen = people.filter((ch) => ch.want && SPOT_BY_ID[ch.want]).sort((a, b) => (a.wantT || 0) - (b.wantT || 0));
   for (const ch of chosen) {
     const s = SPOT_BY_ID[ch.want];
-    if (spotOwner.has(s.id) || (s.hostOnly && !ch.host)) continue;
+    if (ch.placed || spotOwner.has(s.id) || (s.hostOnly && !ch.host) || (s.cat === 10 && !cardOpen && !ch.host)) continue;
     claim(ch, s);
   }
   // 2. the host keeps his armchair unless he went somewhere else
@@ -2367,7 +2609,7 @@ function addChar(look, name, opts) {
   const ch = makeCharacter(look, name, seed);
   ch.phase = (seed % 1000) / 1000;
   ch.host = !!opts.host; ch.npc = !!opts.npc; ch.mine = !!opts.mine; ch.uid = opts.uid || null;
-  if (ch.label) { if (opts.mine) { ch.label.textContent = name + ' (you)'; ch.label.classList.add('mine'); } if (opts.host) ch.label.classList.add('host'); }
+  if (ch.label) { if (opts.mine) { ch.label.textContent = name + ' (you)'; ch.label.classList.add('mine'); } if (opts.host) ch.label.classList.add('host'); if (opts.staff) ch.label.classList.add('staff'); }
   scene.add(ch.root); crowd.push(ch);
   return ch;
 }
@@ -2389,6 +2631,7 @@ function giveSmoke(kind) {
   const mins = kind === 'cigar' ? 30 : 10;
   if (window.NET && window.NET.online && window.NET.setSmoke) window.NET.setSmoke(kind, mins);
   else { localSmoke = { k: kind, e: Date.now() + mins * 60000 }; rebuild(); }
+  if (kind === 'cig') charonDo('bt_light', 2.6);
   toast(kind === 'cigar' ? 'A cigar from the humidor. It lasts 30 minutes.' : 'The bartender lights you a cigarette. It lasts 10 minutes.');
 }
 // when a smoke burns out, take it away
@@ -2403,12 +2646,13 @@ function rebuild() {
   const keepDraft = draftChar;
   clearCrowd();
   // staff: a bartender behind the bar and a DJ in the dance room
-  const bt = addChar(BARTENDER_LOOK, '', { npc: true, seedName: 'bartender' });
+  const bt = addChar(BARTENDER_LOOK, 'Charon', { npc: true, seedName: 'bartender', staff: true });
   bartender = bt;
   setGlass(bt, 'whiskey'); giveTowel(bt);
   bt.act = 'bartend'; bt.root.position.set(0.4, 0, -3.35); bt.root.rotation.y = 0;
   const dj = addChar(DJ_LOOK, '', { npc: true, seedName: 'dj' });
   dj.act = 'dj'; dj.root.position.set(13.85, 0, 0); dj.root.rotation.y = -Math.PI / 2;
+  rebuildHooks();
   // the host, in his armchair in the VIP lounge
   const host = addChar(HOST_LOOK, HOST_NAME, { host: true });
   const seen = new Set([HOST_NAME.toLowerCase()]);
@@ -2594,7 +2838,9 @@ const VIEWS = {
   bar: { tx: 0, ty: 1.2, tz: -1.4, d: 7, yaw: 0.0, pitch: 0.42 },
   dance: { tx: 9.6, ty: 1.0, tz: 0, d: 7, yaw: -1.25, pitch: 0.45 },
   tv: { tx: -10.5, ty: 1.4, tz: -7.5, d: 6, yaw: Math.PI / 2, pitch: 0.16 },
-  pool: { tx: -11.4, ty: 0.9, tz: 0.0, d: 8, yaw: 0.0, pitch: 0.62 },
+  pool: { tx: -8.9, ty: 0.9, tz: 0.0, d: 7, yaw: 0.85, pitch: 0.6 },
+  card: { tx: -14.4, ty: 0.9, tz: 0.0, d: 6, yaw: -1.25, pitch: 0.5 },
+  wc: { tx: 12.7, ty: 0.9, tz: 3.0, d: 2.2, yaw: Math.PI / 2, pitch: 0.75 },
   vip: { tx: -1.3, ty: 1.0, tz: -8.9, d: 5.5, yaw: 0.2, pitch: 0.3 },
   swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
   change: { tx: 3.5, ty: 1.0, tz: -8.2, d: 5, yaw: 0.0, pitch: 0.5 },
@@ -2621,6 +2867,7 @@ function cutTo(apply) {
 }
 function setView(name) {
   if (name === 'vip' && !isMod) return;
+  if (name === 'card' && !cardOpen && !isMod) { toast('The card room is closed. Poker nights only happen when sh1den is in.'); return; }
   follow = null; velYaw = velPitch = 0;
   cutTo(() => Object.assign(camT, VIEWS[name]));
 }
@@ -2731,6 +2978,7 @@ function placeLabels() {
       x = Math.round((labelV.x + 1) / 2 * w); y = Math.round((1 - labelV.y) / 2 * h);
       const r = roomAt(ch.root.position.x, ch.root.position.z);
       op = here && r !== here ? 0.45 : 1;
+      if (hiddenInVip(ch)) show = false;
     }
     if (el) {
       if (el.hidden === show) el.hidden = !show;
@@ -2832,10 +3080,16 @@ const OBJECTS = [
   { id: 'djbooth', label: 'Change the music', hit: hitBox(13.25, 0.6, 0, 0.8, 1.2, 2.7), cat: 0, floor: [12.5, 0], size: 0.6 },
   { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, TV.z, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, TV.z], size: 0.7 },
   { id: 'humidor', label: 'Take a cigar (30 min)', hit: hitBox(1.0, 1.0, -4.26, 1.1, 1.96, 0.5), cat: 4, floor: [1.0, -4.85], size: 0.6 },
-  { id: 'minibar', label: 'Pour yourself a drink', hit: hitBox(-16.67, 1.5, 2.15, 0.65, 3.0, 2.8), cat: 3, floor: [-16.1, 2.15], size: 0.8 },
+  { id: 'minibar', label: 'Pour yourself a drink', hit: hitBox(-10.2, 1.2, 3.75, 2.6, 2.4, 0.55), cat: 3, floor: [-10.2, 3.2], size: 0.8 },
+  { id: 'wcdoor', label: 'Restroom', hit: hitBox(11.75, 1.2, 3.1, 0.3, 2.4, 0.8), cat: 0, floor: [11.4, 3.1], size: 0.5 },
+  { id: 'wcout', label: 'Back to the dance floor', hit: hitBox(11.95, 1.2, 3.1, 0.2, 2.4, 0.8), cat: 9, floor: [12.15, 3.1], size: 0.4 },
+  { id: 'carddoor', label: 'Card room', hit: hitBox(-11.8, 1.2, 2.9, 0.3, 2.4, 1.4), cat: 3, floor: [-11.4, 2.9], size: 0.5 },
+  { id: 'plaque', label: 'Coin leaderboard', hit: hitBox(4.3, 1.8, -3.9, 1.2, 1.5, 0.3), cat: 1, floor: [4.3, -3.4], size: 0.5 },
+  { id: 'coin', label: 'Pick up the gold coin', hit: hitBox(0, -50, 0, 0.6, 0.6, 0.6), cat: 1, floor: [0, -50], size: 0.35 },
+  { id: 'dealer', label: 'The card table', hit: hitBox(DEALER.x, 1.0, DEALER.z, 0.7, 2.0, 0.7), cat: 10, floor: [DEALER.x, DEALER.z], size: 0.45 },
   { id: 'pooltable', label: 'Play pool', hit: hitBox(PT.x, 0.45, PT.z, PT.l, 0.9, PT.w), cat: 3, floor: [PT.x, PT.z], size: 1.2 }
 ];
-const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley, 8: ROOMS.change };
+const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley, 8: ROOMS.change, 9: ROOMS.wc, 10: ROOMS.card };
 const targets = SPOT_LIST.map((s) => ({ kind: 'spot', s, box: new THREE.Box3(new THREE.Vector3(s.hit.x - s.hit.sx / 2, s.hit.y - s.hit.sy / 2, s.hit.z - s.hit.sz / 2), new THREE.Vector3(s.hit.x + s.hit.sx / 2, s.hit.y + s.hit.sy / 2, s.hit.z + s.hit.sz / 2)) }))
   .concat(OBJECTS.map((o) => ({ kind: 'object', o, box: new THREE.Box3(new THREE.Vector3(o.hit.x - o.hit.sx / 2, o.hit.y - o.hit.sy / 2, o.hit.z - o.hit.sz / 2), new THREE.Vector3(o.hit.x + o.hit.sx / 2, o.hit.y + o.hit.sy / 2, o.hit.z + o.hit.sz / 2)) })));
 
@@ -2859,12 +3113,14 @@ function describe(tg) {
       const me = myChar();
       return { ok: true, text: me && me.glassId ? 'Order another drink' : 'Order a drink' };
     }
+    if (tg.o.id === 'carddoor' && !cardOpen) return { ok: isMod, text: isMod ? 'Card room (closed, host tools)' : 'Closed · private game tonight' };
     return { ok: true, text: tg.o.label };
   }
   const s = tg.s, owner = spotOwner.get(s.id);
   if (owner && owner.mine) return { ok: false, text: "You're here" };
   if (s.hostOnly) return { ok: !!(myChar() && myChar().host) && !owner, text: owner ? (owner.name || 'Taken') + "'s spot" : (s.lockText || "The host's chair") };
   if (s.cat === 4 && !isMod) return { ok: false, text: 'Mods only' };
+  if (s.cat === 10 && !cardOpen && !(myChar() && myChar().host)) return { ok: false, text: 'Closed · private game' };
   if (owner) return { ok: false, text: 'Taken by ' + (owner.name || 'someone') };
   return { ok: true, text: s.label };
 }
@@ -2926,14 +3182,27 @@ let upInfo = null;
 canvas.addEventListener('pointerdown', (e) => { upInfo = { x0: e.clientX, y0: e.clientY, t0: performance.now() }; }, true);
 
 function activate(tg, x, y) {
+  if (myLock()) { toast("You can't move yet."); return; }
+  const id0 = tg.kind === 'object' ? tg.o.id : '';
+  // looking around doesn't need a character
+  if (id0 === 'wcdoor') { setView('wc'); showHover(null); return; }
+  if (id0 === 'wcout') { setView('dance'); showHover(null); return; }
+  if (id0 === 'plaque') { if (window.EXTRAS) window.EXTRAS.openCoins(); showHover(null); return; }
+  if (id0 === 'carddoor') { setView('card'); showHover(null); return; }
+  if (id0 === 'dealer') { if (window.POKER) window.POKER.open(); showHover(null); return; }
   const info = describe(tg);
   if (info.needChar) { openCreator(); return; }
   if (!info.ok) return;
-  if (tg.kind === 'spot') { if (/^pool-cue-/.test(tg.s.id) && window.POOL) { window.POOL.open(); return; } goTo(tg.s.id); return; }
+  if (tg.kind === 'spot') {
+    if (/^pool-cue-/.test(tg.s.id) && window.POOL) { window.POOL.open(); return; }
+    if (/^poker-seat-/.test(tg.s.id) && window.POKER) { window.POKER.open(); return; }
+    goTo(tg.s.id); return;
+  }
   const id = tg.o.id;
   if (id === 'bartender') { drinkFrom = 'bar'; $('dmCig').hidden = false; openDrinkMenu(x, y); }
   else if (id === 'minibar') { drinkFrom = 'minibar'; $('dmCig').hidden = true; openDrinkMenu(x, y); }
   else if (id === 'humidor') giveSmoke('cigar');
+  else if (id === 'coin') { if (window.EXTRAS) window.EXTRAS.claimCoin(); }
   else if (id === 'jukebox' || id === 'djbooth') changeMusic();
   else if (id === 'tv') { setView('tv'); const p = document.getElementById('room'); if (p && p.hidden) document.getElementById('roomBtn').click(); }
   else if (id === 'pooltable') {
@@ -2999,7 +3268,7 @@ function orderDrinkNone() { closeDrinkMenu(); goTo(myState.s || (myChar() && myC
 let bartender = null;
 function bartenderSays(drinkId, name) {
   const d = DRINK_BY_ID[drinkId]; if (!d || !bartender) return;
-  showBubbleOn(bartender, 'One ' + d.name.toLowerCase() + ' for ' + name + '.');
+  charonDo('bt_pour', 2.8, 'One ' + d.name.toLowerCase() + ' for ' + name + '.');
 }
 
 // shared jukebox: everyone hears the same track
@@ -3015,6 +3284,365 @@ function toast(text) {
   toastEl.textContent = text; toastEl.hidden = false;
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 3200);
 }
+
+// ================================================================ v42: restroom, VIP glass, Charon, card room, coins, lot, events
+const PRE_HOOKS = [], POST_HOOKS = [], REBUILD_HOOKS = [];
+const hash32 = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 9); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return n >>> 0; };
+const camRoom = () => (camT.free ? null : roomAt(cam.tx, cam.tz));
+
+// ---- the restroom: tiled, two stalls (one ajar), a sink and mirror, a hand dryer; only drawn when you're inside
+wcFloor.position.y = 0.03;
+const wcGroup = new THREE.Group(); scene.add(wcGroup);
+const wcLight = new THREE.PointLight(0xfff0d8, 0.9, 3.2, 1.5); wcLight.position.set(12.9, 2.8, 3.0); wcGroup.add(wcLight);
+{
+  const P = [], Lg = [];
+  const ST_C = [52, 54, 60], ST_D = [34, 36, 40], PORC = [224, 222, 216], CHR = [170, 172, 178];
+  // stall fronts with two doorways, and the partition between the stalls
+  P.push(box(12.9, 12.94, 0.12, 2.05, 2.06, 2.2, ST_C, 0.03), box(12.9, 12.94, 0.12, 2.05, 2.85, 3.15, ST_C, 0.03), box(12.9, 12.94, 0.12, 2.05, 3.8, 3.94, ST_C, 0.03));
+  P.push(box(12.9, 12.94, 1.9, 2.05, 2.2, 2.85, ST_D, 0.02), box(12.9, 12.94, 1.9, 2.05, 3.15, 3.8, ST_D, 0.02));
+  P.push(box(12.94, 13.94, 0.12, 2.05, 2.98, 3.02, ST_C, 0.03));
+  // stall 1's door hangs open; stall 2 is locked
+  P.push(box(12.95, 13.57, 0.15, 1.88, 2.215, 2.245, ST_C, 0.03));
+  P.push(box(12.905, 12.935, 0.15, 1.88, 3.16, 3.79, ST_C, 0.03));
+  Lg.push(box(12.885, 12.9, 1.05, 1.09, 3.66, 3.72, [220, 30, 30], 0));
+  // toilets against the back wall, facing out
+  for (const z of [2.52, 3.48]) {
+    P.push(box(13.76, 13.93, 0.42, 0.82, z - 0.2, z + 0.2, PORC, 0.02));
+    P.push(cyl(V(13.55, 0, z), V(13.55, 0.38, z), 0.13, 0.18, PORC, { n: 8 }));
+    P.push(cyl(V(13.55, 0.38, z), V(13.55, 0.42, z), 0.2, 0.2, [236, 234, 228], { n: 8 }));
+    P.push(box(13.86, 13.9, 0.82, 0.86, z - 0.04, z + 0.04, CHR, 0.02));
+  }
+  // vanity, basin, tap and mirror on the side wall
+  P.push(box(11.95, 12.75, 0.8, 0.86, 2.06, 2.5, [20, 20, 22], 0.03));
+  P.push(box(12.0, 12.7, 0, 0.8, 2.06, 2.42, [30, 30, 34], 0.03));
+  P.push(box(12.2, 12.5, 0.86, 0.9, 2.12, 2.4, PORC, 0.02));
+  P.push(cyl(V(12.35, 0.86, 2.1), V(12.35, 1.02, 2.1), 0.015, 0.015, CHR, { n: 5 }), cyl(V(12.35, 1.02, 2.1), V(12.35, 1.0, 2.2), 0.012, 0.012, CHR, { n: 5 }));
+  P.push(box(12.0, 12.7, 1.12, 1.92, 2.06, 2.08, [132, 144, 150], 0.02));
+  P.push(box(11.97, 12.73, 1.09, 1.12, 2.06, 2.1, [150, 112, 54], 0.02), box(11.97, 12.73, 1.92, 1.95, 2.06, 2.1, [150, 112, 54], 0.02));
+  // hand dryer and a bin by the door
+  P.push(box(12.2, 12.5, 1.1, 1.38, 3.82, 3.94, [180, 182, 186], 0.03), box(12.28, 12.42, 1.06, 1.1, 3.84, 3.9, [60, 60, 64], 0.02));
+  P.push(cyl(V(12.15, 0, 3.75), V(12.15, 0.5, 3.75), 0.13, 0.15, [140, 142, 148], { n: 8 }));
+  // ceiling lamp
+  Lg.push(box(12.6, 13.2, 3.08, 3.12, 2.8, 3.2, [255, 240, 214], 0));
+  wcGroup.add(new THREE.Mesh(toGeometry(P), roomMat), new THREE.Mesh(toGeometry(Lg), glowMat));
+}
+// a flat roof so you can't peek into the restroom from the dance floor
+const wcRoof = new THREE.Mesh(new THREE.PlaneGeometry(ROOMS.wc.x1 - ROOMS.wc.x0 + 0.2, ROOMS.wc.z1 - ROOMS.wc.z0 + 0.1), new THREE.MeshLambertMaterial({ color: 0x18171a }));
+wcRoof.rotation.x = -Math.PI / 2; wcRoof.position.set((ROOMS.wc.x0 + ROOMS.wc.x1) / 2 - 0.05, WALL_H - 0.01, (ROOMS.wc.z0 + ROOMS.wc.z1) / 2); scene.add(wcRoof);
+const inRoom = (ch, r) => { const p = ch.root.position; return p.x >= r.x0 && p.x <= r.x1 && p.z >= r.z0 && p.z <= r.z1; };
+POST_HOOKS.push(() => {
+  const inside = camRoom() === ROOMS.wc;
+  wcGroup.visible = inside; wcFloor.visible = inside; wcRoof.visible = !inside;
+  for (const m of WC_MESHES) m.visible = inside;
+  if (!inside) for (const ch of crowd) if (inRoom(ch, ROOMS.wc)) ch.root.visible = false;
+});
+
+// ---- VIP glass: everyone but the hosts sees the lounge through a dark smoked tint, without name tags or chat
+const vipTint = new THREE.Mesh(new THREE.BoxGeometry(6.94, 3.15, 6.94), new THREE.MeshBasicMaterial({ color: 0x14040e, transparent: true, opacity: 0.74, depthWrite: false, fog: false }));
+vipTint.position.set(-1.5, 1.6, -7.5); vipTint.renderOrder = 4; scene.add(vipTint);
+const hiddenInVip = (ch) => !isMod && !ch.mine && inRoom(ch, ROOMS.vip);
+POST_HOOKS.push(() => { vipTint.visible = !isMod; });
+
+// ---- painting eyes: they glow red during a blackout (and sometimes on their own)
+const EYE_UV = { 0: [[14, 11], [18, 11]], 1: [[14, 11], [18, 11]], 2: [[13.5, 12], [18.5, 12]], 3: [[14, 19], [18, 19]] };
+const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff1010, fog: false });
+const eyeGroup = new THREE.Group(); eyeGroup.visible = false; scene.add(eyeGroup);
+for (const p of PAINTINGS) {
+  for (const [u, v] of EYE_UV[p.kind] || []) {
+    const lx = ((u + 0.5) / 32 - 0.5) * 0.72, ly = p.cy + (0.5 - (v + 0.5) / 44) * 0.99;
+    const e = new THREE.Mesh(new THREE.PlaneGeometry(0.035, 0.022), eyeMat);
+    e.position.set(p.px + Math.cos(p.yaw) * lx + Math.sin(p.yaw) * 0.045, ly, p.pz - Math.sin(p.yaw) * lx + Math.cos(p.yaw) * 0.045);
+    e.rotation.y = p.yaw; eyeGroup.add(e);
+  }
+}
+
+// ---- Charon, the barman: a little routine behind the bar, the same for everyone (it runs off the server clock)
+const CHARON_Z = -3.35;
+const CHARON_MODES = [
+  (h) => ({ x: 0.4, yaw: 0, act: 'bartend' }),
+  (h) => ({ x: -1.6 + (h % 5) * 0.8, yaw: 0, act: 'bt_wipe' }),
+  (h) => ({ x: h % 2 ? -1.2 : 1.8, yaw: Math.PI, act: 'bt_reach' }),
+  (h) => ({ x: 2.75, yaw: 1.97, act: 'bt_board' }),
+  (h) => ({ x: -0.6, yaw: 0, act: 'bt_lean' }),
+  (h) => ({ x: 0.4, yaw: 0.25, act: 'bartend' }),
+  (h) => ({ x: 1.2, yaw: 0.2, act: 'bt_watch' })
+];
+const charonAt = (slot) => { const h = hash32(slot); return CHARON_MODES[h % CHARON_MODES.length](h >>> 8); };
+let charonReact = null;
+function charonDo(act, secs, line) {
+  charonReact = { act, until: performance.now() + secs * 1000 };
+  if (line && bartender) showBubbleOn(bartender, line);
+}
+const btTarget = targets.find((tg) => tg.kind === 'object' && tg.o.id === 'bartender');
+PRE_HOOKS.push(() => {
+  const bt = bartender; if (!bt) return;
+  const T = serverNow() / 14000, slot = Math.floor(T), f = (T - slot) * 14;
+  const cur = charonAt(slot), prev = charonAt(slot - 1);
+  let x = cur.x, yaw = cur.yaw, act = cur.act;
+  const walk = Math.abs(cur.x - prev.x) / 1.1;
+  if (f < walk) { x = prev.x + (cur.x - prev.x) * (f / walk); yaw = cur.x > prev.x ? Math.PI / 2 : -Math.PI / 2; act = 'walk'; }
+  if (charonReact && charonReact.until > performance.now()) { act = charonReact.act; yaw = 0; } else charonReact = null;
+  bt.act = act; bt.root.position.set(x, 0, CHARON_Z);
+  let dy = yaw - bt.root.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); bt.root.rotation.y += dy * 0.2;
+  if (btTarget) { btTarget.box.min.x = x - 0.45; btTarget.box.max.x = x + 0.45; btTarget.o.floor[0] = x; }
+});
+
+// ---- card room: open only while the host is in the building; Minos deals
+let cardOpen = false;
+const MINOS_LOOK = { jacket: 0, pants: 1, skin: 1, head: 1, hair: 1, beard: 0, eyes: 0, smoke: 0, dance: 3, spot: 1, body: 0, top: 1, bottom: 2, shoes: 2 };
+REBUILD_HOOKS.push(() => {
+  cardClosed.visible = !cardOpen;
+  if (!cardOpen) return;
+  const m = addChar(MINOS_LOOK, 'Minos', { npc: true, seedName: 'minos', staff: true });
+  m.act = 'deal'; m.root.position.set(DEALER.x, 0, DEALER.z); m.root.rotation.y = DEALER.yaw;
+});
+function setCardOpen(on) {
+  on = !!on; if (on === cardOpen) return;
+  cardOpen = on;
+  if (!on && camRoom() === ROOMS.card && !isMod) setView('pool');
+  rebuild();
+}
+
+// ---- the murder in the restroom: the victim sits slumped in stall 1 for five minutes and can't do anything
+let victim = null;   // { uid, until }
+const victimNow = () => (victim && victim.until > serverNow() ? victim : null);
+const lockOverlay = document.createElement('div'); lockOverlay.id = 'lockOverlay'; lockOverlay.hidden = true; stage.appendChild(lockOverlay);
+function myLock() { const v = victimNow(); return v && myUid && v.uid === myUid ? v : null; }
+setInterval(() => {
+  const v = myLock();
+  lockOverlay.hidden = !v;
+  if (v) { const s = Math.ceil((v.until - serverNow()) / 1000); lockOverlay.innerHTML = '<b>You were found in the restroom stall.</b><span>Nobody saw a thing. You can move again in ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') + '</span>'; }
+  if (victim && !victimNow()) { victim = null; rebuild(); }
+}, 1000);
+
+// ---- gold coins: one turns up somewhere every ten minutes, the first to click it gets it
+const COIN_SPOTS = [[-3, 1.6, 1], [2.6, 2.4, 1], [3.6, -1.2, 1], [7, -2.6, 0], [12.4, -3, 0], [7.2, 3.2, 0], [-7, -9.4, 2], [-6.2, 1.6, 3], [-11.1, -0.9, 3],
+  [6.6, -11.2, 5], [13.1, -10.3, 5], [-6, 6, 6], [8, 6.2, 6], [-9.2, -13.4, 7], [11, -12.6, 7], [3.5, -10.4, 8]];
+const coinTarget = targets.find((tg) => tg.kind === 'object' && tg.o.id === 'coin');
+const coinMesh = new THREE.Group();
+coinMesh.add(new THREE.Mesh(toGeometry([cyl(V(0, -0.012, 0), V(0, 0.012, 0), 0.11, 0.11, [214, 168, 60], { n: 12, amt: 0.02 }), cyl(V(0, -0.016, 0), V(0, 0.016, 0), 0.07, 0.07, [240, 200, 90], { n: 12, amt: 0 })]), glowMat));
+coinMesh.children[0].rotation.x = Math.PI / 2; coinMesh.visible = false; scene.add(coinMesh);
+const coinLight = new THREE.PointLight(0xffc860, 0, 2.2, 1.5); coinMesh.add(coinLight);
+let coinNow = null;
+function setCoin(c) {
+  coinNow = c && COIN_SPOTS[c.spot] ? c : null;
+  if (!coinNow) { coinMesh.visible = false; coinTarget.box.min.set(0, -60, 0); coinTarget.box.max.set(0, -59, 0); return; }
+  const [x, z, cat] = COIN_SPOTS[coinNow.spot];
+  coinMesh.position.set(x, 0.32, z); coinMesh.visible = true;
+  coinTarget.o.cat = cat; coinTarget.o.floor = [x, z];
+  coinTarget.box.min.set(x - 0.35, 0, z - 0.35); coinTarget.box.max.set(x + 0.35, 0.8, z + 0.35);
+}
+POST_HOOKS.push((dt, t) => { if (coinMesh.visible) { coinMesh.rotation.y = t * 2.4; coinMesh.position.y = 0.32 + 0.05 * Math.sin(t * 3); coinLight.intensity = 0.8 + 0.3 * Math.sin(t * 6); } });
+
+// ---- the leaderboard plaque on the bar's back wall, by Charon
+const plaqueC = document.createElement('canvas'); plaqueC.width = 220; plaqueC.height = 280;
+const plaqueTex = new THREE.CanvasTexture(plaqueC); plaqueTex.minFilter = THREE.LinearFilter; plaqueTex.encoding = THREE.sRGBEncoding;
+const plaque = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.4), decal({ map: plaqueTex }));
+plaque.position.set(4.3, 1.8, -3.965); scene.add(plaque);
+function drawPlaque(list) {
+  const x = plaqueC.getContext('2d'), w = 220, h = 280;
+  x.fillStyle = '#0d0b0c'; x.fillRect(0, 0, w, h);
+  x.strokeStyle = '#b8924a'; x.lineWidth = 4; x.strokeRect(4, 4, w - 8, h - 8); x.lineWidth = 1; x.strokeRect(11, 11, w - 22, h - 22);
+  x.fillStyle = '#e7c98a'; x.font = '22px "Limelight", Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('HIGH ROLLERS', w / 2, 34);
+  x.fillStyle = '#8a7650'; x.font = '10px "IBM Plex Mono", monospace'; x.fillText('MOST GOLD COINS', w / 2, 54);
+  x.fillStyle = '#b8924a'; x.fillRect(30, 64, w - 60, 1);
+  x.textAlign = 'left'; x.font = '13px "IBM Plex Mono", monospace';
+  (list || []).slice(0, 10).forEach((e, i) => {
+    const y = 84 + i * 19;
+    x.fillStyle = i === 0 ? '#ffd27a' : i < 3 ? '#e7c98a' : '#cfc3a6';
+    x.fillText((i + 1) + '. ' + String(e.name || '?').slice(0, 14), 22, y);
+    x.textAlign = 'right'; x.fillText(String(e.n), w - 22, y); x.textAlign = 'left';
+  });
+  if (!(list && list.length)) { x.fillStyle = '#6d6250'; x.textAlign = 'center'; x.fillText('No coins yet', w / 2, 120); }
+  plaqueTex.needsUpdate = true;
+}
+drawPlaque([]);
+
+// ---- random events: the same for everyone, roughly once an hour, plus a button for each in the host tools
+const SFX = { gain: null };
+function sfxOut() {
+  if (!actx || muted) return null;
+  if (!SFX.gain) { SFX.gain = actx.createGain(); SFX.gain.gain.value = 0.35; SFX.gain.connect(actx.destination); }
+  return SFX.gain;
+}
+function tone(freq, t0, dur, type, vol, freq2) {
+  const out = sfxOut(); if (!out) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0); if (freq2) o.frequency.linearRampToValueAtTime(freq2, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol || 0.3, t0 + 0.02); g.gain.setValueAtTime(vol || 0.3, t0 + dur - 0.05); g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(out); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function noiseBurst(t0, dur, vol, cutoff) {
+  const out = sfxOut(); if (!out) return;
+  const n = Math.floor(actx.sampleRate * dur), buf = actx.createBuffer(1, n, actx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
+  const s = actx.createBufferSource(); s.buffer = buf;
+  const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cutoff || 400;
+  const g = actx.createGain(); g.gain.value = vol || 0.5;
+  s.connect(f); f.connect(g); g.connect(out); s.start(t0);
+}
+let spooky = true;
+const fx = { until: {} };
+const fxOn = (k) => (fx.until[k] || 0) > performance.now();
+// a police car tearing past on the street, lights going
+const policeCar = new THREE.Group();
+{
+  const parts = carParts('sedan', [18, 18, 22]);
+  policeCar.add(new THREE.Mesh(toGeometry(parts.P.concat([box(-0.6, 0.6, 0.3, 0.92, 0.91, 0.94, [220, 220, 220], 0.02), box(-0.6, 0.6, 0.3, 0.92, -0.94, -0.91, [220, 220, 220], 0.02)])), roomMat));
+  policeCar.add(new THREE.Mesh(toGeometry(parts.L), glowMat));
+}
+const sirenR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.5), new THREE.MeshBasicMaterial({ color: 0xff2020 })); sirenR.position.set(-0.4, 1.52, -0.28);
+const sirenB = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.5), new THREE.MeshBasicMaterial({ color: 0x2050ff })); sirenB.position.set(-0.4, 1.52, 0.28);
+const sirenLight = new THREE.PointLight(0xff2020, 0, 14, 1.5); sirenLight.position.set(0, 2.2, 0);
+policeCar.add(sirenR, sirenB, sirenLight); policeCar.visible = false; scene.add(policeCar);
+// the limo and the stranger in the long coat
+const limo = new THREE.Group();
+{ const parts = carParts('saloon', [10, 10, 12]); limo.add(new THREE.Mesh(toGeometry(parts.P), roomMat), new THREE.Mesh(toGeometry(parts.L), glowMat)); limo.scale.set(1.45, 1, 1); }
+limo.visible = false; scene.add(limo);
+const GUEST_LOOK = { jacket: 0, pants: 1, skin: 0, head: 4, hair: 1, beard: 0, eyes: 2, smoke: 0, dance: 3, spot: 6, body: 0, top: 1, bottom: 2, shoes: 2 };
+REBUILD_HOOKS.push(() => {
+  if (!fxOn('guest')) return;
+  const g = addChar(GUEST_LOOK, '???', { npc: true, seedName: 'stranger' });
+  g.act = 'lean'; g.root.position.set(1.1, 0, 5.3); g.root.rotation.y = Math.PI + 0.3;
+});
+// a black cat that wanders through the bar
+const cat = new THREE.Group();
+{
+  const C = [12, 12, 14];
+  const P = [box(-0.2, 0.2, 0.14, 0.3, -0.07, 0.07, C, 0.03), box(0.18, 0.32, 0.2, 0.34, -0.06, 0.06, C, 0.03), box(0.24, 0.28, 0.34, 0.39, -0.055, -0.025, C, 0), box(0.24, 0.28, 0.34, 0.39, 0.025, 0.055, C, 0)];
+  for (const [lx, lz] of [[-0.15, -0.05], [-0.15, 0.05], [0.14, -0.05], [0.14, 0.05]]) P.push(box(lx - 0.02, lx + 0.02, 0, 0.15, lz - 0.02, lz + 0.02, C, 0.02));
+  P.push(cyl(V(-0.2, 0.26, 0), V(-0.36, 0.42, 0), 0.015, 0.012, C, { n: 4 }));
+  cat.add(new THREE.Mesh(toGeometry(P), roomMat), new THREE.Mesh(toGeometry([box(0.32, 0.325, 0.27, 0.29, -0.04, -0.02, [230, 210, 60], 0), box(0.32, 0.325, 0.27, 0.29, 0.02, 0.04, [230, 210, 60], 0)]), glowMat));
+}
+cat.visible = false; scene.add(cat);
+// rain over the street and the backstreet
+const RAIN_N = 900, rainPos = new Float32Array(RAIN_N * 6);
+const rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+const rain = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0x8090a8, transparent: true, opacity: 0.55 }));
+rain.frustumCulled = false; rain.visible = false; scene.add(rain);
+const rainSeed = [];
+for (let i = 0; i < RAIN_N; i++) rainSeed.push(i % 2 ? [-26 + Math.random() * 54, 4.2 + Math.random() * 11.2, Math.random() * 9] : [-14 + Math.random() * 29, -19 + Math.random() * 7.8, Math.random() * 9]);
+const flashEl = document.createElement('div'); flashEl.id = 'flash'; stage.appendChild(flashEl);
+const ROUND_LINES = ["This round's on the house.", 'Drinks are on Charon tonight. Don\'t get used to it.', 'Everyone, a glass on me. The ferryman pays for once.'];
+const PHONE_LINES = ['…No, he isn\'t here. I\'ll tell him you called.', '…Wrong number. Nobody here goes by that name.', '…Understood. The car will be out back at midnight.', '…The coin is non-refundable, sir. Goodnight.', '…I don\'t take reservations. They take me.'];
+const BLACKOUT_LINES = ['Lights are back. Somebody check the restroom.', "Fuse again. …Has anyone seen {v}? They went to the restroom.", 'Power\'s back. Mind the restroom, there\'s been an accident.'];
+const pickLine = (arr, seed) => arr[hash32(seed | 0) % arr.length];
+let blackout = null, overdriveFor = 0;
+function runEvent(kind, seed, data) {
+  seed = seed || Math.floor(serverNow() / 1000);
+  const t0 = performance.now(), at = actx ? actx.currentTime + 0.05 : 0;
+  if (kind === 'siren') {
+    fx.until.siren = t0 + 9000;
+    if (actx) for (let k = 0; k < 8; k++) { tone(720, at + k * 0.9, 0.45, 'sawtooth', 0.12, 960); tone(960, at + k * 0.9 + 0.45, 0.45, 'sawtooth', 0.12, 720); }
+  } else if (kind === 'storm') {
+    fx.until.storm = t0 + 90000; fx.stormNext = t0 + 2500;
+  } else if (kind === 'eyes') {
+    if (spooky) fx.until.eyes = t0 + 25000;
+  } else if (kind === 'round') {
+    fx.until.round = t0 + 60000; charonDo('bt_pour', 4, pickLine(ROUND_LINES, seed));
+  } else if (kind === 'phone') {
+    if (actx) for (let k = 0; k < 3; k++) { tone(440, at + k * 1.4, 0.4, 'sine', 0.2); tone(480, at + k * 1.4, 0.4, 'sine', 0.15); tone(440, at + k * 1.4 + 0.55, 0.4, 'sine', 0.2); tone(480, at + k * 1.4 + 0.55, 0.4, 'sine', 0.15); }
+    setTimeout(() => charonDo('bt_watch', 6, pickLine(PHONE_LINES, seed)), 4200);
+  } else if (kind === 'cat') {
+    fx.until.cat = t0 + 14000;
+  } else if (kind === 'guest') {
+    fx.until.guest = t0 + 60000; fx.guestT0 = t0; rebuild();
+    setTimeout(rebuild, 60500);
+    toast('A long black car just pulled up out front…');
+  } else if (kind === 'overdrive') {
+    fx.until.overdrive = t0 + 45000; toast('The DJ just lost it. Dance floor overdrive!');
+  } else if (kind === 'coin') {
+    if (coinNow) { const r = CAT_ROOM[COIN_SPOTS[coinNow.spot][2]]; toast('A gold coin is glinting somewhere in the ' + (r ? r.name.toLowerCase() : 'bar') + '…'); }
+    else toast('Charon flips a gold coin. Someone already pocketed the last one.');
+  } else if (kind === 'blackout') {
+    if (!spooky && !(data && myUid && data.v === myUid)) return;
+    blackout = { t0, victim: data && data.vn };
+    if (actx) { noiseBurst(at, 0.4, 0.6, 900); tone(60, at, 0.5, 'square', 0.15, 30); }
+  }
+}
+const allLights = [];
+scene.traverse((o) => { if (o.isLight) allLights.push(o); });
+function dimLights(k) {
+  for (const L of new Set(allLights.concat([sirenLight, coinLight]))) {
+    const raw = L.userData.lastSet !== undefined && L.intensity === L.userData.lastSet ? L.userData.raw : L.intensity;
+    L.userData.raw = raw; L.intensity = raw * k; L.userData.lastSet = L.intensity;
+  }
+  glowMat.color.setScalar(Math.max(0.03, k));
+  if (cssRenderer) cssRenderer.domElement.style.opacity = k < 0.5 ? '0.08' : '';
+}
+let dimmed = false;
+POST_HOOKS.push((dt, t) => {
+  const now = performance.now();
+  // blackout: a flicker, five seconds of dark with the portraits' eyes burning red, a flicker back
+  let k = 1;
+  if (blackout) {
+    const e = (now - blackout.t0) / 1000;
+    if (e < 0.6) k = Math.random() < 0.5 ? 0.15 : 1;
+    else if (e < 5.6) k = 0.04;
+    else if (e < 6.3) k = Math.random() < 0.5 ? 0.2 : 1;
+    else {
+      const vn = blackout.victim; blackout = null; k = 1;
+      if (window.NET && window.NET.sysChat) window.NET.sysChat('Charon', pickLine(BLACKOUT_LINES, Math.floor(serverNow() / 60000)).replace('{v}', vn || 'anyone'));
+    }
+  }
+  if (k < 1 || dimmed) { dimLights(k); dimmed = k < 1; }
+  eyeGroup.visible = (spooky && (fxOn('eyes') || (blackout && (now - blackout.t0) > 600))) && (Math.random() > 0.04);
+  // police car
+  if (fxOn('siren')) {
+    const u = 1 - (fx.until.siren - now) / 9000;
+    policeCar.visible = true; policeCar.position.set(-30 + u * 60, ROAD_Y, 8.4);
+    const red = Math.floor(t * 6) % 2 === 0;
+    sirenR.visible = red; sirenB.visible = !red; sirenLight.color.setHex(red ? 0xff2020 : 0x2050ff); sirenLight.intensity = 3;
+  } else if (policeCar.visible) { policeCar.visible = false; sirenLight.intensity = 0; }
+  // storm
+  if (fxOn('storm')) {
+    rain.visible = true;
+    for (let i = 0; i < RAIN_N; i++) {
+      const [x, z, o] = rainSeed[i], y = 9 - ((t * 11 + o) % 9);
+      rainPos.set([x, y, z, x + 0.05, y - 0.35, z], i * 6);
+    }
+    rainGeo.attributes.position.needsUpdate = true;
+    if (now > fx.stormNext) {
+      fx.stormNext = now + 6000 + Math.random() * 9000;
+      flashEl.style.transition = 'none'; flashEl.style.opacity = '0.55';
+      setTimeout(() => { flashEl.style.transition = 'opacity 0.5s'; flashEl.style.opacity = '0'; }, 90);
+      if (actx) noiseBurst(actx.currentTime + 0.6 + Math.random(), 2.6, 0.8, 220);
+    }
+  } else if (rain.visible) rain.visible = false;
+  // the cat strolls along the front of the bar
+  if (fxOn('cat')) {
+    const u = 1 - (fx.until.cat - now) / 14000;
+    cat.visible = true; cat.position.set(-4.4 + u * 8.8, 0, 2.6 + 0.15 * Math.sin(u * 9)); cat.rotation.y = 0; cat.position.y = 0.01 * Math.abs(Math.sin(t * 9));
+  } else if (cat.visible) cat.visible = false;
+  // limo out front while the stranger is inside
+  if (fxOn('guest')) {
+    const e = (now - fx.guestT0) / 1000, left = (fx.until.guest - now) / 1000;
+    limo.visible = true;
+    const x = e < 4 ? -30 + 30 * (1 - Math.pow(1 - e / 4, 2)) : left < 4 ? 30 * Math.pow(1 - left / 4, 2) : 0;
+    limo.position.set(x, ROAD_Y, 7.5);
+  } else if (limo.visible) limo.visible = false;
+  // round on the house: a glass in every free hand
+  if (fxOn('round') && Math.floor(t * 2) % 2 === 0) for (const ch of crowd) if (!ch.npc && !ch.glassId && ch.act !== 'pool') setGlass(ch, 'whiskey');
+  // overdrive: the floor strobes and the beams go wild
+  if (fxOn('overdrive')) {
+    const q = Math.floor(t * 8);
+    for (const tl of tiles) tl.m.material.color.setHSL(((tl.i * 7 + tl.j * 3 + q) % 12) / 12, 1, (tl.i + tl.j + q) % 2 ? 0.55 : 0.1);
+    for (const bm of beams) { bm.pivot.rotation.z = 0.9 * Math.sin(t * 3 + bm.k * 1.7); bm.mat.opacity = 0.18; bm.mat.color.setHSL((q % 12) / 12, 1, 0.6); }
+    danceLight.intensity = q % 2 ? 3 : 0.4;
+  }
+});
+// the hourly event, worked out from the server clock so everyone gets the same one at the same moment
+const HOURLY = ['siren', 'storm', 'eyes', 'round', 'coin', 'phone', 'cat', 'guest', 'overdrive'];
+let lastHourly = -1;
+setInterval(() => {
+  const now = serverNow(), hour = Math.floor(now / 3600000), h = hash32(hour * 7 + 3);
+  const at = hour * 3600000 + (5 + (h % 50)) * 60000;
+  if (now >= at && now < at + 20000 && lastHourly !== hour) { lastHourly = hour; runEvent(HOURLY[(h >>> 8) % HOURLY.length], hour); }
+}, 2000);
+
+// keep the card room, Charon's tag and the VIP rules in step with each rebuild
+function rebuildHooks() { for (const f of REBUILD_HOOKS) f(); }
 
 // ---------------------------------------------------------------- render loop
 let pixels = true;
@@ -3034,6 +3662,7 @@ const creatorEl = document.getElementById('creator'), formEl = document.getEleme
 let sHead = 0;
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime, beat = beatNow();
+  for (const f of PRE_HOOKS) f(dt, t, beat);
   // while you're editing your look, hide your old character (never the bartender) so only the preview shows
   const editing = !creatorEl.hidden && !formEl.hidden;
   for (const ch of crowd) {
@@ -3097,6 +3726,7 @@ function tick() {
   sHead = si; sGeo.attributes.position.needsUpdate = true;
 
   updateCamera(dt, t);
+  for (const f of POST_HOOKS) f(dt, t, beat);
   placeLabels();
   if (pokerOn) {
     if (pokerFrame++ % 3 === 0) { renderer.setRenderTarget(pokerRT); renderer.render(scene, pokerCam); renderer.setRenderTarget(null); }
@@ -3128,8 +3758,8 @@ function updateRosterUI() {
 // speech bubbles: crisp HTML over the 3D view like the name tags; they survive the crowd being rebuilt
 const bubbleStore = new Map(); // character key -> { text, until }
 const bubbleKey = (ch) => ch.uid || (ch.npc ? 'npc-' + ch.seed : ch.name) || '';
-function showBubble(uid, text) {
-  const ch = crowd.find((c) => c.uid && c.uid === uid);
+function showBubble(uid, text, name) {
+  const ch = crowd.find((c) => c.uid && c.uid === uid) || (name && name.toLowerCase() === HOST_NAME ? crowd.find((c) => c.host) : null);
   if (ch) showBubbleOn(ch, text);
 }
 function showBubbleOn(ch, text) {
@@ -3247,7 +3877,10 @@ $('enter').onclick = () => enterBar(true);
 $('enterQuiet').onclick = () => enterBar(false);
 $('mute').onclick = () => { setMuted(!muted); $('mute').setAttribute('aria-pressed', muted ? 'true' : 'false'); $('mute').textContent = muted ? 'Sound off' : 'Sound on'; };
 $('track').onclick = () => { if (hasCharacter() || !(window.NET && window.NET.online)) changeMusic(); else { toast('Create a character to change the music.'); } };
-for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'vip', 'change', 'street', 'alley', 'map']) $('v-' + v).onclick = () => setView(v);
+for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'card', 'vip', 'change', 'street', 'alley', 'map']) $('v-' + v).onclick = () => setView(v);
+// phones: one dropdown instead of a row of room buttons
+const roomSel = $('roomSelect');
+if (roomSel) roomSel.onchange = () => { const v = roomSel.value; if (v) setView(v); setTimeout(() => { roomSel.value = ''; }, 300); };
 $('findMe').onclick = () => { const me = crowd.find((c) => c.mine); if (me) focusChar(me); else openCreator(); };
 $('pix').onclick = () => { pixels = !pixels; snapOn.value = pixels ? 1 : 0; $('pix').setAttribute('aria-pressed', pixels ? 'true' : 'false'); resize(); };
 
@@ -3281,12 +3914,31 @@ window.BAR = {
   setMod(on) {
     isMod = !!on;
     $('v-vip').hidden = !isMod;
+    if (roomSel) { const o = roomSel.querySelector('option[value="vip"]'); if (o) o.hidden = o.disabled = !isMod; }
     if (!isMod && roomAt(camT.tx, camT.tz) === ROOMS.vip && !(follow && follow.mine)) setView('bar');
     updateRosterUI();
     if (!creatorEl.hidden && !formEl.hidden) renderOptions();
   },
   focusTv() { setView('tv'); },
-  openCreator
+  openCreator,
+  // v42
+  setCardOpen,
+  cardOpen: () => cardOpen,
+  setVictim(v) { const was = victimNow(); victim = v && v.uid && v.until > serverNow() ? { uid: v.uid, until: v.until } : null; if (!!was !== !!victimNow() || (was && victim && was.uid !== victim.uid)) rebuild(); },
+  isLocked: () => !!myLock(),
+  setCoin,
+  coinSpots: () => COIN_SPOTS.length,
+  setLeaderboard(list) { drawPlaque(list); },
+  runEvent,
+  setSpooky(on) { spooky = !!on; },
+  setLotCars,
+  carStyles: () => CAR_STYLES.map((k) => [k, CAR_STYLE_NAMES[k]]),
+  carColors: () => CAR_COLORS.map((c) => c[0]),
+  setPokerState(st) { pokerState = st || null; },
+  sitAt(id) { if (SPOT_BY_ID[id]) goTo(id); },
+  mySpot: () => (myChar() ? myChar().spot : ''),
+  myUid: () => myUid,
+  charonSays(text) { if (bartender) showBubbleOn(bartender, text); }
 };
 
 // ---------------------------------------------------------------- boot
