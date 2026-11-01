@@ -193,6 +193,7 @@ function addHostJazz() {
   if (remove && remove.nextSibling) box.insertBefore(w, remove.nextSibling); else box.appendChild(w);
   $('jazzSet').onclick = () => {
     const m = String($('jazzInput').value).match(YT_RE); if (!m) { $('jazzMsg').textContent = "That isn't a YouTube link."; return; }
+    jazzErr = ''; loaded.jazz = '';
     db.ref('music/jazz').set(m[1]).then(() => { $('jazzMsg').textContent = 'The bar is playing it now.'; $('jazzInput').value = ''; }).catch(() => { $('jazzMsg').textContent = "Couldn't set it. The room's Firebase rules may need updating."; });
   };
   $('jazzOff').onclick = () => db.ref('music/jazz').remove().then(() => { $('jazzMsg').textContent = 'Built-in jazz is back.'; }).catch(() => { });
@@ -200,12 +201,21 @@ function addHostJazz() {
 
 // ---------------------------------------------------------------- the three hidden players
 const P = { dj: null, jazz: null, room: null }, ready = { dj: false, jazz: false, room: false }, loaded = { dj: '', jazz: '', room: '' };
-let djDurNow = 0;
+let djDurNow = 0, jazzErr = '';
+const vol = (n) => Math.round(n * (typeof window.SH_VOL === 'number' ? window.SH_VOL : 1));
+// YouTube refuses some videos inside other sites (the uploader turned embedding off)
+function jazzError(e) {
+  const c = e && e.data;
+  jazzErr = jazzVid;
+  const t = c === 101 || c === 150 ? "That video's owner doesn't allow it to play on other sites. Try another upload of the mix." : c === 100 ? 'That video was removed or is private.' : "YouTube couldn't play that link.";
+  if ($('jazzMsg')) $('jazzMsg').textContent = t;
+  if (NET().isAdmin) toast('House jazz: ' + t);
+}
 function makePlayers() {
   if (!window.YT || !window.YT.Player || P.dj) return !!P.dj;
   const vars = { controls: 0, disablekb: 1, rel: 0, playsinline: 1, iv_load_policy: 3, fs: 0, modestbranding: 1, origin: location.origin };
   P.dj = new YT.Player('djPlayer', { width: 240, height: 240, playerVars: vars, events: { onReady: () => { ready.dj = true; }, onStateChange: (e) => { if (e.data === 0) djEnded(); } } });
-  P.jazz = new YT.Player('jazzPlayer', { width: 240, height: 240, playerVars: vars, events: { onReady: () => { ready.jazz = true; }, onStateChange: (e) => { if (e.data === 0 && P.jazz) { P.jazz.seekTo(0, true); P.jazz.playVideo(); } } } });
+  P.jazz = new YT.Player('jazzPlayer', { width: 240, height: 240, playerVars: vars, events: { onReady: () => { ready.jazz = true; }, onError: jazzError, onStateChange: (e) => { if (e.data === 0 && P.jazz) { P.jazz.seekTo(0, true); P.jazz.playVideo(); } } } });
   if ($('roomPlayer')) P.room = new YT.Player('roomPlayer', { width: 960, height: 540, playerVars: vars, events: { onReady: () => { ready.room = true; }, onStateChange: () => { } } });
   return true;
 }
@@ -224,7 +234,7 @@ function audioTick() {
     const key = djNow.id, exp = Math.max(0, (now() - djNow.at) / 1000);
     if (loaded.dj !== key) { loaded.dj = key; djDurNow = djDurKnown[key] || 0; P.dj.loadVideoById({ videoId: djNow.v, startSeconds: exp }); }
     const hear = on && view === 'dance';
-    P.dj.setVolume(70); if (hear) P.dj.unMute(); else P.dj.mute();
+    P.dj.setVolume(vol(70)); if (hear) P.dj.unMute(); else P.dj.mute();
     BAR().duck && BAR().duck('dj', hear);
     const st = P.dj.getPlayerState();
     if (st === 1) {
@@ -239,13 +249,14 @@ function audioTick() {
     if (!djNow && djQ.length && entered()) advanceDj();
   }
   // house jazz: plays where the built-in jazz would
-  if (BAR().setExtJazz) BAR().setExtJazz(!!jazzVid);
+  // a link YouTube won't play falls back to the built-in jazz so the bar is never silent
+  if (BAR().setExtJazz) BAR().setExtJazz(!!jazzVid && jazzErr !== jazzVid);
   if (ready.jazz) {
-    const want = !!jazzVid && on && info.track === 0 && !info.ducked;
+    const want = !!jazzVid && jazzErr !== jazzVid && on && (info.jazz !== undefined ? info.jazz : info.track === 0) && !info.ducked;
     if (jazzVid && loaded.jazz !== jazzVid) { loaded.jazz = jazzVid; P.jazz.cueVideoById({ videoId: jazzVid }); }
     if (!jazzVid && loaded.jazz) { P.jazz.stopVideo(); loaded.jazz = ''; }
     if (jazzVid) {
-      P.jazz.setVolume(32);
+      P.jazz.setVolume(vol(32));
       const st = P.jazz.getPlayerState();
       if (want && st !== 1 && st !== 3) { P.jazz.unMute(); P.jazz.playVideo(); }
       if (!want && st === 1) P.jazz.pauseVideo();
@@ -258,7 +269,7 @@ function audioTick() {
     if (tv) {
       const key = ri + ':' + tv.v + '@' + tv.at, exp = Math.max(0, (now() - tv.at) / 1000);
       if (loaded.room !== key) { loaded.room = key; P.room.loadVideoById({ videoId: tv.v, startSeconds: exp }); }
-      P.room.setVolume(70); if (on) P.room.unMute(); else P.room.mute();
+      P.room.setVolume(vol(70)); if (on) P.room.unMute(); else P.room.mute();
       const st = P.room.getPlayerState(); if (st === 2 || st === 5) P.room.playVideo();
     } else if (loaded.room) { P.room.stopVideo(); loaded.room = ''; }
   }

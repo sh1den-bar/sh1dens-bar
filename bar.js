@@ -1115,8 +1115,10 @@ const camera = new THREE.PerspectiveCamera(46, 1, 0.15, 80);
 const signFont = '"Limelight", "Poiret One", Georgia, serif';
 const ROOMS = {
   // the restroom sits inside the dance room's front corner, so it is listed first
+  wcM: { x0: 14, x1: 18.4, z0: -10.4, z1: -8.0, name: "Men's room", hidden: true },
+  wcW: { x0: 14, x1: 18.4, z0: -8.0, z1: -5.6, name: "Women's room", hidden: true },
   wc: { x0: 14, x1: 18.4, z0: -10.4, z1: -5.6, name: 'Restroom', hidden: true },
-  card: { x0: -17, x1: -11.8, z0: -4, z1: 4, name: 'Card room' },
+  card: { x0: -17, x1: -11.8, z0: -4, z1: 4, name: 'Casino Royale' },
   sec: { x0: -17, x1: -13, z0: -11, z1: -4, name: 'Security' },
   bar: { x0: -5, x1: 5, z0: -4, z1: 4, name: 'Main bar' },
   lounge: { x0: 5, x1: 14, z0: -4, z1: 4, name: 'Lounge' },
@@ -1392,7 +1394,7 @@ const DOOR = {
 roomWalls(ROOMS.bar, { right: [DOOR.barDance], left: [DOOR.barTv], front: [[4.1, 5.9]], back: [[0.4, 1.4]] }, wallMats.deco);
 roomWalls(ROOMS.lounge, { left: [DOOR.barDance], back: [[3.6, 5.4]], right: [[3, 5]] }, wallMats.panel);
 roomWalls(ROOMS.dance, { left: [[3, 5]] }, wallMats.club);
-roomWalls(ROOMS.swim, { front: [[3.6, 5.4]], left: [[5.0, 6.2]], right: [[3.4, 4.6]] }, wallMats.brick);
+roomWalls(ROOMS.swim, { front: [[3.6, 5.4]], left: [[5.0, 6.2]], right: [[2.6, 3.6], [4.4, 5.4]] }, wallMats.brick);
 roomWalls(ROOMS.change, { right: [[4.0, 5.2]] }, wallMats.brick);
 roomWalls(ROOMS.tv, { front: [DOOR.tvPool], left: [[0.15, 1.25]] }, wallMats.deco);
 roomWalls(ROOMS.sec, { right: [[0.15, 1.25]] }, wallMats.brick);
@@ -1405,7 +1407,10 @@ roomWalls(ROOMS.card, { right: [[6.2, 7.6]] }, wallMats.lacquer);
   const r = ROOMS.wc, ti = (ax, az, bx, bz, nx, nz, y0, y1) => wallPlane(ax, az, bx, bz, nx, nz, y0, y1, wallMats.tile, 1.2);
   ti(r.x0, r.z0 + 0.02, r.x1, r.z0 + 0.02, 0, 1, 0, WALL_H); ti(r.x0, r.z1 - 0.02, r.x1, r.z1 - 0.02, 0, -1, 0, WALL_H);
   ti(r.x1 - 0.02, r.z0, r.x1 - 0.02, r.z1, -1, 0, 0, WALL_H);
-  ti(r.x0 + 0.02, r.z0, r.x0 + 0.02, -8.6, 1, 0, 0, WALL_H); ti(r.x0 + 0.02, -7.4, r.x0 + 0.02, r.z1, 1, 0, 0, WALL_H); ti(r.x0 + 0.02, -8.6, r.x0 + 0.02, -7.4, 1, 0, DOOR_H, WALL_H);
+  ti(r.x0 + 0.02, r.z0, r.x0 + 0.02, -9.4, 1, 0, 0, WALL_H); ti(r.x0 + 0.02, -8.4, r.x0 + 0.02, -7.6, 1, 0, 0, WALL_H); ti(r.x0 + 0.02, -6.6, r.x0 + 0.02, r.z1, 1, 0, 0, WALL_H);
+  ti(r.x0 + 0.02, -9.4, r.x0 + 0.02, -8.4, 1, 0, DOOR_H, WALL_H); ti(r.x0 + 0.02, -7.6, r.x0 + 0.02, -6.6, 1, 0, DOOR_H, WALL_H);
+  // the partition between the men's and the women's
+  ti(r.x0, -7.98, r.x1, -7.98, 0, 1, 0, WALL_H); ti(r.x0, -8.02, r.x1, -8.02, 0, -1, 0, WALL_H);
   // the outside of the annex
   const so = (ax, az, bx, bz, nx, nz) => wallPlane(ax, az, bx, bz, nx, nz, 0, WALL_H + 0.1, wallMats.brick, 2);
   so(r.x0, r.z0 - 0.02, r.x1 + 0.02, r.z0 - 0.02, 0, -1); so(r.x0, r.z1 + 0.02, r.x1 + 0.02, r.z1 + 0.02, 0, 1); so(r.x1 + 0.02, r.z0 - 0.02, r.x1 + 0.02, r.z1 + 0.02, 1, 0);
@@ -2177,7 +2182,7 @@ chandelierRound(PK.x, PK.z, 2.5, 0.62);
 }
 // the door to the card room: shut, roped off and signed whenever the host is away
 doorFrame(-11.8, 2.2, -11.8, 3.6);
-doorFrame(14, -8.6, 14, -7.4);
+doorFrame(14, -9.4, 14, -8.4); doorFrame(14, -7.6, 14, -6.6);
 // solid doors on the restroom and the VIP's back door, so the camera can't peek through
 function doorLeaf(px, pz, yaw, w) {
   const WOOD = [34, 20, 16], WOOD_D = [22, 13, 10], P = [box(0, w, 0, DOOR_H - 0.02, -0.03, 0.03, WOOD, 0.03)];
@@ -3210,7 +3215,7 @@ function ringPlane(r0, r1, mat, tile, y) {
 ringPlane(LOT.ro, LOT.rb + 0.6, flatMat(graniteTex, -2), 1.6, 0.02);
 ringPlane(LOT.ri, LOT.ro, flatMat(settTex, -4), 1.1, 0.04);
 groundPlane(4.6, AL.x1 + 0.8, LOT.z - 1.6, LOT.z + 1.6, settTex, 1.1, 0.032);
-groundPlane(-5.2, -2.4, LOT.z + LOT.ro + 0.05, -11.6, stoneLTex, 1.0, 0.028);
+groundPlane(-5.2, -2.4, LOT.z + LOT.ro + 0.05, -11.6, stoneLTex, 1.0, 0.07);
 // pieces of a ring (curbs, hedges, inlays), each its own small box so the faces point the right way
 const ang = (a) => [Math.sin(a), -Math.cos(a)];
 function arcBox(r0, r1, y0, y1, a0, a1, steps, col, amt) {
@@ -3322,12 +3327,12 @@ for (const zz of [LOT.z - 1.85, LOT.z + 1.85]) {
 for (const zz of [LOT.z - 1.65, LOT.z + 1.65]) S.push(box(4.8, AL.x1 + 0.8, 0, 0.1, zz - 0.07, zz + 0.07, MARBLE_W, 0.03));
 // a red carpet from the VIP back door to the drive, with brass stanchions and velvet ropes
 { const g = new THREE.PlaneGeometry(0.8, -11.6 - (LOT.z + LOT.ro + 0.1), 1, 24); const m = new THREE.Mesh(g, ps1(new THREE.MeshLambertMaterial({ map: canvasTex(8, 8, (x, w, h) => noiseFill(x, w, h, [120, 14, 24], 8)), polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -10 })));
-  m.rotation.x = -Math.PI / 2; m.position.set(-3.8, 0.05, (-11.6 + LOT.z + LOT.ro + 0.1) / 2); scene.add(m); }
+  m.rotation.x = -Math.PI / 2; m.position.set(-3.8, 0.1, (-11.6 + LOT.z + LOT.ro + 0.1) / 2); scene.add(m); }
 for (const x of [-4.55, -3.05]) {
   const zs = [-12.4, -14.0, -15.6, -17.0];
   for (const z of zs) {
-    S.push(cyl(V(x, 0, z), V(x, 0.04, z), 0.12, 0.11, BRASS_D, { n: 8 }));
-    S.push(cyl(V(x, 0.04, z), V(x, 0.95, z), 0.022, 0.022, BRASS, { n: 6 }));
+    S.push(cyl(V(x, 0.06, z), V(x, 0.12, z), 0.12, 0.11, BRASS_D, { n: 8 }));   // sits on the walkway
+    S.push(cyl(V(x, 0.12, z), V(x, 0.95, z), 0.022, 0.022, BRASS, { n: 6 }));
     S.push(cyl(V(x, 0.95, z), V(x, 1.0, z), 0.035, 0.03, BRASS, { n: 6 }));
   }
   for (let k = 0; k < zs.length - 1; k++) S.push(tube([V(x, 0.93, zs[k]), V(x, 0.72, (zs[k] + zs[k + 1]) / 2), V(x, 0.93, zs[k + 1])], [0.022, 0.022, 0.022], VELVET, { n: 5 }));
@@ -3677,8 +3682,8 @@ doorSign('LOUNGE', 4.97, 0, -Math.PI / 2); doorSign('BAR', 5.03, 0, Math.PI / 2)
 doorSign('DANCE', 13.97, 0, -Math.PI / 2); doorSign('LOUNGE', 14.03, 0, Math.PI / 2);
 doorSign('BILLIARDS', -4.97, 1.5, Math.PI / 2); doorSign('BAR', -5.03, 1.5, -Math.PI / 2);
 doorSign('CINEMA', -9.2, -3.97, 0); doorSign('BILLIARDS', -9.2, -4.03, Math.PI);
-doorSign('CARD ROOM', -11.77, 2.9, Math.PI / 2); doorSign('BILLIARDS', -11.83, 2.9, -Math.PI / 2);
-doorSign('RESTROOM', 13.97, -8.0, -Math.PI / 2); doorSign('POOL', 14.05, -8.0, Math.PI / 2);
+doorSign('CASINO ROYALE', -11.77, 2.9, Math.PI / 2); doorSign('BILLIARDS', -11.83, 2.9, -Math.PI / 2);
+doorSign('MEN', 13.97, -8.9, -Math.PI / 2); doorSign('POOL', 14.05, -8.9, Math.PI / 2); doorSign('WOMEN', 13.97, -7.1, -Math.PI / 2); doorSign('POOL', 14.05, -7.1, Math.PI / 2);
 SIGNS.push(...CARD_SIGNS);
 doorSign('POOL', 9.5, -3.97, 0); doorSign('LOUNGE', 9.5, -4.03, Math.PI);
 doorSign('VIP', -4.1, -3.97, 0); doorSign('BAR', -4.1, -4.03, Math.PI); doorSign('VIP', -4.1, -5.87, 0); doorSign('BAR', -4.1, -5.93, Math.PI);
@@ -3879,11 +3884,13 @@ POOL_SOFA.forEach(([x, z, yaw], i) => addSpot('pool-sofa-' + i, 3, 'sitlow', x, 
 POKER_SEATS.forEach(([x, z, yaw], i) => addSpot('poker-seat-' + i, 10, 'poker', x, z, yaw, 'Sit in on poker', hitBox(x, 0.45, z, 0.55, 0.9, 0.55)));
 [[-12.5, -3.2], [-16.3, 1.6], [-12.6, -1.9], [-16.2, -2.0]].forEach(([x, z], i) =>
   addSpot('card-watch-' + i, 10, 'lean', x, z, yawTo(x, z, PK.x, PK.z), 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
-// restroom: the sink, and the stall (nobody chooses the stall)
-[[15.1, 'wc-sink-0'], [16.1, 'wc-sink-1']].forEach(([x, id]) => addSpot(id, 9, 'lean', x, -6.5, 0, 'Wash your hands', hitBox(x, 0.9, -6.5, 0.45, 1.8, 0.45)));
-[[15.2, -8.6, Math.PI / 2 + 0.5], [15.4, -9.6, Math.PI / 2], [16.0, -7.9, Math.PI / 2 - 0.3]].forEach(([x, z, yaw], i) =>
-  addSpot('wc-wait-' + i, 9, 'lean', x, z, yaw, 'Hang out in the restroom', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
-SPOT_BY_ID['wc-stall-0'] = { id: 'wc-stall-0', cat: 9, act: 'slump', x: 17.78, z: -9.75, yaw: -Math.PI / 2, label: '', hit: hitBox(0, -9, 0, 0, 0, 0) };
+// restroom, split in two: the men's (cat 9) and the women's (cat 15); nobody chooses the stalls
+addSpot('wcm-sink', 9, 'lean', 15.1, -8.5, 0, 'Wash your hands', hitBox(15.1, 0.9, -8.5, 0.45, 1.8, 0.45));
+[[15.6, -9.3, Math.PI / 2], [16.3, -9.6, Math.PI / 2 - 0.4]].forEach(([x, z, yaw], i) => addSpot('wcm-wait-' + i, 9, 'lean', x, z, yaw, "Hang out in the men's room", hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
+[[15.1, 'wcw-sink-0'], [16.1, 'wcw-sink-1']].forEach(([x, id]) => addSpot(id, 15, 'lean', x, -6.5, 0, 'Fix your hair in the mirror', hitBox(x, 0.9, -6.5, 0.45, 1.8, 0.45)));
+addSpot('wcw-wait-0', 15, 'lean', 15.5, -7.4, Math.PI / 2, "Hang out in the women's room", hitBox(15.5, 0.9, -7.4, 0.45, 1.8, 0.45));
+SPOT_BY_ID['wc-stall-m'] = { id: 'wc-stall-m', cat: 9, act: 'slump', x: 17.78, z: -9.79, yaw: -Math.PI / 2, label: '', hit: hitBox(0, -9, 0, 0, 0, 0) };
+SPOT_BY_ID['wc-stall-w'] = { id: 'wc-stall-w', cat: 15, act: 'slump', x: 17.78, z: -6.21, yaw: -Math.PI / 2, label: '', hit: hitBox(0, -9, 0, 0, 0, 0) };
 // VIP lounge: the host's armchair is his alone
 VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'lounge' : 'sitlow', x, z, yaw,
   i === 0 ? "The host's seat" : 'Sink into the sofa', hitBox(x, 0.45, z, 0.7, 0.9, 0.7), { hostOnly: i === 0 }));
@@ -3926,7 +3933,7 @@ addSpot('change-locker-0', 8, 'lean', 2.75, -7.5, -Math.PI / 2, 'Lean on the loc
 DANCE_STOOLS.forEach((x, i) => addSpot('dance-stool-' + i, 0, 'sit', x, 3.2, 0, 'Sit at the ledge', hitBox(x, 0.45, 3.2, 0.5, 0.9, 0.5)));
 DANCE_BENCH.forEach((x, i) => addSpot('dance-bench-' + i, 0, 'sitlow', x, -3.62, 0, 'Sit on the bench', hitBox(x, 0.4, -3.62, 0.6, 0.8, 0.6)));
 // the lounge: wingbacks round the tables, the chesterfield by the fire
-LOUNGE_CLUB.forEach(([x, z, yaw, ti], i) => { addSpot('lounge-' + i, 11, 'club', x, z, yaw, ti === 4 ? 'Sit by the fire' : 'Sit in the lounge', hitBox(x, 0.5, z, 0.7, 1.0, 0.7), { table: ti }); LOUNGE_TABLES[ti].seats.push('lounge-' + i); });
+LOUNGE_CLUB.forEach(([x, z, yaw, ti]) => { const id = 'lt' + ti + '-' + LOUNGE_TABLES[ti].seats.length; addSpot(id, 11, 'club', x, z, yaw, ti === 4 ? 'Sit by the fire' : 'Sit in the lounge', hitBox(x, 0.5, z, 0.7, 1.0, 0.7), { table: ti }); LOUNGE_TABLES[ti].seats.push(id); });
 function overflowSpot(idx) {
   const a = idx * 2.4, rx = 3.0 + (idx % 3) * 0.4, rz = 2.9 + (idx % 2) * 0.4;
   const x = Math.min(21.2, DF.x + Math.cos(a) * rx), z = Math.max(-3.6, Math.min(3.6, DF.z + Math.sin(a) * rz));
@@ -3946,7 +3953,7 @@ function placeAll() {
   for (const ch of people) ch.placed = false;
   // 0. whoever was found in the restroom stays slumped in the stall for a while
   const vic = victimNow();
-  if (vic) { const ch = people.find((c) => c.uid && c.uid === vic.uid); if (ch) claim(ch, SPOT_BY_ID['wc-stall-0']); }
+  if (vic) { const ch = people.find((c) => c.uid && c.uid === vic.uid); if (ch) claim(ch, SPOT_BY_ID[ch.look && ch.look.body === 1 ? 'wc-stall-w' : 'wc-stall-m']); }
   // 1. people who clicked somewhere, earliest click first (a seat goes to whoever took it first)
   const chosen = people.filter((ch) => ch.want && SPOT_BY_ID[ch.want]).sort((a, b) => (a.wantT || 0) - (b.wantT || 0));
   for (const ch of chosen) {
@@ -4066,6 +4073,7 @@ function rebuild() {
   }
   if (keepDraft) { scene.add(keepDraft.root); crowd.push(keepDraft); }
   updateRosterUI();
+  applyRanks();
 }
 
 // ---------------------------------------------------------------- music (original tracks, Web Audio)
@@ -4082,17 +4090,24 @@ const TRACKS = [
 const JAZZ_TRACKS = [0, 1, 3];
 const rnd = (k) => { const x = Math.sin(k * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
 let trackIdx = 0, pinnedTrack = false, pendingTrack = -1;
+// the dance room plays the bar's original electronic set, only while you're in there; everywhere else the shared jukebox
+const DANCE_TRACKS = [2, 4, 5];
+let sharedTrack = 0, danceHere = false, danceSel = 0;
 let SPB = 60 / TRACKS[0].bpm;
 let actx = null, master = null, bus = null, muted = false, nextStep = 0, stepIdx = 0, schedTimer = null, ducked = false;
 let beatBase = 0, beatT0 = 0;
 const MASTER_VOL = 0.36;
+// the volume knob in the top bar (0..1) scales the jukebox, the TVs, the DJ and the jazz
+const userVol = () => { const v = window.SH_VOL; return typeof v === 'number' && v >= 0 ? v : 1; };
+const masterLevel = () => Math.max(0.0001, MASTER_VOL * userVol());
+window.addEventListener('shvol', () => { if (master && actx && !ducked) master.gain.setTargetAtTime(masterLevel(), actx.currentTime, 0.1); if (SFX.gain) SFX.gain.gain.value = 0.35 * userVol(); });
 const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 let noiseBuf = null;
 function startAudio() {
   if (actx) return;
   const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
   actx = new AC();
-  master = actx.createGain(); master.gain.value = ducked ? 0.0001 : MASTER_VOL;
+  master = actx.createGain(); master.gain.value = ducked ? 0.0001 : masterLevel();
   // each track has its own level: the soft jazz is mixed up to sit at a steady, gentle volume
   bus = actx.createGain(); bus.gain.value = TRACKS[trackIdx].gain || 1; bus.connect(master);
   // a gentle low-pass and a soft compressor keep it warm in the background instead of punchy
@@ -4215,12 +4230,13 @@ function schedule() {
   while (nextStep < actx.currentTime + 0.12) {
     if (stepIdx % 16 === 0) {
       if (pendingTrack >= 0) { setTrackNow(pendingTrack, nextStep); pendingTrack = -1; }
-      else if (!pinnedTrack && stepIdx > 0 && stepIdx % (16 * 48) === 0) { const j = JAZZ_TRACKS.indexOf(trackIdx); setTrackNow(j >= 0 ? JAZZ_TRACKS[(j + 1) % JAZZ_TRACKS.length] : (trackIdx + 1) % TRACKS.length, nextStep); }
+      else if (danceHere && stepIdx > 0 && stepIdx % (16 * 48) === 0) { danceSel = (danceSel + 1) % DANCE_TRACKS.length; setTrackNow(DANCE_TRACKS[danceSel], nextStep); }
+      else if (!pinnedTrack && !extJazz && stepIdx > 0 && stepIdx % (16 * 48) === 0) { const j = JAZZ_TRACKS.indexOf(trackIdx); setTrackNow(j >= 0 ? JAZZ_TRACKS[(j + 1) % JAZZ_TRACKS.length] : (trackIdx + 1) % TRACKS.length, nextStep); }
     }
     const tr = TRACKS[trackIdx], st = SPB / 4;
     const s = stepIdx % 16, bar = Math.floor(stepIdx / 16), ch = tr.prog[bar % 4], sec = Math.floor(bar / 8) % 4;
     const t = nextStep + (s % 2 === 1 ? tr.swing * st : 0) + (tr.swing8 && s % 4 === 2 ? tr.swing8 * st * 2 : 0);
-    if (!ducked && !(extJazz && trackIdx === 0)) STEPS[trackIdx](t, s, bar, ch, sec, st);
+    if (!ducked && !(extJazz && JAZZ_TRACKS.includes(trackIdx))) STEPS[trackIdx](t, s, bar, ch, sec, st);
     nextStep += st; stepIdx++;
   }
 }
@@ -4239,13 +4255,13 @@ function duck(key, on) {
   const d = Object.keys(duckers).some((k) => duckers[k]);
   if (d === ducked) return;
   ducked = d;
-  if (master) master.gain.setTargetAtTime(ducked ? 0.0001 : MASTER_VOL, actx.currentTime, 0.4);
+  if (master) master.gain.setTargetAtTime(ducked ? 0.0001 : masterLevel(), actx.currentTime, 0.4);
   updateTrackUI();
 }
 function setDucked(on) { duck('tv', on); }
 function updateTrackUI() {
   const el = document.getElementById('track');
-  if (el) el.textContent = ducked ? 'Jukebox: paused' : 'Jukebox: ' + (extJazz && trackIdx === 0 ? 'House jazz' : TRACKS[trackIdx].name);
+  if (el) el.textContent = ducked ? 'Jukebox: paused' : 'Jukebox: ' + (extJazz && JAZZ_TRACKS.includes(trackIdx) ? 'House jazz' : TRACKS[trackIdx].name);
 }
 function setMuted(m) {
   muted = m;
@@ -4273,6 +4289,8 @@ const VIEWS = {
   viptv: { tx: VTV.x, ty: 1.5, tz: VTV.z - 1.6, d: 4, yaw: Math.PI, pitch: 0.08 },
   sec: { tx: -16.0, ty: 1.3, tz: -7.6, d: 4.6, yaw: 0.8, pitch: 0.35 },
   wc: { tx: 15.6, ty: 0, tz: -8.0, d: 10, yaw: -0.55, pitch: 1.0, free: true },
+  wcM: { tx: 15.8, ty: 0, tz: -9.2, d: 8, yaw: -0.55, pitch: 1.0, free: true },
+  wcW: { tx: 15.8, ty: 0, tz: -6.8, d: 8, yaw: -0.55, pitch: 1.0, free: true },
   vip: { tx: -1.3, ty: 1.0, tz: -8.9, d: 5.5, yaw: 0.2, pitch: 0.3 },
   swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
   change: { tx: 3.5, ty: 1.0, tz: -8.2, d: 5, yaw: 0.0, pitch: 0.5 },
@@ -4281,7 +4299,7 @@ const VIEWS = {
   map: { tx: 0.5, ty: 0, tz: -1.8, d: 34, yaw: 0, pitch: 1.3, free: true }
 };
 VIEWS.basement = { tx: 100, ty: 0.9, tz: 0, d: 6.5, yaw: 0.7, pitch: 0.6 };
-VIEWS.f2 = { tx: 204, ty: 1.0, tz: 0, d: 8, yaw: -Math.PI / 2, pitch: 0.75 };
+VIEWS.f2 = { tx: 208.5, ty: 0, tz: 0, d: 13, yaw: 0, pitch: 1.05, free: true };
 for (const R of HOTEL_ROOMS) VIEWS['room' + R.i] = { tx: R.x0 + 2.5, ty: 0.9, tz: R.side * 4.1, d: 6, yaw: R.side > 0 ? Math.PI - 0.6 : -0.6, pitch: 0.6 };
 for (const k in VIEWS) VIEWS[k].free = !!VIEWS[k].free;
 let cam = Object.assign({}, VIEWS.bar), camT = Object.assign({}, VIEWS.bar), follow = null;
@@ -4307,7 +4325,7 @@ function setView(name) {
   if ((name === 'vip' || name === 'viptv') && !vipOk()) return;
   if ((name === 'f2' || /^room\d$/.test(name)) && !floor2Ok()) { toast('The second floor is under construction. Come back soon.'); return; }
   if (/^room\d$/.test(name) && !roomOk(+name.slice(4))) { toast(window.HOTEL && window.HOTEL.ownerOf(+name.slice(4)) ? "That room's taken. The door's locked." : 'That room is free. Ask Charon at the bar to rent it.'); return; }
-  if (name === 'card' && !cardOpen && !isMod) { toast('The card room is closed. Poker nights only happen when sh1den is in.'); return; }
+  if (name === 'card' && !cardOpen && !isMod) { toast('Casino Royale is closed. Poker nights only happen when sh1den is in.'); return; }
   follow = null; velYaw = velPitch = 0;
   cutTo(() => Object.assign(camT, VIEWS[name]));
 }
@@ -4345,7 +4363,7 @@ canvas.addEventListener('pointermove', (e) => {
 const endDrag = () => {
   // middle-drag stops dead like a classic MMO camera; a finger flick glides a little
   if (drag && (drag.mid || performance.now() - lastMoveT > 90)) velYaw = velPitch = 0;
-  if (drag && drag.mid) canvas.style.cursor = 'default';
+  if (drag && drag.mid) canvas.style.cursor = 'var(--cur, default)';
   drag = null;
 };
 canvas.addEventListener('pointerup', endDrag);
@@ -4383,6 +4401,12 @@ window.addEventListener('keyup', (e) => {
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 const BIRD = { pitch: 1.3, d: 14, x0: -20, x1: 26, z0: -33, z1: 15 };
+// which floor the camera is on: the bar, the basement or the hotel, each with its own bounds for free looking
+const zoneOf = (x) => (x > 150 ? 'f2' : x > 80 ? 'base' : 'main');
+function zoneBounds() {
+  const z = zoneOf(camT.tx);
+  return z === 'f2' ? { x0: 196.5, x1: 220.5, z0: -6.5, z1: 6.5 } : z === 'base' ? { x0: 97, x1: 103, z0: -2.6, z1: 2.6 } : BIRD;
+}
 function keyboardPan(dt) {
   const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), mz = (keys.f ? 1 : 0) - (keys.b ? 1 : 0), rot = (keys.e ? 1 : 0) - (keys.q ? 1 : 0);
   if (!mx && !mz && !rot) return;
@@ -4395,8 +4419,9 @@ function keyboardPan(dt) {
   if (mx || mz) {
     const len = Math.hypot(mx, mz), speed = Math.max(3, camT.d * 0.55) * (keys.fast ? 2.2 : 1);
     const fx = -Math.sin(camT.yaw), fz = -Math.cos(camT.yaw), rx = Math.cos(camT.yaw), rz = -Math.sin(camT.yaw);
-    camT.tx = Math.max(BIRD.x0, Math.min(BIRD.x1, camT.tx + (fx * mz + rx * mx) / len * speed * dt));
-    camT.tz = Math.max(BIRD.z0, Math.min(BIRD.z1, camT.tz + (fz * mz + rz * mx) / len * speed * dt));
+    const Z = zoneBounds();
+    camT.tx = Math.max(Z.x0, Math.min(Z.x1, camT.tx + (fx * mz + rx * mx) / len * speed * dt));
+    camT.tz = Math.max(Z.z0, Math.min(Z.z1, camT.tz + (fz * mz + rz * mx) / len * speed * dt));
   }
 }
 // keep every name tag over its character's head, crisp and always on top; people in other rooms are dimmed
@@ -4523,8 +4548,9 @@ const OBJECTS = [
   { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, TV.z, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, TV.z], size: 0.7 },
   { id: 'humidor', label: 'Take a cigar (30 min)', hit: hitBox(1.0, 1.0, -4.26, 1.1, 1.96, 0.5), cat: 4, floor: [1.0, -4.85], size: 0.6 },
   { id: 'minibar', label: 'Pour yourself a drink', hit: hitBox(-10.0, 1.2, 3.75, 2.0, 2.4, 0.55), cat: 3, floor: [-10.0, 3.2], size: 0.8 },
-  { id: 'wcdoor', label: 'Go to the restroom', hit: hitBox(13.9, 1.2, -8.0, 0.4, 2.4, 1.2), cat: 5, floor: [13.5, -8.0], size: 0.5 },
-  { id: 'carddoor', label: 'Card room', hit: hitBox(-11.8, 1.2, 2.9, 0.3, 2.4, 1.4), cat: 3, floor: [-11.4, 2.9], size: 0.5 },
+  { id: 'wcdoor-m', label: "Men's room", hit: hitBox(13.9, 1.2, -8.9, 0.4, 2.4, 1.0), cat: 5, floor: [13.5, -8.9], size: 0.45 },
+  { id: 'wcdoor-w', label: "Women's room", hit: hitBox(13.9, 1.2, -7.1, 0.4, 2.4, 1.0), cat: 5, floor: [13.5, -7.1], size: 0.45 },
+  { id: 'carddoor', label: 'Casino Royale', hit: hitBox(-11.8, 1.2, 2.9, 0.3, 2.4, 1.4), cat: 3, floor: [-11.4, 2.9], size: 0.5 },
   { id: 'plaque', label: 'Coin leaderboard', hit: hitBox(-4.85, 1.7, -1.6, 0.3, 1.5, 1.2), cat: 1, floor: [-4.4, -1.6], size: 0.5 },
   { id: 'slots', label: 'Play the slot machines', hit: hitBox(-11.0, 0.9, -3.65, 1.7, 1.8, 0.7), cat: 3, floor: [-11.0, -3.05], size: 0.7 },
   { id: 'beggar', label: 'The old man with a cup', hit: hitBox(-13.1, 0.5, -34.3, 0.9, 1.0, 0.9), cat: 7, floor: [-12.6, -33.8], size: 0.5 },
@@ -4555,7 +4581,7 @@ OBJECTS.push({ id: 'stairs2', label: 'Upstairs: the hotel', hit: hitBox(STAIR2.x
 OBJECTS.push({ id: 'stairsdown', label: 'Back downstairs to the bar', hit: hitBox(197.4, 0.5, 0, 1.8, 1.0, 1.8), cat: 13, floor: [197.4, 0], size: 0.8 });
 OBJECTS.push({ id: 'baseup', label: 'Climb back up', hit: hitBox(102.0, 1.2, -2.55, 3.0, 2.4, 0.9), cat: 12, floor: [101.0, -2.0], size: 0.6 });
 OBJECTS.push({ id: 'dj', label: 'Talk to the DJ', hit: hitBox(22.85, 1.1, 0, 0.6, 1.9, 0.7), cat: 0, floor: [21.6, 0], size: 0.5 });
-const CAT_ROOM = { 11: ROOMS.lounge, 12: ROOMS.base, 13: ROOMS.f2, 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley, 8: ROOMS.change, 9: ROOMS.wc, 10: ROOMS.card };
+const CAT_ROOM = { 15: ROOMS.wcW, 11: ROOMS.lounge, 12: ROOMS.base, 13: ROOMS.f2, 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley, 8: ROOMS.change, 9: ROOMS.wcM, 10: ROOMS.card };
 for (const R of HOTEL_ROOMS) CAT_ROOM[20 + R.i] = ROOMS['h' + R.i];
 const targets = SPOT_LIST.map((s) => ({ kind: 'spot', s, box: new THREE.Box3(new THREE.Vector3(s.hit.x - s.hit.sx / 2, s.hit.y - s.hit.sy / 2, s.hit.z - s.hit.sz / 2), new THREE.Vector3(s.hit.x + s.hit.sx / 2, s.hit.y + s.hit.sy / 2, s.hit.z + s.hit.sz / 2)) }))
   .concat(OBJECTS.map((o) => ({ kind: 'object', o, box: new THREE.Box3(new THREE.Vector3(o.hit.x - o.hit.sx / 2, o.hit.y - o.hit.sy / 2, o.hit.z - o.hit.sz / 2), new THREE.Vector3(o.hit.x + o.hit.sx / 2, o.hit.y + o.hit.sy / 2, o.hit.z + o.hit.sz / 2)) })));
@@ -4580,7 +4606,7 @@ function describe(tg) {
       const me = myChar();
       return { ok: true, text: me && me.glassId ? 'Order another drink' : 'Order a drink' };
     }
-    if (tg.o.id === 'carddoor' && !cardOpen) return { ok: isMod, text: isMod ? 'Card room (closed, host tools)' : 'Closed · private game tonight' };
+    if (tg.o.id === 'carddoor' && !cardOpen) return { ok: isMod, text: isMod ? 'Casino Royale (closed, host tools)' : 'Closed · private game tonight' };
     return { ok: true, text: tg.o.label };
   }
   const s = tg.s, owner = spotOwner.get(s.id);
@@ -4612,7 +4638,7 @@ function pickTarget(clientX, clientY) {
 }
 function showHover(tg, x, y, touch) {
   hovered = tg;
-  if (!tg) { ring.visible = false; hintEl.hidden = true; canvas.style.cursor = 'default'; return; }
+  if (!tg) { ring.visible = false; hintEl.hidden = true; canvas.style.cursor = 'var(--cur, default)'; return; }
   const info = describe(tg);
   if (tg.kind === 'spot') { ring.position.set(tg.s.hit.x, 0.03, tg.s.hit.z); ring.scale.setScalar(Math.max(tg.s.hit.sx, tg.s.hit.sz) * 0.55); }
   else { ring.position.set(tg.o.floor[0], 0.03, tg.o.floor[1]); ring.scale.setScalar(tg.o.size); }
@@ -4623,7 +4649,7 @@ function showHover(tg, x, y, touch) {
   hintEl.hidden = false;
   const r = stage.getBoundingClientRect();
   hintEl.style.transform = 'translate(' + Math.round(x - r.left + 14) + 'px,' + Math.round(y - r.top + 16) + 'px)';
-  canvas.style.cursor = info.ok ? 'pointer' : 'not-allowed';
+  canvas.style.cursor = info.ok ? 'var(--cur-hand, pointer)' : 'var(--cur, not-allowed)';
 }
 canvas.addEventListener('pointermove', (e) => {
   if (e.pointerType === 'touch') return;
@@ -4681,10 +4707,10 @@ function activate(tg, x, y) {
   if (id === 'bartender') { drinkFrom = 'bar'; $('dmCig').hidden = false; openDrinkMenu(x, y); }
   else if (id === 'minibar') { drinkFrom = 'minibar'; $('dmCig').hidden = true; openDrinkMenu(x, y); }
   else if (id === 'humidor') giveSmoke('cigar');
-  else if (id === 'wcdoor') {
-    const free = SPOT_LIST.find((s) => s.cat === 9 && (!spotOwner.has(s.id) || spotOwner.get(s.id).mine));
-    if (free) goTo(free.id); else toast("The restroom's full.");
-    setView('wc');
+  else if (id === 'wcdoor-m' || id === 'wcdoor-w') {
+    const w = id === 'wcdoor-w', free = SPOT_LIST.find((s) => s.cat === (w ? 15 : 9) && (!spotOwner.has(s.id) || spotOwner.get(s.id).mine));
+    if (free) goTo(free.id); else toast("It's full in there.");
+    setView(w ? 'wcW' : 'wcM');
   }
   else if (id === 'coin') { if (window.EXTRAS) window.EXTRAS.claimCoin(); }
   else if (id === 'jukebox' || id === 'djbooth') changeMusic();
@@ -4731,6 +4757,7 @@ function applyMyStateLocally() { rebuild(); }
 // the bartender's drink menu
 const drinkMenu = document.getElementById('drinkMenu');
 function openDrinkMenu(x, y) {
+  for (const b of drinkMenu.querySelectorAll('button[data-drink]')) b.textContent = b.dataset.drink + (drinkFrom === 'bar' ? ' · ' + DRINK_PRICE + ' 🪙' : ' · on the house');
   const r = stage.getBoundingClientRect();
   drinkMenu.hidden = false;
   const w = drinkMenu.offsetWidth || 180, h = drinkMenu.offsetHeight || 180;
@@ -4740,8 +4767,18 @@ function openDrinkMenu(x, y) {
 }
 let drinkFrom = 'bar';
 function closeDrinkMenu() { if (drinkMenu) drinkMenu.hidden = true; }
-function orderDrink(id) {
+// Charon charges: a drink is 5 sh1den coins, a cigarette 10 (the hosts drink on the house; the VIP minibar is free)
+const DRINK_PRICE = 5, CIG_PRICE = 10;
+async function payCharon(n, what) {
+  if (drinkFrom !== 'bar' || !window.EXTRAS || !window.EXTRAS.spend) return true;
+  const ok = await window.EXTRAS.spend(n);
+  if (!ok) toast("You can't afford " + what + ' (' + n + ' sh1den coins).');
+  return ok;
+}
+async function orderDrink(id) {
   closeDrinkMenu();
+  const cur = myState.d || (myChar() && myChar().drink) || '';
+  if (id && id !== cur && !(await payCharon(DRINK_PRICE, 'that drink'))) return;
   const me = myChar();
   // order at the bar: if you're not already at the bar, take a free stool
   let spot = myState.s || (me && me.spot) || '';
@@ -4760,13 +4797,13 @@ if (drinkMenu) {
   const title = document.createElement('div'); title.className = 'dmTitle'; title.textContent = "What'll it be?";
   drinkMenu.appendChild(title);
   for (const d of DRINKS) {
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = d.name;
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = d.name; b.dataset.drink = d.name;
     b.onclick = () => orderDrink(d.id); drinkMenu.appendChild(b);
   }
   const none = document.createElement('button'); none.type = 'button'; none.className = 'quiet'; none.textContent = 'Put my drink down';
   none.onclick = () => orderDrinkNone(); drinkMenu.appendChild(none);
-  const cig = document.createElement('button'); cig.type = 'button'; cig.id = 'dmCig'; cig.textContent = 'A cigarette (10 min)';
-  cig.onclick = () => { closeDrinkMenu(); giveSmoke('cig'); };
+  const cig = document.createElement('button'); cig.type = 'button'; cig.id = 'dmCig'; cig.textContent = 'A cigarette (10 min) · ' + CIG_PRICE + ' 🪙';
+  cig.onclick = async () => { closeDrinkMenu(); const me = myChar(); if (!me) { openCreator(); return; } if (me.host) { giveSmoke('cig'); return; } if (await payCharon(CIG_PRICE, 'a cigarette')) giveSmoke('cig'); };
   drinkMenu.insertBefore(cig, none);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrinkMenu(); });
 }
@@ -4779,7 +4816,8 @@ function bartenderSays(drinkId, name) {
 
 // shared jukebox: everyone hears the same track
 function changeMusic() {
-  const next = (trackIdx + 1) % TRACKS.length;
+  if (danceHere) { danceSel = (danceSel + 1) % DANCE_TRACKS.length; pickTrack(DANCE_TRACKS[danceSel]); toast('The DJ drops ' + TRACKS[DANCE_TRACKS[danceSel]].name + '.'); return; }
+  const next = (sharedTrack + 1) % TRACKS.length;
   if (window.NET && window.NET.online) window.NET.setJukebox(next);
   else { pickTrack(next); toast('Now playing: ' + TRACKS[next].name); }
 }
@@ -4802,6 +4840,7 @@ PRE_HOOKS.push(() => {
   for (const ch of crowd) { const s = ch.act === 'club' && ch.spot && SPOT_BY_ID[ch.spot]; if (s) { ch.toastN = cnt[s.table]; ch.toastT = s.table; } }
 });
 POST_HOOKS.push((dt, t, beat) => danceFxTick(dt, t, beat));
+POST_HOOKS.push(() => { const inD = camRoom() === ROOMS.dance; if (inD !== danceHere) { danceHere = inD; pickTrack(inD ? DANCE_TRACKS[danceSel] : sharedTrack); } });
 POST_HOOKS.push((dt, t) => loungeTick(dt, t));
 const hash32 = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 9); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return n >>> 0; };
 const camRoom = () => (camT.free ? null : roomAt(cam.tx, cam.tz));
@@ -4813,23 +4852,36 @@ const wcLight = new THREE.PointLight(0xfff0d8, 1.0, 5.5, 1.5); wcLight.position.
   const P = [], Lg = [];
   const ST_C = [52, 54, 60], ST_D = [34, 36, 40], PORC = [224, 222, 216], CHR = [170, 172, 178], GOLD = [150, 112, 54];
   const FX = 17.0, BX = 18.38;               // stall fronts / back wall
-  const STALLS = [[-10.38, -9.1], [-9.1, -7.8], [-7.8, -6.5]];
+  const STALLS = [[-10.38, -9.2], [-9.2, -8.04], [-7.96, -6.8], [-6.8, -5.62]];
   for (const [a, b] of STALLS) {
     P.push(box(FX, FX + 0.04, 0.12, 2.05, a, a + 0.15, ST_C, 0.03), box(FX, FX + 0.04, 0.12, 2.05, b - 0.15, b, ST_C, 0.03));
     P.push(box(FX, FX + 0.04, 1.9, 2.05, a + 0.15, b - 0.15, ST_D, 0.02));
-    P.push(box(FX + 0.04, BX, 0.12, 2.05, b - 0.02, b + 0.02, ST_C, 0.03));
+    if (b !== -8.04 && b !== -5.62) P.push(box(FX + 0.04, BX, 0.12, 2.05, b - 0.02, b + 0.02, ST_C, 0.03));
     const c = (a + b) / 2;
     P.push(box(BX - 0.17, BX, 0.42, 0.82, c - 0.2, c + 0.2, PORC, 0.02));
     P.push(cyl(V(BX - 0.4, 0, c), V(BX - 0.4, 0.38, c), 0.13, 0.18, PORC, { n: 8 }));
     P.push(cyl(V(BX - 0.4, 0.38, c), V(BX - 0.4, 0.42, c), 0.2, 0.2, [236, 234, 228], { n: 8 }));
     P.push(box(BX - 0.08, BX - 0.04, 0.82, 0.86, c - 0.04, c + 0.04, CHR, 0.02));
   }
-  // stall doors: the first and last swung open against their partitions, the middle one locked
+  // stall doors: one open and one locked on each side
   P.push(box(FX + 0.04, FX + 1.0, 0.15, 1.88, STALLS[0][0] + 0.17, STALLS[0][0] + 0.2, ST_C, 0.03));
-  P.push(box(FX + 0.04, FX + 1.0, 0.15, 1.88, STALLS[2][1] - 0.2, STALLS[2][1] - 0.17, ST_C, 0.03));
   P.push(box(FX + 0.005, FX + 0.035, 0.15, 1.88, STALLS[1][0] + 0.16, STALLS[1][1] - 0.16, ST_C, 0.03));
-  Lg.push(box(FX - 0.015, FX, 1.05, 1.09, STALLS[1][1] - 0.3, STALLS[1][1] - 0.24, [220, 30, 30], 0));
-  // a long vanity with two basins and a gold-framed mirror on the back wall
+  P.push(box(FX + 0.005, FX + 0.035, 0.15, 1.88, STALLS[2][0] + 0.16, STALLS[2][1] - 0.16, ST_C, 0.03));
+  P.push(box(FX + 0.04, FX + 1.0, 0.15, 1.88, STALLS[3][1] - 0.2, STALLS[3][1] - 0.17, ST_C, 0.03));
+  for (const k of [1, 2]) Lg.push(box(FX - 0.015, FX, 1.05, 1.09, STALLS[k][1] - 0.3, STALLS[k][1] - 0.24, [220, 30, 30], 0));
+  // men's: two urinals on the end wall, a basin and mirror on the partition, the dryer
+  for (const x of [15.4, 16.2]) {
+    P.push(box(x - 0.18, x + 0.18, 0.45, 1.1, -10.38, -10.2, PORC, 0.02));
+    P.push(box(x - 0.14, x + 0.14, 0.5, 0.95, -10.2, -10.12, [236, 234, 228], 0.02));
+    P.push(cyl(V(x, 1.1, -10.3), V(x, 1.3, -10.3), 0.015, 0.015, CHR, { n: 5 }));
+  }
+  P.push(box(15.6, 15.8, 0.95, 1.3, -10.38, -10.3, [60, 60, 64], 0.02));
+  P.push(box(14.5, 15.7, 0.8, 0.86, -8.4, -8.03, [20, 20, 22], 0.03)); P.push(box(14.55, 15.65, 0, 0.8, -8.35, -8.03, [30, 30, 34], 0.03));
+  P.push(box(14.93, 15.27, 0.86, 0.9, -8.33, -8.06, PORC, 0.02)); P.push(cyl(V(15.1, 0.86, -8.08), V(15.1, 1.02, -8.08), 0.015, 0.015, CHR, { n: 5 }));
+  P.push(box(14.55, 15.65, 1.12, 2.0, -8.05, -8.03, [132, 144, 150], 0.02)); P.push(box(14.52, 15.68, 1.09, 1.12, -8.06, -8.03, GOLD, 0.02), box(14.52, 15.68, 2.0, 2.03, -8.06, -8.03, GOLD, 0.02));
+  P.push(box(16.3, 16.6, 1.1, 1.38, -8.05, -8.03 + 0.0, [180, 182, 186], 0.03));
+  P.push(cyl(V(16.6, 0, -10.15), V(16.6, 0.5, -10.15), 0.13, 0.15, [140, 142, 148], { n: 8 }));
+  // women's: a long vanity with two basins and a gold-framed mirror on the end wall, a dryer by the door
   P.push(box(14.5, 16.7, 0.8, 0.86, -6.1, -5.62, [20, 20, 22], 0.03));
   P.push(box(14.55, 16.65, 0, 0.8, -6.04, -5.62, [30, 30, 34], 0.03));
   for (const x of [15.1, 16.1]) {
@@ -4839,11 +4891,8 @@ const wcLight = new THREE.PointLight(0xfff0d8, 1.0, 5.5, 1.5); wcLight.position.
   P.push(box(14.55, 16.65, 1.12, 2.0, -5.64, -5.62, [132, 144, 150], 0.02));
   P.push(box(14.52, 16.68, 1.09, 1.12, -5.66, -5.62, GOLD, 0.02), box(14.52, 16.68, 2.0, 2.03, -5.66, -5.62, GOLD, 0.02));
   Lg.push(box(14.6, 16.6, 2.08, 2.12, -5.7, -5.64, [255, 236, 200], 0));
-  // dryer and bin on the front wall, a towel stand and a tall plant in the corner
-  P.push(box(15.0, 15.3, 1.1, 1.38, -10.38, -10.26, [180, 182, 186], 0.03), box(15.08, 15.22, 1.06, 1.1, -10.36, -10.3, [60, 60, 64], 0.02));
-  P.push(cyl(V(15.7, 0, -10.15), V(15.7, 0.5, -10.15), 0.13, 0.15, [140, 142, 148], { n: 8 }));
-  P.push(cyl(V(17.7, 0, -6.0), V(17.7, 0.45, -6.0), 0.2, 0.16, [40, 30, 22], { n: 8 }));
-  for (let k = 0; k < 7; k++) { const a = k * 0.9; P.push(cyl(V(17.7, 0.45, -6.0), V(17.7 + Math.cos(a) * 0.35, 1.1 + (k % 3) * 0.2, -6.0 + Math.sin(a) * 0.35), 0.03, 0.01, [30, 70, 36], { n: 4 })); }
+  P.push(box(15.6, 15.9, 1.1, 1.38, -7.97, -7.85, [180, 182, 186], 0.03));
+  P.push(cyl(V(16.6, 0, -7.75), V(16.6, 0.45, -7.75), 0.13, 0.15, [140, 142, 148], { n: 8 }));
   // ceiling lamps
   for (const z of [-9.4, -6.8]) Lg.push(box(15.6, 16.8, 3.08, 3.12, z - 0.15, z + 0.15, [255, 240, 214], 0));
   wcGroup.add(new THREE.Mesh(toGeometry(P), roomMat), new THREE.Mesh(toGeometry(Lg), glowMat));
@@ -4855,7 +4904,7 @@ wcRoof.position.set((ROOMS.wc.x0 + ROOMS.wc.x1) / 2 + 0.05, WALL_H + 0.06, (ROOM
 const inRoom = (ch, r) => { const p = ch.root.position; return p.x >= r.x0 && p.x <= r.x1 && p.z >= r.z0 && p.z <= r.z1; };
 POST_HOOKS.push(() => {
   const me = crowd.find((c) => c.mine);
-  const open = camRoom() === ROOMS.wc || !!(me && inRoom(me, ROOMS.wc));
+  const cr = camRoom(); const open = cr === ROOMS.wc || cr === ROOMS.wcM || cr === ROOMS.wcW || !!(me && inRoom(me, ROOMS.wc));
   wcRoof.visible = !open; wcLight.visible = open;
   if (!open) for (const ch of crowd) if (inRoom(ch, ROOMS.wc)) ch.root.visible = false;
 });
@@ -4863,7 +4912,7 @@ POST_HOOKS.push(() => {
 // ---- VIP glass: everyone but the hosts sees the lounge through a dark smoked tint, without name tags or chat
 const vipTint = new THREE.Mesh(new THREE.BoxGeometry(6.94, 3.15, 6.94), new THREE.MeshBasicMaterial({ color: 0x14040e, transparent: true, opacity: 0.74, depthWrite: false, fog: false }));
 vipTint.position.set(-1.5, 1.6, -7.5); vipTint.renderOrder = 4; scene.add(vipTint);
-const hiddenInVip = (ch) => !vipOk() && !ch.mine && inRoom(ch, ROOMS.vip);
+const hiddenInVip = (ch) => (!vipOk() && !ch.mine && inRoom(ch, ROOMS.vip)) || (!ch.mine && HOTEL_ROOMS.some((R2) => inRoom(ch, ROOMS['h' + R2.i]) && !roomOk(R2.i)));
 POST_HOOKS.push(() => { vipTint.visible = !vipOk(); });
 
 // ---- painting eyes: they glow red during a blackout (and sometimes on their own)
@@ -4988,7 +5037,7 @@ const SFX = { gain: null };
 const SFX_ON = false;
 function sfxOut() {
   if (!SFX_ON || !actx || muted) return null;
-  if (!SFX.gain) { SFX.gain = actx.createGain(); SFX.gain.gain.value = 0.35; SFX.gain.connect(actx.destination); }
+  if (!SFX.gain) { SFX.gain = actx.createGain(); SFX.gain.gain.value = 0.35 * userVol(); SFX.gain.connect(actx.destination); }
   return SFX.gain;
 }
 function tone(freq, t0, dur, type, vol, freq2) {
@@ -5177,7 +5226,7 @@ REBUILD_HOOKS.push(() => {
 PRE_HOOKS.push((dt, t) => { if (ben) { const T = (t + ben.phase * 40) % 40; benPhone.visible = T >= 16 && T < 22; } });
 const SEC_FEEDS = [
   ['BAR', [4.6, 2.9, 3.6], [0, 1, -1.2]], ['DANCE', [22.6, 2.9, 3.6], [18, 0.6, 0]], ['POOL LOUNGE', [13.6, 2.9, -4.4], [9, 0.5, -8]],
-  ['CINEMA', [-5.4, 2.9, -4.4], [-10, 1, -8]], ['BILLIARDS', [-5.4, 2.9, 3.6], [-9.4, 0.5, -0.2]], ['CARD ROOM', [-12.2, 2.9, 3.6], [-14.6, 0.5, 0]],
+  ['CINEMA', [-5.4, 2.9, -4.4], [-10, 1, -8]], ['BILLIARDS', [-5.4, 2.9, 3.6], [-9.4, 0.5, -0.2]], ['CASINO', [-12.2, 2.9, 3.6], [-14.6, 0.5, 0]],
   ['STREET', [6, 3.6, 4.6], [0, 0.6, 9]], ['BACKSTREET', [12.5, 4.2, -12.4], [0, 0.5, -23]], null
 ];
 const secCams = [];
@@ -5504,7 +5553,7 @@ REBUILD_HOOKS.push(() => {
     npcProp(b, 'elR', phoneParts(), 0, -0.29, 0.05, (T) => T >= 23.4 && T < 30.6);
   }
   const v = addChar(VALET_LOOK, 'Phlegyas', { npc: true, seedName: 'valet', staff: true });
-  v.act = 'valet'; v.root.position.set(12.5, 0, -32.97); v.root.rotation.y = Math.PI;
+  v.act = 'valet'; v.root.position.set(12.5, 0, -17.02); v.root.rotation.y = Math.PI;
   npcProp(v, 'elR', phoneParts(), 0, -0.3, 0.06, (T) => T >= 18.3 && T < 25.7);
   npcProp(v, 'elR', [cyl(V(0, -0.05, 0), V(0, 0.05, 0), 0.035, 0.032, [236, 232, 222], { n: 10 }), cyl(V(0, 0.04, 0), V(0, 0.05, 0), 0.03, 0.03, [60, 36, 20], { n: 10 })], 0.0, -0.3, 0.06, (T) => T >= 26.3 && T < 30.7);
 });
@@ -5569,6 +5618,17 @@ const myLook = () => { const me = crowd.find((c) => c.mine && c !== draftChar); 
 
 // keep the card room, Charon's tag and the VIP rules in step with each rebuild
 function rebuildHooks() { for (const f of REBUILD_HOOKS) f(); }
+// name tags show the member rank (hours in the bar); hosts are diamond, the owner ruby
+let RANKS = {};
+const RANK_CLASSES = ['rank-silver', 'rank-gold', 'rank-platinum', 'rank-emerald', 'rank-diamond'];
+function applyRanks() {
+  for (const ch of crowd) {
+    if (!ch.label || ch.host || ch.npc) continue;
+    ch.label.classList.remove(...RANK_CLASSES);
+    const r = ch.uid && RANKS[ch.uid];
+    if (r) ch.label.classList.add('rank-' + r);
+  }
+}
 
 // ---------------------------------------------------------------- render loop
 let pixels = true;
@@ -5669,10 +5729,13 @@ const $ = (id) => document.getElementById(id);
 // ---- the other floors: two lights that follow the camera to whichever one it's on, the exit and stairs buttons
 const floorLights = [pLight(0xffd8a0, 0, 7, 0, -50, 0), pLight(0xffd8a0, 0, 6, 0, -50, 0)];
 let floorKey = '', floorRoom = -1;
+// rooms you don't hold the key to are behind the same smoked glass as the VIP lounge
+const roomTints = HOTEL_ROOMS.map((R2) => { const m = new THREE.Mesh(new THREE.BoxGeometry(4.94, 3.15, 5.74), new THREE.MeshBasicMaterial({ color: 0x14040e, transparent: true, opacity: 0.8, depthWrite: false, fog: false })); m.position.set(R2.x0 + 2.5, 1.6, (R2.z0 + R2.z1) / 2); m.renderOrder = 4; m.visible = false; scene.add(m); return m; });
 POST_HOOKS.push((dt, t) => {
-  const r = camT.free ? null : roomAt(cam.tx, cam.tz);
-  const HR = HOTEL_ROOMS.find((Q) => ROOMS['h' + Q.i] === r);
-  const key = r === ROOMS.base ? 'base' : r === ROOMS.f2 ? 'f2' : HR ? 'h' : '';
+  const r = roomAt(cam.tx, cam.tz), zone = zoneOf(cam.tx);
+  const HR = camT.free ? null : HOTEL_ROOMS.find((Q) => ROOMS['h' + Q.i] === r);
+  const key = zone === 'base' ? 'base' : HR ? 'h' : zone === 'f2' ? 'f2' : '';
+  for (const R2 of HOTEL_ROOMS) roomTints[R2.i].visible = zone === 'f2' && !roomOk(R2.i);
   const [A, B] = floorLights;
   const swing = 0.12 * Math.sin(t * 0.9), swing2 = 0.06 * Math.sin(t * 1.3 + 1);
   baseBulb.rotation.z = swing; baseBulb.rotation.x = swing2;
@@ -5772,15 +5835,17 @@ function removeDraft() {
   if (!draftChar) return;
   scene.remove(draftChar.root); dropLabel(draftChar); const i = crowd.indexOf(draftChar); if (i >= 0) crowd.splice(i, 1); draftChar = null;
 }
+let previewOutfit;
 function refreshDraft() {
   renderOptions();
   removeDraft();
   const nm = $('nm').value.trim() || 'you';
   const me = crowd.find((c) => c.mine && c !== draftChar);
-  const dressed = Object.assign({}, draft, { outfit: me ? tuxFor(me) || undefined : undefined });
+  const fit = previewOutfit !== undefined ? previewOutfit : me ? tuxFor(me) : '';
+  const dressed = Object.assign({}, draft, { outfit: fit || undefined });
   draftChar = makeCharacter(dressed, nm, hashStr(nm.toLowerCase()));
   if (me) { draftChar.uid = me.uid; setGoldGlow(draftChar, (dressed.outfit || '').startsWith('tux-') ? dressed.outfit.slice(4) : ''); }
-  if (creatorPreview) creatorPreview.show({ look: draft, uid: me && me.uid });
+  if (creatorPreview) creatorPreview.show({ look: draft, uid: me && me.uid, outfit: fit || '' });
   draftChar.phase = 0.3; draftChar.act = 'dance';
   draftChar.root.position.set(0, 0, 1.2); draftChar.root.rotation.y = 0.2;
   scene.add(draftChar.root); crowd.push(draftChar);
@@ -5801,6 +5866,7 @@ function openCreator() {
   refreshDraft();
 }
 function closeCreator() {
+  previewOutfit = undefined;
   removeDraft();
   const pw = document.getElementById('previewWin'); if (pw) pw.hidden = true;
   $('creator').hidden = true; setView('room');
@@ -5864,12 +5930,16 @@ window.BAR = {
   setDucked,
   duck,
   setExtJazz(on) { extJazz = !!on; updateTrackUI(); },
-  jukeInfo: () => ({ track: trackIdx, ducked, muted, extJazz, running: !!(actx && actx.state === 'running') }),
+  jukeInfo: () => ({ track: trackIdx, jazz: JAZZ_TRACKS.includes(trackIdx), ducked, muted, extJazz, running: !!(actx && actx.state === 'running') }),
   setView(v) { setView(v); },
   isHost: () => isHostEntry(),
   myUid: () => myUid,
   hotelRooms: () => HOTEL_ROOMS.map((R) => ({ i: R.i, num: R.num })),
   floor2Ok: () => floor2Ok(),
+  setRanks(m) { RANKS = m || {}; applyRanks(); },
+  tableOf(id) { id = id || ''; let m = id.match(/^(lt\d)-/); if (m) return m[1]; m = id.match(/^(bar-table-\d)/); if (m) return m[1]; return id.startsWith('pool-sofa') ? 'pool-sofa' : null; },
+  zone: () => zoneOf(cam.tx),
+  roomName: (k) => (ROOMS[k] ? ROOMS[k].name : ''),
   viewHotelRoom: () => floorRoom,
   changeMusic() { changeMusic(); },
   setTvOn(on) { tvOn = !!on; },
@@ -5891,7 +5961,8 @@ window.BAR = {
   _parts(look) { const r = buildParts(Object.assign(randomLook(Math.random), look), 1); if (look.buff) buffUp(r.B, r.B2); return { B: r.B, B2: r.B2 }; },
   setJukebox(i, by, fresh) {
     if (!(i >= 0 && i < TRACKS.length)) return;
-    if (i !== trackIdx) pickTrack(i);
+    sharedTrack = i;
+    if (!danceHere && i !== trackIdx) pickTrack(i);
     pinnedTrack = true;
     if (fresh) toast((by ? by + ' put on ' : 'Now playing: ') + TRACKS[i].name);
   },
@@ -5911,7 +5982,7 @@ window.BAR = {
   setInv(v) { inv = v || {}; rebuild(); if (draft && creatorPreview) creatorPreview.show({ look: draft, uid: myUid }); },
   makePreview(cv) { return makePreview(cv); },
   myLook() { return myLook(); },
-  previewDraft() { if (draft && creatorPreview) creatorPreview.show({ look: draft, uid: myUid }); if (draft) refreshDraft(); },
+  previewDraft(outfit) { if (outfit !== undefined) previewOutfit = outfit; if (draft) refreshDraft(); },
   setBuffs(v) { buffs = v || {}; rebuild(); },
   costumes: () => Object.fromEntries(Object.entries(COSTUMES).map(([k, c]) => [k, c.name])),
   setPerks(p) { perks = p || {}; rebuild(); },

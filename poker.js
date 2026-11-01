@@ -1,4 +1,4 @@
-/* SH1DEN'S — no-limit Texas Hold'em at the card room table.
+/* SH1DEN'S — no-limit Texas Hold'em at the Casino Royale table.
    The host's device runs the table (shuffles, deals and settles), so nobody can see anyone else's cards:
    each player's two cards are written where only that player (and the hosts) can read them. Chips are free play money. */
 (function () {
@@ -234,7 +234,7 @@ function mySeat() { if (!st || !st.seats) return null; for (const k of seatKeys(
 async function join() {
   if (!db) { say('The room is offline.'); return; }
   if (!BAR().hasCharacter()) { BAR().openCreator(); return; }
-  if (!BAR().cardOpen() && !NET().isAdmin) { say('The card room is closed. Poker happens when sh1den is in.'); return; }
+  if (!BAR().cardOpen() && !NET().isAdmin) { say('Casino Royale is closed. Poker happens when sh1den is in.'); return; }
   const used = new Set(Object.values((st && st.seats) || {}).map((p) => p.uid));
   const usedSeats = new Set(Object.keys((st && st.seats) || {}).map((k) => +k.slice(1)).concat(Object.values(joins).filter((j) => j.uid !== myUid()).map((j) => j.seat)));
   const seat = Array.from({ length: SEATS }, (_, i) => i).find((i) => !usedSeats.has(i));

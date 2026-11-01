@@ -28,7 +28,9 @@ const SHOP = {
   misc: [['aura-gold', 'Gold glow', 800], ['aura-blue', 'Blue glow', 500], ['aura-purple', 'Purple glow', 500], ['aura-green', 'Green glow', 500],
     ['smelly', 'Stink cloud (with flies)', 50], ['haze', 'Permanent haze (red eyes, slow sway)', 300]]
 };
-const SLOT_OF = { clothes: 'outfit', pets: 'pet', misc: 'fx' };
+// cursors live in cursors.js; owning one is an inv flag, which one you use is kept on your own device
+SHOP.cursors = ((window.CURSORS && window.CURSORS.SHOP) || []).map(([id, name, price]) => [id, name + ' cursor', price]);
+const SLOT_OF = { clothes: 'outfit', pets: 'pet', misc: 'fx', cursors: 'cursor' };
 const BEGGAR_SHOP = [['high', 'A joint', 25, 'Red eyes and a heavy, slow sway for 30 minutes'], ['twitch', '"Mystery pills"', 40, 'Red eyes and the twitches for 30 minutes']];
 
 // ---------------------------------------------------------------- DOM: panels built once
@@ -40,18 +42,20 @@ function build() {
   sl.innerHTML = '<header><h2>Slots</h2><button class="x" type="button" id="slotsClose" aria-label="Close">✕</button></header>' +
     '<div class="reels"><span class="reel" id="r0">7</span><span class="reel" id="r1">7</span><span class="reel" id="r2">7</span></div>' +
     '<div class="msg" id="slotMsg" role="status"></div>' +
-    '<div class="row" style="align-items:center"><label class="check" style="gap:6px">Bet <select id="slotBet"></select></label><button type="button" class="primary" id="slotSpin">Spin</button><span id="slotBal" style="margin-left:auto;color:#ffd98a"></span></div>' +
+    '<div class="row" style="align-items:center"><label class="check" style="gap:6px">Bet <input id="slotBet" type="number" min="5" step="1" inputmode="numeric" value="10" style="width:7em"></label><span class="betq" id="betQuick"></span><button type="button" class="primary" id="slotSpin">Spin</button><span id="slotBal" style="margin-left:auto;color:#ffd98a"></span></div>' +
     '<details><summary>Paytable</summary><div class="paytable" id="payTable"></div></details>';
   const sh = el('section', 'panel'); sh.id = 'shopPanel'; sh.hidden = true; stage.appendChild(sh);
   sh.innerHTML = '<header><h2>Shop</h2><button class="x" type="button" id="shopClose" aria-label="Close">✕</button></header>' +
-    '<div class="chattabs" role="tablist"><button type="button" class="on" data-tab="clothes">Clothes</button><button type="button" data-tab="pets">Pets</button><button type="button" data-tab="misc">Misc</button></div>' +
+    '<div class="chattabs" role="tablist"><button type="button" class="on" data-tab="clothes">Clothes</button><button type="button" data-tab="pets">Pets</button><button type="button" data-tab="misc">Misc</button><button type="button" data-tab="cursors">Cursors</button></div>' +
     '<canvas id="shopCanvas" width="220" height="260" aria-label="Item preview"></canvas><div id="shopBal" style="color:#ffd98a"></div><div id="shopList" class="shoplist"></div><div class="msg" id="shopMsg" role="status"></div>';
   const bg = el('section', 'panel'); bg.id = 'beggarPanel'; bg.hidden = true; stage.appendChild(bg);
   $('slotsClose').onclick = () => { sl.hidden = true; };
   $('shopClose').onclick = () => { sh.hidden = true; };
   for (const b of sh.querySelectorAll('[data-tab]')) b.onclick = () => { shopTab = b.dataset.tab; for (const o of sh.querySelectorAll('[data-tab]')) o.classList.toggle('on', o === b); renderShop(); };
-  for (const b of BETS) { const o = el('option', '', fmt(b) + ' coins'); o.value = b; $('slotBet').appendChild(o); }
-  $('slotBet').value = '10';
+  // type any bet you can cover; the chips are shortcuts
+  for (const [lab, f] of [['10', () => 10], ['100', () => 100], ['500', () => 500], ['×2', (v) => v * 2], ['All in', () => (myCoins && myCoins.n) || 5]]) {
+    const b = el('button', '', lab); b.type = 'button'; b.onclick = () => { $('slotBet').value = Math.max(MIN_BET, Math.min(MAX_BET, Math.floor(f(+$('slotBet').value || 0)))); }; $('betQuick').appendChild(b);
+  }
   $('slotSpin').onclick = spin;
   $('payTable').innerHTML = PAYS.map(([sym, m]) => '<div><span>' + sym + ' ' + sym + ' ' + sym + '</span><b>×' + m + '</b></div>').join('') + '<div><span>🍒 🍒 (any two)</span><b>×2</b></div>';
   const btn = $('shopBtn'); if (btn) btn.onclick = () => { if (sh.hidden) openShop(); else sh.hidden = true; };
@@ -143,7 +147,7 @@ function giveCoins(p) {
 // ---------------------------------------------------------------- the slot machines (any number of people can play at once)
 const SYMS = [['🍒', 30], ['🍋', 25], ['🔔', 18], ['BAR', 12], ['7', 8], ['💎', 5]];
 const PAYS = [['💎', 200], ['7', 80], ['BAR', 30], ['🔔', 15], ['🍋', 8], ['🍒', 5]];
-const BETS = [5, 10, 25, 50, 100, 250, 500];
+const MIN_BET = 5, MAX_BET = 1000000;
 const ANNOUNCE = 1000;
 let spinning = false;
 function pick() {
@@ -153,7 +157,8 @@ function pick() {
 async function spin() {
   if (spinning) return;
   if (!db || !hasChar()) { $('slotMsg').textContent = 'Make a character first.'; return; }
-  const bet = +$('slotBet').value, have = (myCoins && myCoins.n) || 0;
+  const bet = Math.floor(+$('slotBet').value), have = (myCoins && myCoins.n) || 0;
+  if (!(bet >= MIN_BET && bet <= MAX_BET)) { $('slotMsg').textContent = 'Bets go from ' + MIN_BET + ' to ' + fmt(MAX_BET) + ' coins.'; return; }
   if (have < bet) { $('slotMsg').textContent = "You don't have enough coins for that bet."; return; }
   spinning = true; $('slotSpin').disabled = true; $('slotMsg').textContent = '';
   const res = [pick(), pick(), pick()];
@@ -192,11 +197,23 @@ let shopTab = 'clothes', shopSel = null, shopPrev = null;
 function openShop() { $('shopPanel').hidden = false; renderShop(); }
 function previewItem(id) {
   shopSel = id;
+  for (const r of document.querySelectorAll('#shopList .shoprow')) r.classList.toggle('sel', r.dataset.id === id);
+  if (shopTab === 'cursors') { showCursor(id); return; }
+  $('shopCanvas').hidden = false; const cp = $('curPrev'); if (cp) cp.hidden = true;
   if (!shopPrev) shopPrev = BAR().makePreview($('shopCanvas'));
   const look = BAR().myLook(), spec = { look, outfit: '', pet: '', fx: '' };
   if (shopTab === 'clothes') spec.outfit = 'cos-' + id; else if (shopTab === 'pets') spec.pet = id; else spec.fx = id;
   shopPrev.show(spec);
   for (const r of document.querySelectorAll('#shopList .shoprow')) r.classList.toggle('sel', r.dataset.id === id);
+}
+// cursor preview: the pointer and the hand side by side, big, and the real thing when you hover the box
+function showCursor(id) {
+  let box = $('curPrev');
+  if (!box) { box = el('div', 'curprev'); box.id = 'curPrev'; $('shopCanvas').after(box); }
+  $('shopCanvas').hidden = true; box.hidden = false; box.textContent = '';
+  const c = window.CURSORS && window.CURSORS.preview(id); if (!c) return;
+  for (const k of ['arrow', 'hand']) { const im = el('img'); im.src = c[k].slice(4, c[k].indexOf(')')); im.alt = k === 'arrow' ? 'Pointer' : 'Hand'; box.appendChild(im); }
+  box.style.cursor = c.arrow; box.title = 'Hover here to try it';
 }
 function renderShop() {
   const list = $('shopList'); if (!list || $('shopPanel').hidden) return;
@@ -206,11 +223,15 @@ function renderShop() {
   for (const [id, name, base] of SHOP[shopTab]) {
     const price = guest ? Math.ceil(base * 0.8) : base;
     const row = el('div', 'shoprow'); row.dataset.id = id;
-    const nm = el('span', '', name); nm.style.cursor = 'pointer'; nm.onclick = () => previewItem(id);
+    const nm = el('span', '', name); nm.style.cursor = 'var(--cur-hand, pointer)'; nm.onclick = () => previewItem(id);
     row.append(nm);
     const owned = !!mine[id];
     const b = el('button', owned ? '' : 'primary', owned ? (eq[slot] === id ? 'Take off' : 'Use') : fmt(price) + ' 🪙' + (guest ? ' (guest)' : '')); b.type = 'button';
-    b.onclick = () => (owned ? equip(slot, eq[slot] === id ? 'none' : id) : buy(id, price, slot));
+    if (slot === 'cursor') {
+      const using = window.CURSORS && window.CURSORS.current() === id;
+      if (owned) b.textContent = using ? 'Take off' : 'Use';
+      b.onclick = () => (owned ? useCursor(using ? 'default' : id) : buy(id, price, slot));
+    } else b.onclick = () => (owned ? equip(slot, eq[slot] === id ? 'none' : id) : buy(id, price, slot));
     if (!owned && ((myCoins && myCoins.n) || 0) < price) b.disabled = true;
     if (NET().isAdmin && !owned) { b.textContent = 'Free (host)'; b.disabled = false; }
     row.appendChild(b); list.appendChild(row);
@@ -226,10 +247,11 @@ async function buy(id, price, slot) {
   const upd = {};
   if (!host) { upd['coins/' + uid() + '/n'] = have - price; upd['coins/' + uid() + '/s'] = ((myCoins && +myCoins.s) || 0) + price; }
   upd['inv/' + uid() + '/' + id] = true;
-  upd['inv/' + uid() + '/eq/' + slot] = id;
-  try { await db.ref().update(upd); $('shopMsg').textContent = 'Bought and put on.'; }
+  if (slot !== 'cursor') upd['inv/' + uid() + '/eq/' + slot] = id;
+  try { await db.ref().update(upd); if (slot === 'cursor') useCursor(id); $('shopMsg').textContent = slot === 'cursor' ? 'Bought. Your cursor is on.' : 'Bought and put on.'; }
   catch (e) { $('shopMsg').textContent = "Couldn't buy that. The room's Firebase rules may need updating."; }
 }
+function useCursor(id) { if (window.CURSORS) window.CURSORS.set(id); renderShop(); fillStuff(); }
 function equip(slot, id) { db.ref('inv/' + uid() + '/eq/' + slot).set(id).catch(() => { $('shopMsg').textContent = "Couldn't change that."; }); }
 function renderBal() {
   const t = 'Your sh1den coins: ' + ((NET().myName && (NET().myName() || '').toLowerCase() === 'sh1denfps') ? '∞' : fmt(myCoins && myCoins.n)) + (NET().isAdmin ? ' · hosts get shop items free' : window.HOTEL && window.HOTEL.isGuest(uid()) ? ' · hotel guest: 20% off' : '');
@@ -302,6 +324,13 @@ function fillStuff() {
     sel.onchange = () => { if (db) db.ref('inv/' + uid() + '/eq/' + slot).set(sel.value).catch(() => toast("Couldn't change that.")); };
   };
   fill('eqOutfit', 'clothes', 'outfit', 'My own clothes'); fill('eqPet', 'pets', 'pet', 'No pet'); fill('eqFx', 'misc', 'fx', 'No effect');
+  const cs = $('eqCursor');
+  if (cs && window.CURSORS) {
+    cs.textContent = '';
+    for (const [id, name] of window.CURSORS.available()) { const o = el('option', '', name); o.value = id; cs.appendChild(o); }
+    const cur = window.CURSORS.current(); cs.value = [...cs.options].some((o) => o.value === cur) ? cur : 'default';
+    cs.onchange = () => useCursor(cs.value);
+  }
 }
 
 // ---------------------------------------------------------------- start
@@ -317,5 +346,5 @@ function start() {
 }
 build();
 const boot = setInterval(() => { if (NET().online && NET().db && NET().db()) { clearInterval(boot); start(); } }, 1000);
-window.SOCIAL = { openPlayerMenu, openSlots, openShop, openBeggar, showCard, creatorOpened };
+window.SOCIAL = { openPlayerMenu, openSlots, openShop, openBeggar, showCard, creatorOpened, owned: () => { const m = inv[uid()] || {}; return m; } };
 })();

@@ -8,8 +8,8 @@ window.BAR_CONFIG = {
     appId: "1:105139257150:web:23a0bdeb4f5f683f73f66f"
   },
 
-  // Seconds between chat messages / TV links per person (the database also enforces 3 seconds).
-  slowModeSeconds: 3,
+  // Seconds between chat messages / TV links per person (the database also enforces 5 seconds).
+  slowModeSeconds: 5,
 
   // TV queue limits.
   maxQueue: 25,

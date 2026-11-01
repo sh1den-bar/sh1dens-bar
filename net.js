@@ -314,14 +314,51 @@ function listenVipChat() {
 }
 let chatTab = 'room', vipUnread = 0;
 const inVipChat = () => NET.isAdmin && chatTab === 'vip';
+// the room you're looking at has its own chat (gone when you leave); a table you sit at has a private one
+let hereKey = '', hereRef = null, hereMsgs = [], tableKey = '', tableRef = null, tableMsgs = [];
+const TABS = { room: 'tabRoom', here: 'tabHere', table: 'tabTable', vip: 'tabVip' };
 function setChatTab(t) {
-  chatTab = t === 'vip' && NET.isAdmin ? 'vip' : 'room';
+  if (t === 'vip' && !NET.isAdmin) t = 'room';
+  if (t === 'here' && !hereKey) t = 'room';
+  if (t === 'table' && !tableKey) t = 'room';
+  chatTab = t;
   if (chatTab === 'vip') vipUnread = 0;
-  $('tabRoom').classList.toggle('on', chatTab === 'room'); $('tabVip').classList.toggle('on', chatTab === 'vip');
-  $('tabRoom').setAttribute('aria-selected', chatTab === 'room'); $('tabVip').setAttribute('aria-selected', chatTab === 'vip');
+  for (const k in TABS) { const el = $(TABS[k]); if (!el) continue; el.classList.toggle('on', chatTab === k); el.setAttribute('aria-selected', chatTab === k); }
   renderChat(); updateComposer();
   const log = $('chatLog'); log.scrollTop = log.scrollHeight;
 }
+function listenChannel(path, into, onMsg) {
+  const ref = db.ref(path).limitToLast(40);
+  ref.on('child_added', (s) => {
+    const v = s.val(); if (!v || typeof v.text !== 'string') return;
+    into.push({ key: s.key, uid: v.uid, name: v.name, text: v.text, t: v.t, path });
+    while (into.length > 40) into.shift();
+    renderChat();
+    if (v.t && v.t > joinedAt + offset - 4000) { window.BAR.bubble(v.uid, clean(v.text), v.name); onMsg && onMsg(v); }
+  }, () => { });
+  ref.on('child_removed', (s) => { const i = into.findIndex((m) => m.key === s.key); if (i >= 0) into.splice(i, 1); renderChat(); });
+  return ref;
+}
+function watchChannels() {
+  if (!db || !NET.online) return;
+  const vr = window.BAR.viewRoom ? window.BAR.viewRoom() : '';
+  const hk = /^[a-zA-Z0-9]{1,12}$/.test(vr) && vr !== 'map' ? vr : '';
+  if (hk !== hereKey) {
+    if (hereRef) hereRef.off(); hereRef = null; hereMsgs.length = 0; hereKey = hk;
+    if (hk) hereRef = listenChannel('roomchat/' + hk, hereMsgs);
+    const b = $('tabHere'); if (b) { b.hidden = !hk; b.textContent = hk ? ((window.BAR.roomName && window.BAR.roomName(hk)) || 'Room') + ' chat' : ''; }
+    if (chatTab === 'here' && !hk) setChatTab('room'); else renderChat();
+  }
+  const st = window.BAR.getMyState ? window.BAR.getMyState() : null;
+  const tk = (st && window.BAR.tableOf && window.BAR.tableOf(st.s)) || '';
+  if (tk !== tableKey) {
+    if (tableRef) tableRef.off(); tableRef = null; tableMsgs.length = 0; tableKey = tk;
+    if (tk) setTimeout(() => { if (tableKey === tk) tableRef = listenChannel('tablechat/' + tk, tableMsgs, (v) => { if (chatTab !== 'table' && v.uid !== NET.uid && window.UI) window.UI.newMessage(); }); }, 1500);
+    const b = $('tabTable'); if (b) b.hidden = !tk;
+    if (chatTab === 'table' && !tk) setChatTab('room'); else renderChat();
+  }
+}
+setInterval(watchChannels, 1000);
 async function sendChat(text) {
   text = text.trim();
   if (!text) return;
@@ -332,10 +369,18 @@ async function sendChat(text) {
     catch (e) { hint("Couldn't send to the VIP chat. The room's Firebase rules may need updating."); }
     return;
   }
+  if (chatTab === 'table' && tableKey) {
+    if (!myName) { hint('Create your character first, then you can post.'); return; }
+    if (mutedTil > now()) { hint('A host muted you for ' + Math.ceil((mutedTil - now()) / 60000) + ' more min.'); return; }
+    try { const k = db.ref('tablechat/' + tableKey).push().key; await db.ref('tablechat/' + tableKey + '/' + k).set({ uid: NET.uid, name: myName, text: clean(text).slice(0, MAX_LEN), t: TS }); $('chatInput').value = ''; hint(''); }
+    catch (e) { hint("Couldn't send to the table. The room's Firebase rules may need updating."); }
+    return;
+  }
   if (!canPost('chat')) return;
-  const key = db.ref('chat').push().key;
+  const here = chatTab === 'here' && hereKey ? 'roomchat/' + hereKey : 'chat';
+  const key = db.ref(here).push().key;
   const upd = {};
-  upd['chat/' + key] = { uid: NET.uid, name: myName, text: clean(text).slice(0, MAX_LEN), t: TS };
+  upd[here + '/' + key] = { uid: NET.uid, name: myName, text: clean(text).slice(0, MAX_LEN), t: TS };
   upd['last/' + NET.uid] = TS;
   lastSend = Date.now();
   try { await db.ref().update(upd); $('chatInput').value = ''; hint(''); }
@@ -345,11 +390,11 @@ function renderChat() {
   const log = $('chatLog');
   const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   log.textContent = '';
-  const shown = msgs.filter((m) => !!m.vip === (chatTab === 'vip'));
+  const shown = chatTab === 'here' ? hereMsgs : chatTab === 'table' ? tableMsgs : msgs.filter((m) => !!m.vip === (chatTab === 'vip'));
   const tv = $('tabVip'); if (tv) { tv.hidden = !NET.isAdmin; tv.textContent = 'VIP chat' + (vipUnread ? ' (' + vipUnread + ')' : ''); }
   if (!shown.length) {
     const li = document.createElement('li'); li.className = 'sys';
-    li.textContent = !NET.online ? 'Chat is offline.' : chatTab === 'vip' ? 'No VIP messages yet. Only hosts can see this chat.' : 'No messages yet. Say hi.';
+    li.textContent = !NET.online ? 'Chat is offline.' : chatTab === 'vip' ? 'No VIP messages yet. Only hosts can see this chat.' : chatTab === 'table' ? 'Table talk: only the people sitting at this table can read it.' : chatTab === 'here' ? 'Only people in this room see this chat. It goes away when you leave.' : 'No messages yet. Say hi.';
     log.appendChild(li);
   }
   for (const m of shown) {
@@ -366,7 +411,7 @@ function renderChat() {
     }
     if (NET.isAdmin) {
       const del = document.createElement('button'); del.type = 'button'; del.className = 'mini'; del.textContent = 'Delete';
-      del.onclick = () => db.ref((m.vip ? 'vipchat/' : 'chat/') + m.key).remove().catch((e) => hint(friendly(e)));
+      del.onclick = () => db.ref(m.path ? m.path + '/' + m.key : (m.vip ? 'vipchat/' : 'chat/') + m.key).remove().catch((e) => hint(friendly(e)));
       li.appendChild(del);
       if (m.uid && m.uid !== NET.uid) {
         const ban = document.createElement('button'); ban.type = 'button'; ban.className = 'mini danger'; ban.textContent = 'Ban';
@@ -399,6 +444,8 @@ function updateComposer() {
   else if (banned) { ph = "You're banned from this room"; off = true; }
   else if (!myName) { ph = 'Create your character to chat'; }
   else if (inVipChat()) { ph = 'VIP chat, only hosts can see this…'; }
+  else if (chatTab === 'table') { ph = 'Talk to your table (private)…'; }
+  else if (chatTab === 'here') { ph = 'Say something to this room…'; }
   inp.placeholder = ph; inp.disabled = off; send.disabled = off;
   $('tvInput').disabled = off; $('tvAdd').disabled = off;
 }
@@ -596,7 +643,7 @@ const meInCinema = () => !!(window.BAR.meInCinema && window.BAR.meInCinema());
 function vipAudible() { return !!vip && (NET.isAdmin || NET.vipMember) && entered && !mutedAll && tvVolume > 0 && meInVip(); }
 function vipVolume() {
   if (!vipReady) return;
-  vipPlayer.setVolume(tvVolume);
+  vipPlayer.setVolume(Math.round(tvVolume * masterVol()));
   if (vipAudible()) vipPlayer.unMute(); else vipPlayer.mute();
 }
 function onVipState(e) {
@@ -661,9 +708,11 @@ function renderVipQueue() {
   });
   const e = $('vipQueueEmpty'); if (e) e.hidden = vipQueue.length > 0;
 }
+const masterVol = () => (typeof window.SH_VOL === 'number' ? window.SH_VOL : 1);
+window.addEventListener('shvol', () => { applyVolume(); vipVolume(); });
 function applyVolume() {
   if (!playerReady) return;
-  player.setVolume(tvVolume);
+  player.setVolume(Math.round(tvVolume * masterVol()));
   if (mutedAll || tvVolume === 0 || !meInCinema() || pokerOn) player.mute(); else player.unMute();
   updateDuck();
 }
@@ -676,6 +725,8 @@ function wireUI() {
   $('pokerCam').onclick = () => { if (db && myName) db.ref('pokercam').set(!pokerOn).catch((e) => tvMsg("Couldn't switch the TV. The room's Firebase rules may need updating.")); };
   $('tabRoom').onclick = () => setChatTab('room');
   $('tabVip').onclick = () => setChatTab('vip');
+  if ($('tabHere')) $('tabHere').onclick = () => setChatTab('here');
+  if ($('tabTable')) $('tabTable').onclick = () => setChatTab('table');
   $('vipForm').addEventListener('submit', (e) => { e.preventDefault(); playVip($('vipInput').value); });
   $('vipStop').onclick = () => { if (!db || !NET.isAdmin) return; const u = { viptv: null, viptvq: null }; db.ref().update(u).then(() => vipMsg('VIP TV stopped and queue cleared.')).catch(() => vipMsg("Couldn't stop it.")); };
   $('vipSkip').onclick = () => { if (vip) { vipAdvancing = 0; vipNext(vip.at); } };
@@ -689,7 +740,7 @@ function wireUI() {
   $('clearChat').onclick = async () => {
     const b = $('clearChat');
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Click again to clear'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Clear chat'; }, 4000); return; }
-    try { await db.ref('chat').remove(); await db.ref('vipchat').remove().catch(() => { }); hint('Chat cleared.'); } catch (e) { hint(friendly(e)); }
+    try { await db.ref('chat').remove(); await db.ref('vipchat').remove().catch(() => { }); await db.ref('roomchat').remove().catch(() => { }); await db.ref('tablechat').remove().catch(() => { }); hint('Chat cleared.'); } catch (e) { hint(friendly(e)); }
   };
   $('copyId').onclick = () => {
     const txt = $('myId').textContent;

@@ -210,7 +210,7 @@ function renderCard() {
   card.hidden = !named;
   if (!named) return;
   const h = hours(), tier = tierOf(h), next = TIERS.find((x) => x[0] > h);
-  const role = isOwner() ? 'Owner' : isAdmin() ? 'Co-owner' : tier[2] + ' member';
+  const role = isOwner() ? 'Owner' : isAdmin() ? 'Co-owner · Diamond' : tier[1] ? 'Member: ' + tier[2] : 'Member';
   $('bizName').textContent = named;
   $('bizRole').textContent = role;
   $('bizRole').className = 'bizrole ' + (isOwner() ? 'ruby' : isAdmin() ? 'co' : tier[1] || 'reg');
@@ -229,7 +229,7 @@ function renderCard() {
 }
 function wireCard() {
   const sel = $('bizTux'); if (!sel) return;
-  sel.onchange = () => { if (!db) return; db.ref('perks/' + myUid() + '/wear').set(sel.value).catch(() => BAR().toast("Couldn't change your suit. The room's Firebase rules may need updating.")); };
+  sel.onchange = () => { if (BAR().previewDraft) BAR().previewDraft(sel.value && sel.value !== 'none' ? 'tux-' + sel.value : ''); if (!db) return; db.ref('perks/' + myUid() + '/wear').set(sel.value).catch(() => BAR().toast("Couldn't change your suit. The room's Firebase rules may need updating.")); };
   setInterval(renderCard, 30000);
 }
 function renderHud() {
@@ -420,12 +420,45 @@ function wire() {
   if ($('remGo')) wireRemove();
 }
 
+// pay for something small (Charon's drinks and cigarettes): hosts don't pay
+async function spend(n) {
+  if (isAdmin()) return true;
+  if (!db || !mine) return false;
+  const have = +mine.n || 0;
+  if (have < n) return false;
+  const u = {}; u['coins/' + myUid() + '/n'] = have - n; u['coins/' + myUid() + '/s'] = (+mine.s || 0) + n;
+  try { await db.ref().update(u); return true; } catch (e) { return false; }
+}
+// everyone's member rank from their all-time hours (minutes are kept in their coins record, across every visit)
+const rankMin = {}, rankAt = {};
+function rankFor(uid, min, admin) {
+  if (admin) return 'diamond';
+  const t = tierOf((min || 0) / 60); return t[1] || '';
+}
+async function refreshRanks() {
+  if (!db) return;
+  const list = NET().onlineList ? NET().onlineList() : [], out = {};
+  for (const p of list) {
+    if (!rankAt[p.uid] || Date.now() - rankAt[p.uid] > 300000) {
+      rankAt[p.uid] = Date.now();
+      try { const v = (await db.ref('coins/' + p.uid + '/m').once('value')).val(); rankMin[p.uid] = +v || 0; } catch (e) { }
+    }
+    const r = rankFor(p.uid, rankMin[p.uid], !!(p.a || p.h));
+    if (r) out[p.uid] = r;
+  }
+  if (myUid()) { const r = rankFor(myUid(), mine && +mine.m, isAdmin()); if (r) out[myUid()] = r; }
+  if (BAR().setRanks) BAR().setRanks(out);
+}
+setInterval(refreshRanks, 20000); setTimeout(refreshRanks, 4000);
 window.EXTRAS = {
+  spend,
+  myTier: () => (isAdmin() ? 'diamond' : tierOf(hours())[1] || ''),
+  isOwner: () => isOwner(),
   myCoins: () => (mine && mine.n) || 0,
   mySpent: spent,
   hasCoinsRecord: () => !!mine,
   start, claimCoin, openCoins, adminChanged: () => { start(); adminChanged(); renderCard(); renderDonate(); renderMods(); },
-  presenceChanged() { start(); updateLot(); renderCard(); renderDonate(); renderMods(); },
+  presenceChanged() { start(); updateLot(); renderCard(); renderDonate(); renderMods(); refreshRanks(); },
   renderHost() { renderDonate(); renderMods(); ownerCar(); },
   offline() {
     offlineMode = true;

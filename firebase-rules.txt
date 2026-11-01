@@ -24,7 +24,7 @@
     "last": {
       "$uid": {
         ".write": "auth != null && auth.uid == $uid",
-        ".validate": "newData.val() == now && (!data.exists() || data.val() < now - 3000 || root.child('admins').child(auth.uid).exists())"
+        ".validate": "newData.val() == now && (!data.exists() || data.val() < now - 4500 || root.child('admins').child(auth.uid).exists())"
       }
     },
     "names": {
@@ -241,7 +241,7 @@
     "spins": {
       "$uid": {
         ".write": "auth != null && auth.uid == $uid && !root.child('bans').child(auth.uid).exists()",
-        ".validate": "newData.hasChildren(['bet', 'win', 't']) && (newData.child('bet').val() == 5 || newData.child('bet').val() == 10 || newData.child('bet').val() == 25 || newData.child('bet').val() == 50 || newData.child('bet').val() == 100 || newData.child('bet').val() == 250 || newData.child('bet').val() == 500) && newData.child('win').isNumber() && newData.child('win').val() >= 0 && newData.child('win').val() <= newData.child('bet').val() * 200 && newData.child('t').val() == now && (!data.exists() || data.child('t').val() + 1500 < now)"
+        ".validate": "newData.hasChildren(['bet', 'win', 't']) && newData.child('bet').isNumber() && newData.child('bet').val() >= 5 && newData.child('bet').val() <= 1000000 && newData.child('bet').val() % 1 == 0 && newData.child('win').isNumber() && newData.child('win').val() >= 0 && newData.child('win').val() <= newData.child('bet').val() * 200 && newData.child('t').val() == now && (!data.exists() || data.child('t').val() + 1500 < now)"
       }
     },
     "inv": {
@@ -336,6 +336,24 @@
         },
         "astronaut": {
           ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 700 || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 560 && (root.child('hotelguest').child(auth.uid).exists() && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('uid').val() == auth.uid && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('s').val() + root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('w').val() * 604800000 > now))))"
+        },
+        "cur-neon": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 250 || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 200 && (root.child('hotelguest').child(auth.uid).exists() && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('uid').val() == auth.uid && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('s').val() + root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('w').val() * 604800000 > now))))"
+        },
+        "cur-zombie": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 300 || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 240 && (root.child('hotelguest').child(auth.uid).exists() && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('uid').val() == auth.uid && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('s').val() + root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('w').val() * 604800000 > now))))"
+        },
+        "cur-skull": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 400 || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 320 && (root.child('hotelguest').child(auth.uid).exists() && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('uid').val() == auth.uid && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('s').val() + root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('w').val() * 604800000 > now))))"
+        },
+        "cur-flame": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 600 || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 480 && (root.child('hotelguest').child(auth.uid).exists() && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('uid').val() == auth.uid && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('s').val() + root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('w').val() * 604800000 > now))))"
+        },
+        "cur-gold": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 800 || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 640 && (root.child('hotelguest').child(auth.uid).exists() && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('uid').val() == auth.uid && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('s').val() + root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('w').val() * 604800000 > now))))"
+        },
+        "cur-diamond": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 1500 || (root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 1200 && (root.child('hotelguest').child(auth.uid).exists() && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('uid').val() == auth.uid && root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('s').val() + root.child('hotel/rooms').child(root.child('hotelguest').child(auth.uid).child('r').val()).child('w').val() * 604800000 > now))))"
         }
       }
     },
@@ -415,6 +433,35 @@
       "jazz": {
         ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
         ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{11}$/)"
+      }
+    },
+    "roomchat": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists() && !newData.exists()",
+      "$room": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).exists() && !newData.exists()",
+        ".validate": "$room.matches(/^[a-zA-Z0-9]{1,12}$/)",
+        "$id": {
+          ".write": "auth != null && ((!data.exists() && !root.child('bans').child(auth.uid).exists()) || root.child('admins').child(auth.uid).exists())",
+          ".validate": "newData.hasChildren(['uid', 'name', 'text', 't']) && newData.child('uid').val() == auth.uid && newData.child('name').isString() && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 200 && newData.child('t').val() == now && (root.child('names').child(newData.child('name').val().toLowerCase()).val() == auth.uid || root.child('admins').child(auth.uid).exists()) && (!root.child('mutes').child(auth.uid).exists() || root.child('mutes').child(auth.uid).val() < now) && newData.parent().parent().parent().child('last').child(auth.uid).val() == now",
+          "$other": {
+            ".validate": "$other == 'uid' || $other == 'name' || $other == 'text' || $other == 't'"
+          }
+        }
+      }
+    },
+    "tablechat": {
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists() && !newData.exists()",
+      "$t": {
+        ".read": "auth != null && $t.matches(/^(lt[0-4]|bar-table-[0-9]|pool-sofa)$/) && ((root.child('presence').child(auth.uid).child('s').isString() && root.child('presence').child(auth.uid).child('s').val().beginsWith($t)) || root.child('admins').child(auth.uid).exists())",
+        ".write": "auth != null && root.child('admins').child(auth.uid).exists() && !newData.exists()",
+        "$id": {
+          ".write": "auth != null && ((!data.exists() && !root.child('bans').child(auth.uid).exists() && (root.child('presence').child(auth.uid).child('s').isString() && root.child('presence').child(auth.uid).child('s').val().beginsWith($t))) || root.child('admins').child(auth.uid).exists())",
+          ".validate": "newData.hasChildren(['uid', 'name', 'text', 't']) && newData.child('uid').val() == auth.uid && newData.child('name').isString() && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 200 && newData.child('t').val() == now && (root.child('names').child(newData.child('name').val().toLowerCase()).val() == auth.uid || root.child('admins').child(auth.uid).exists()) && (!root.child('mutes').child(auth.uid).exists() || root.child('mutes').child(auth.uid).val() < now)",
+          "$other": {
+            ".validate": "$other == 'uid' || $other == 'name' || $other == 'text' || $other == 't'"
+          }
+        }
       }
     }
   }
