@@ -23,10 +23,11 @@ const smoking = () => !!(myAct.k && myAct.e > Date.now() + offset);
 const actingHost = () => NET.isAdmin && !!myName && myName.toLowerCase() === 'sh1denfps';
 const optedOut = () => { try { return localStorage.getItem('sh1den-bar-spooky') === 'off'; } catch (e) { return false; } };
 const myPresence = () => {
-  if (!(myAct.s || myAct.d || smoking() || actingHost() || optedOut())) return true;
+  if (!(myAct.s || myAct.d || smoking() || actingHost() || optedOut() || NET.isAdmin)) return true;
   const p = { s: myAct.s || '', d: myAct.d || '', t: myAct.t || TS };
   if (smoking()) { p.k = myAct.k; p.e = myAct.e; }
   if (actingHost()) p.h = true;
+  if (NET.isAdmin) p.a = true;
   if (optedOut()) p.o = true;
   return p;
 };

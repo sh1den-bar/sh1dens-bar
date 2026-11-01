@@ -236,7 +236,76 @@ const TUXES = {
   diamond: { jacket: [206, 236, 250], pants: [172, 212, 234], shirt: [18, 24, 32], tie: [240, 250, 255], lapel: [130, 180, 210], square: [255, 255, 255], glow: 0x9ae6ff, spark: 0xffffff },
   ruby: { jacket: [118, 10, 26], pants: [84, 6, 18], shirt: [10, 6, 8], tie: [150, 14, 34], lapel: [26, 4, 10], square: [200, 30, 56], glow: 0xb0102c, spark: 0xff4466 }
 };
+function costumeParts(k, C, P, O, F) {
+  const hc = [0, 1.69, 0];
+  const hat = (brimR, brimY, crownR, crownH, col, n) => { P('head', cyl(V(0, brimY, -0.005), V(0, brimY + 0.018, -0.005), brimR, brimR, col, { n: n || 14 })); P('head', cyl(V(0, brimY + 0.018, -0.005), V(0, brimY + 0.018 + crownH, -0.005), crownR, crownR * 0.9, col.map((v) => v * 0.9), { n: n || 12 })); };
+  const mask = (col) => P('head', loft([rring(1.53, 0.18, 0.18, 0, 0, 14), rring(1.6, 0.27, 0.26, 0, 0.004, 14), rring(1.7, 0.29, 0.28, 0, 0.006, 14), rring(1.8, 0.26, 0.25, 0, 0, 14), rring(1.87, 0.17, 0.16, 0, -0.006, 14), rring(1.9, 0.06, 0.06, 0, -0.008, 14)], col, { smooth: true, amt: 0.03 }));
+  if (k === 'trench') {
+    // a long coat down to the shins, split at the back, with a turned-up collar
+    P('hips', loft([rring(1.0, 0.39, 0.27, 0, 0, 14), rring(0.75, 0.44, 0.31, 0, 0, 14), rring(0.5, 0.5, 0.35, 0, 0, 14), rring(0.32, 0.54, 0.37, 0, 0, 14)], C.topc, { smooth: true, cap: false }));
+    P('spine', loft([rring(1.42, 0.24, 0.2, 0, -0.01, 14), rring(1.56, 0.25, 0.21, 0, -0.02, 14)], C.topc.map((v) => v * 1.4), { smooth: true, cap: false }));
+  } else if (k === 'hillbilly') {
+    // denim overalls bib and straps, a frayed straw hat
+    P('spine', box(-0.12, 0.12, 1.0, 1.3, 0.11, 0.135, C.pants, 0.03));
+    for (const s of [-1, 1]) { P('spine', tube([V(s * 0.1, 1.3, 0.13), V(s * 0.12, 1.45, 0.07), V(s * 0.11, 1.42, -0.12), V(s * 0.08, 1.05, -0.13)], [0.014, 0.014, 0.014, 0.014], C.pants, { n: 4 })); P('spine', cyl(V(s * 0.1, 1.29, 0.13), V(s * 0.1, 1.29, 0.142), 0.012, 0.012, [200, 180, 90], { n: 6 })); }
+    hat(0.24, 1.8, 0.12, 0.1, [214, 186, 110]);
+    for (let a = 0; a < 6.2; a += 0.7) P('head', box(Math.cos(a) * 0.24 - 0.01, Math.cos(a) * 0.24 + 0.01, 1.795, 1.8, Math.sin(a) * 0.24 - 0.01, Math.sin(a) * 0.24 + 0.01, [190, 160, 90], 0.05));
+    O('head', tube([V(0.04, 1.6, 0.11), V(0.07, 1.585, 0.16)], [0.004, 0.003], [220, 200, 140], { n: 4 }));
+  } else if (k === 'vampire') {
+    // a stand-up collar and a long cape, black outside and blood red inside
+    P('spine', loft([rring(1.42, 0.3, 0.24, 0, -0.04, 14), rring(1.62, 0.36, 0.3, 0, -0.07, 14)], [12, 8, 10], { cap: false, smooth: true }));
+    P('spine', loft([[V(-0.25, 1.46, -0.1), V(0.25, 1.46, -0.1)], [V(-0.36, 0.9, -0.2), V(0.36, 0.9, -0.2)], [V(-0.44, 0.35, -0.26), V(0.44, 0.35, -0.26)]], [14, 8, 12], { amt: 0.02 }));
+    P('spine', loft([[V(-0.24, 1.45, -0.09), V(0.24, 1.45, -0.09)], [V(-0.35, 0.9, -0.19), V(0.35, 0.9, -0.19)], [V(-0.43, 0.36, -0.25), V(0.43, 0.36, -0.25)]], [120, 8, 20], { amt: 0.03 }));
+    O('head', box(0.02, 0.028, 1.6, 1.618, 0.096, 0.1, [240, 236, 228], 0)); O('head', box(-0.028, -0.02, 1.6, 1.618, 0.096, 0.1, [240, 236, 228], 0));
+  } else if (k === 'pirate') {
+    // tricorn hat, eyepatch, gold buttons and a sash
+    P('head', cyl(V(0, 1.81, -0.005), V(0, 1.83, -0.005), 0.23, 0.23, [20, 16, 14], { n: 3 }));
+    P('head', cyl(V(0, 1.83, -0.005), V(0, 1.92, -0.005), 0.12, 0.1, [20, 16, 14], { n: 10 }));
+    O('head', box(-0.06, -0.025, 1.672, 1.708, 0.1, 0.116, [10, 10, 10], 0.02));
+    O('head', tube([V(-0.11, 1.74, 0.0), V(-0.06, 1.715, 0.105), V(0.06, 1.74, 0.1), V(0.11, 1.75, 0.0)], [0.004, 0.004, 0.004, 0.004], [10, 10, 10], { n: 4 }));
+    for (const y of [1.05, 1.15, 1.25, 1.35]) for (const s of [-1, 1]) O('spine', cyl(V(s * 0.06, y, 0.128), V(s * 0.06, y, 0.138), 0.01, 0.01, [214, 176, 80], { n: 6 }));
+    P('hips', loft([rring(0.94, 0.37, 0.25, 0, 0, 14), rring(1.01, 0.37, 0.25, 0, 0, 14)], [170, 30, 40], { amt: 0.04 }));
+  } else if (k === 'cowboy') {
+    // wide-brim hat with a band, a bandana and a big buckle
+    hat(0.25, 1.79, 0.11, 0.13, [110, 76, 46]);
+    P('head', cyl(V(0, 1.812, -0.005), V(0, 1.835, -0.005), 0.112, 0.112, [40, 26, 18], { n: 12 }));
+    P('spine', loft([rring(1.42, 0.17, 0.16, 0, 0.0, 12), rring(1.47, 0.16, 0.15, 0, 0, 12)], [150, 30, 30], { amt: 0.04 }));
+    O('hips', box(-0.05, 0.05, 0.93, 1.0, 0.118, 0.132, [214, 186, 110], 0.03));
+  } else if (k === 'bear') {
+    mask(C.topc);
+    for (const s of [-1, 1]) { P('head', cyl(V(s * 0.12, 1.86, -0.02), V(s * 0.12, 1.86, 0.02), 0.055, 0.055, C.topc.map((v) => v * 0.9), { n: 10 })); P('head', cyl(V(s * 0.12, 1.86, 0.02), V(s * 0.12, 1.86, 0.025), 0.03, 0.03, [180, 140, 110], { n: 8 })); }
+    P('head', cyl(V(0, 1.64, 0.12), V(0, 1.64, 0.2), 0.07, 0.06, [170, 130, 96], { n: 10 }));
+    P('head', cyl(V(0, 1.665, 0.198), V(0, 1.665, 0.212), 0.022, 0.018, [20, 14, 12], { n: 8 }));
+    for (const s of [-1, 1]) O('head', box(s * 0.06 - 0.014, s * 0.06 + 0.014, 1.72, 1.746, 0.136, 0.146, [10, 8, 8], 0));
+  } else if (k === 'frog') {
+    mask(C.topc);
+    for (const s of [-1, 1]) { P('head', cyl(V(s * 0.09, 1.86, 0.03), V(s * 0.09, 1.95, 0.05), 0.065, 0.055, C.topc, { n: 10 })); P('head', cyl(V(s * 0.09, 1.92, 0.08), V(s * 0.09, 1.92, 0.1), 0.045, 0.04, [240, 240, 230], { n: 10 })); P('head', cyl(V(s * 0.09, 1.92, 0.1), V(s * 0.09, 1.92, 0.106), 0.02, 0.02, [10, 10, 10], { n: 8 })); }
+    O('head', tube([V(-0.11, 1.62, 0.1), V(0, 1.6, 0.142), V(0.11, 1.62, 0.1)], [0.008, 0.008, 0.008], [40, 80, 30], { n: 4 }));
+    P('spine', box(-0.12, 0.12, 1.02, 1.3, 0.13, 0.145, [200, 220, 140], 0.03));
+  } else if (k === 'chicken') {
+    mask(C.topc);
+    P('head', cyl(V(0, 1.68, 0.12), V(0, 1.66, 0.25), 0.05, 0.004, [240, 160, 40], { n: 8 }));
+    for (const [y, z] of [[1.93, 0.05], [1.95, 0.0], [1.93, -0.05]]) P('head', cyl(V(0, 1.88, z), V(0, y, z), 0.03, 0.025, [210, 30, 30], { n: 8 }));
+    P('head', cyl(V(0, 1.6, 0.13), V(0, 1.55, 0.14), 0.03, 0.02, [210, 30, 30], { n: 8 }));
+    for (const s of [-1, 1]) O('head', box(s * 0.07 - 0.014, s * 0.07 + 0.014, 1.73, 1.756, 0.13, 0.14, [10, 8, 8], 0));
+    for (const s of [-1, 1]) P(s > 0 ? 'shL' : 'shR', loft([[V(s * 0.25, 1.4, -0.08), V(s * 0.25, 1.4, 0.08)], [V(s * 0.38, 1.05, -0.1), V(s * 0.38, 1.05, 0.1)]], [236, 232, 220], { amt: 0.04 }));
+  }
+}
+// shop outfits: full-body costumes bought with coins (colours and shapes are original)
+const COSTUMES = {
+  trench: { name: 'Long black trench coat', top: 'leather', topc: [16, 16, 18], pants: [14, 14, 16], bottom: 'trousers', shoe: 'boots', look: { eyes: 2 } },
+  hillbilly: { name: 'Hillbilly set', top: 'turtle', topc: [150, 40, 36], pants: [52, 70, 104], bottom: 'jeans', shoe: 'boots', look: { beard: 2 } },
+  vampire: { name: 'Vampire set', top: 'suitdark', topc: [18, 12, 16], pants: [16, 12, 14], bottom: 'trousers', shoe: 'dress', look: { skin: 0, head: 1, hair: 1, beard: 0, eyes: 0 } },
+  pirate: { name: 'Pirate set', top: 'leather', topc: [130, 26, 30], pants: [44, 32, 24], bottom: 'trousers', shoe: 'boots', look: { beard: 2, eyes: 0 } },
+  cowboy: { name: 'Cowboy set', top: 'bomber', topc: [120, 78, 44], pants: [52, 70, 104], bottom: 'jeans', shoe: 'boots', look: { eyes: 0 } },
+  bear: { name: 'Bear costume', top: 'hoodie', topc: [96, 64, 40], pants: [96, 64, 40], bottom: 'trousers', shoe: 'boots', fur: true, look: { head: 7, beard: 0, eyes: 0 } },
+  frog: { name: 'Frog costume', top: 'hoodie', topc: [70, 140, 60], pants: [70, 140, 60], bottom: 'trousers', shoe: 'sneakers', fur: true, look: { head: 7, beard: 0, eyes: 0 } },
+  chicken: { name: 'Chicken costume', top: 'hoodie', topc: [232, 228, 216], pants: [232, 228, 216], bottom: 'trousers', shoe: 'sneakers', fur: true, look: { head: 7, beard: 0, eyes: 0 } }
+};
 function buildParts(look, seed) {
+  const COSK = typeof look.outfit === 'string' && look.outfit.startsWith('cos-') ? look.outfit.slice(4) : '';
+  const COS = COSK ? COSTUMES[COSK] : null;
+  if (COS) look = Object.assign({}, look, COS.look);
   RNG = rngFrom(seed);
   const B = {}; for (const k in PIV) B[k] = [];
   const P = (k, p) => B[k].push(p);
@@ -253,9 +322,9 @@ function buildParts(look, seed) {
   const SHORTS = [[30, 110, 120], [170, 40, 50], [30, 50, 110], [24, 24, 28], [220, 214, 200], [190, 140, 40], [200, 60, 120], [40, 130, 80]][look.jacket] || [30, 110, 120];
   const TUXK = typeof look.outfit === 'string' && look.outfit.startsWith('tux-') ? look.outfit.slice(4) : '';
   const TUXC = TUXK ? TUXES[TUXK] : null, GOLDSUIT = !!TUXC;
-  const JACKET = look.outfit === 'barman' ? [222, 218, 208] : GOLDSUIT ? TUXC.jacket : SWIM ? SKIN : LOOK.jacket[look.jacket][1];
+  const JACKET = COS ? COS.topc : look.outfit === 'barman' ? [222, 218, 208] : GOLDSUIT ? TUXC.jacket : SWIM ? SKIN : LOOK.jacket[look.jacket][1];
   const RIB = look.outfit === 'barman' ? [206, 202, 192] : JACKET.map((v) => v * 0.6);
-  const CARGO = GOLDSUIT ? TUXC.pants : LOOK.pants[look.pants][1];
+  const CARGO = COS ? COS.pants : GOLDSUIT ? TUXC.pants : LOOK.pants[look.pants][1];
   const CARGO_D = CARGO.map((v) => v * 0.74);
   const BOOT = [16, 14, 13], SOLE = [9, 8, 8], WEB = [20, 20, 19], GUN = [72, 74, 76], ZIP = [78, 78, 82];
   const RIM = [18, 18, 20], LENS = look.eyes === 2 ? [14, 14, 16] : [96, 108, 108], LENS_HI = look.eyes === 2 ? [70, 72, 80] : [170, 182, 180];
@@ -355,10 +424,10 @@ function buildParts(look, seed) {
   }
 
   // ---- body: shape, top, bottom and shoes ----
-  const TOP = look.outfit === 'barman' ? 'barman' : GOLDSUIT ? 'suitdark' : SWIM ? 'swim' : ['bomber', 'suit', 'suitdark', 'hoodie', 'leather', 'tank', 'turtle'][look.top || 0] || 'bomber';
-  const BOTTOM = SWIM ? 'swim' : look.outfit === 'barman' || GOLDSUIT ? 'trousers' : ['cargo', 'jeans', 'trousers', 'skirt'][look.bottom || 0] || 'cargo';
-  const SHOE = SWIM ? 'bare' : look.outfit === 'barman' || GOLDSUIT ? 'dress' : ['boots', 'sneakers', 'dress'][look.shoes || 0] || 'boots';
-  const TOPC = look.outfit === 'barman' || GOLDSUIT ? JACKET : LOOK.jacket[look.jacket][1];
+  const TOP = COS ? COS.top : look.outfit === 'barman' ? 'barman' : GOLDSUIT ? 'suitdark' : SWIM ? 'swim' : ['bomber', 'suit', 'suitdark', 'hoodie', 'leather', 'tank', 'turtle'][look.top || 0] || 'bomber';
+  const BOTTOM = COS ? COS.bottom : SWIM ? 'swim' : look.outfit === 'barman' || GOLDSUIT ? 'trousers' : ['cargo', 'jeans', 'trousers', 'skirt'][look.bottom || 0] || 'cargo';
+  const SHOE = COS ? COS.shoe : SWIM ? 'bare' : look.outfit === 'barman' || GOLDSUIT ? 'dress' : ['boots', 'sneakers', 'dress'][look.shoes || 0] || 'boots';
+  const TOPC = COS ? COS.topc : look.outfit === 'barman' || GOLDSUIT ? JACKET : LOOK.jacket[look.jacket][1];
   const BOTC = CARGO;
   const hW = F ? 1.06 : 1, lW = F ? 0.88 : 1, sX = F ? 0.9 : 1;
   const SHIRT = GOLDSUIT ? TUXC.shirt : TOP === 'suitdark' ? [22, 22, 26] : [226, 222, 212];
@@ -533,6 +602,7 @@ function buildParts(look, seed) {
   if (TOP === 'barman') {
     for (const s of [-1, 1]) O(s > 0 ? 'shL' : 'shR', cyl(V(s * 0.262, 1.3, -0.008), V(s * 0.268, 1.27, -0.009), 0.074, 0.073, [24, 24, 28], { n: 10, smooth: true, amt: 0.02 }));
   } else if (TOP === 'bomber') O('shL', box(0.333 * sX, 0.35 * sX, 1.215, 1.30, -0.032, 0.018, ribCol, 0.03));
+  if (COS) costumeParts(COSK, COS, P, O, F);
   return { B, B2, ember };
 }
 
@@ -779,6 +849,15 @@ function pose(ch, act, beat, t) {
       b.shL.rotation.x = -0.7; b.elL.rotation.x = -0.6;
       b.head.rotation.x = 0.35;
     }
+  } else if (act === 'floorsit') {
+    // sitting on the ground against the wall, knees up, one arm out with the cup
+    b.hips.position.y = 0.17;
+    b.thL.rotation.x = b.thR.rotation.x = -1.2; b.knL.rotation.x = b.knR.rotation.x = 1.9;
+    b.thL.rotation.z = 0.25; b.thR.rotation.z = -0.25;
+    b.spine.rotation.x = -0.15 + 0.03 * Math.sin(t * 0.8);
+    b.shR.rotation.x = -1.1 - 0.15 * Math.max(0, Math.sin(t * 0.9)); b.elR.rotation.x = -0.4;
+    b.shL.rotation.x = -0.5; b.elL.rotation.x = -1.2; b.shL.rotation.z = -0.2;
+    b.head.rotation.x = 0.35 + 0.1 * Math.sin(t * 0.5); b.head.rotation.y = 0.3 * Math.sin(t * 0.3);
   } else if (act === 'walk') {
     const w = t * 7.5 + ph * 4, k = Math.sin(w);
     b.thL.rotation.x = -0.45 * k; b.thR.rotation.x = 0.45 * k;
@@ -1471,6 +1550,21 @@ function chandelierLinear(cx, cz, y, len, d) {
   G.push(box(cx - len / 2, cx + len / 2, y + 0.045, y + 0.055, cz - d / 2, cz + d / 2, [255, 238, 210], 0));
 }
 chandelierLinear(PT.x, PT.z, 2.6, 1.5, 0.24);
+// three slot machines in the back corner: black and gold cabinets, lit reels, a lever, a lit sign on top
+const SLOT_X = [-11.5, -11.0, -10.5];
+for (const x of SLOT_X) {
+  const z0 = -3.98, z1 = -3.45, CAB = [18, 14, 16], GLD = [176, 136, 52];
+  S.push(box(x - 0.22, x + 0.22, 0, 0.8, z0, z1, CAB, 0.03));
+  S.push(box(x - 0.2, x + 0.2, 0.8, 1.55, z0, z1 - 0.12, CAB, 0.03));
+  S.push(box(x - 0.23, x + 0.23, 0.78, 0.82, z0, z1 + 0.02, GLD, 0.02), box(x - 0.23, x + 0.23, 1.55, 1.6, z0, z1 - 0.1, GLD, 0.02));
+  S.push(box(x - 0.2, x + 0.2, 0.8, 0.92, z1 - 0.12, z1, [30, 24, 26], 0.03));
+  G.push(box(x - 0.16, x + 0.16, 1.05, 1.32, z1 - 0.125, z1 - 0.118, [255, 236, 190], 0));
+  for (const dx of [-0.105, 0, 0.105]) G.push(box(x + dx - 0.045, x + dx + 0.045, 1.1, 1.27, z1 - 0.13, z1 - 0.126, [[230, 40, 50], [250, 210, 60], [70, 200, 120]][Math.round((dx + 0.105) / 0.105)], 0));
+  G.push(box(x - 0.2, x + 0.2, 1.6, 1.78, z0, z0 + 0.04, [255, 120, 160], 0));
+  S.push(cyl(V(x + 0.24, 1.0, z1 - 0.2), V(x + 0.24, 1.35, z1 - 0.2), 0.012, 0.012, [190, 190, 196], { n: 5 }));
+  S.push(cyl(V(x + 0.24, 1.35, z1 - 0.2), V(x + 0.24, 1.4, z1 - 0.2), 0.035, 0.035, [200, 30, 40], { n: 8 }));
+  S.push(box(x - 0.12, x + 0.12, 0.42, 0.5, z1 - 0.01, z1 + 0.04, GLD, 0.02));
+}
 // cue rack on the wall to the card room
 S.push(box(-11.79, -11.69, 0.9, 1.0, -3.3, -1.7, LUX_BLACK)); S.push(box(-11.79, -11.69, 1.6, 1.7, -3.3, -1.7, LUX_BLACK));
 S.push(box(-11.7, -11.68, 1.66, 1.68, -3.3, -1.7, LUX_GOLD, 0.02));
@@ -2637,7 +2731,7 @@ addSpot('pool-cue-0', 3, 'pool', PT.x - PT.l / 2 - 0.55, PT.z - 0.25, Math.PI / 
 addSpot('pool-cue-1', 3, 'pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 2, 'Play pool', hitBox(PT.x + PT.l / 2 + 0.5, 0.8, PT.z + 0.2, 0.6, 1.6, 0.6));
 [-9.55, -10.45].forEach((x, i) => addSpot('pool-stool-' + i, 3, 'sit', x, 3.035, 0, 'Sit at the self-serve bar', hitBox(x, 0.45, 3.035, 0.45, 0.9, 0.45)));
 POOL_SOFA.forEach(([x, z, yaw], i) => addSpot('pool-sofa-' + i, 3, 'sitlow', x, z, yaw, 'Chill on the sofa', hitBox(x, 0.45, z, 0.6, 0.9, 0.6)));
-[[-11.3, -3.45, 0.6], [-7.9, 3.0, Math.PI + 0.3], [-10.2, -3.4, 0.2], [-7.0, 2.4, Math.PI + 0.5]].forEach(([x, z, yaw], i) =>
+[[-11.3, -1.0, Math.PI / 2], [-7.9, 3.0, Math.PI + 0.3], [-7.4, -2.6, -0.6], [-7.0, 2.4, Math.PI + 0.5]].forEach(([x, z, yaw], i) =>
   addSpot('pool-watch-' + i, 3, 'lean', x, z, yaw, 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // card room: five seats at the table (the dealer has the sixth), and room to stand and watch
 POKER_SEATS.forEach(([x, z, yaw], i) => addSpot('poker-seat-' + i, 10, 'poker', x, z, yaw, 'Sit in on poker', hitBox(x, 0.45, z, 0.55, 0.9, 0.55)));
@@ -2816,6 +2910,7 @@ function rebuild() {
     const sp = SPOT_BY_ID[ch.spot];
     swapOutfit(ch, sp && (sp.cat === 5 || sp.cat === 8) ? 'swim' : tuxFor(ch));
     setGoldGlow(ch, (ch.outfit || '').startsWith('tux-') ? ch.outfit.slice(4) : '');
+    dressExtras(ch);
     setGlass(ch, ch.act === 'pool' ? null : ch.drink);
     const pd = lastDrinks.get(key);
     if (ch.drink && pd !== undefined && pd !== ch.drink) bartenderSays(ch.drink, ch.name);
@@ -3220,6 +3315,8 @@ const OBJECTS = [
   { id: 'wcdoor', label: 'Go to the restroom', hit: hitBox(13.9, 1.2, -8.0, 0.4, 2.4, 1.2), cat: 5, floor: [13.5, -8.0], size: 0.5 },
   { id: 'carddoor', label: 'Card room', hit: hitBox(-11.8, 1.2, 2.9, 0.3, 2.4, 1.4), cat: 3, floor: [-11.4, 2.9], size: 0.5 },
   { id: 'plaque', label: 'Coin leaderboard', hit: hitBox(-4.85, 1.7, -1.6, 0.3, 1.5, 1.2), cat: 1, floor: [-4.4, -1.6], size: 0.5 },
+  { id: 'slots', label: 'Play the slot machines', hit: hitBox(-11.0, 0.9, -3.65, 1.7, 1.8, 0.7), cat: 3, floor: [-11.0, -3.05], size: 0.7 },
+  { id: 'beggar', label: 'The old man with a cup', hit: hitBox(-13.1, 0.5, -18.35, 0.9, 1.0, 0.9), cat: 7, floor: [-13.1, -17.7], size: 0.5 },
   { id: 'coin', label: 'Pick up the gold coin', hit: hitBox(0, -50, 0, 0.6, 0.6, 0.6), cat: 1, floor: [0, -50], size: 0.35 },
   { id: 'dealer', label: 'The card table', hit: hitBox(DEALER.x, 1.0, DEALER.z, 0.7, 2.0, 0.7), cat: 10, floor: [DEALER.x, DEALER.z], size: 0.45 },
   { id: 'pooltable', label: 'Play pool', hit: hitBox(PT.x, 0.45, PT.z, PT.l, 0.9, PT.w), cat: 3, floor: [PT.x, PT.z], size: 1.2 }
@@ -3256,6 +3353,7 @@ function describe(tg) {
   if (s.hostOnly) return { ok: !!(myChar() && myChar().host) && !owner, text: owner ? (owner.name || 'Taken') + "'s spot" : (s.lockText || "The host's chair") };
   if (s.cat === 4 && !vipOk()) return { ok: false, text: 'VIP only: spend 1,000 coins to get in' };
   if (s.cat === 10 && !cardOpen && !(myChar() && myChar().host)) return { ok: false, text: 'Closed · private game' };
+  if (owner && owner.uid && !owner.npc) return { ok: true, text: owner.name + ' · options', player: owner };
   if (owner) return { ok: false, text: 'Taken by ' + (owner.name || 'someone') };
   return { ok: true, text: s.label };
 }
@@ -3323,7 +3421,10 @@ function activate(tg, x, y) {
   if (id0 === 'plaque') { if (window.EXTRAS) window.EXTRAS.openCoins(); showHover(null); return; }
   if (id0 === 'carddoor') { setView('card'); showHover(null); return; }
   if (id0 === 'dealer') { if (window.POKER) window.POKER.open(); showHover(null); return; }
+  if (id0 === 'slots') { if (window.SOCIAL) window.SOCIAL.openSlots(); showHover(null); return; }
+  if (id0 === 'beggar') { if (window.SOCIAL) window.SOCIAL.openBeggar(); showHover(null); return; }
   const info = describe(tg);
+  if (info.player) { if (window.SOCIAL) window.SOCIAL.openPlayerMenu({ uid: info.player.uid, name: info.player.name }, x, y); showHover(null); return; }
   if (info.needChar) { openCreator(); return; }
   if (!info.ok) return;
   if (tg.kind === 'spot') {
@@ -3857,6 +3958,8 @@ const goldGlowTex = (() => {
 const goldGlows = new Set();
 // which tuxedo someone is wearing (what they picked in their card; bought gold falls back to gold)
 function tuxFor(ch) {
+  const eq = ch.uid && inv[ch.uid] && inv[ch.uid].eq;
+  if (eq && eq.outfit && COSTUMES[eq.outfit] && inv[ch.uid][eq.outfit]) return 'cos-' + eq.outfit;
   const p = ch.uid && perks[ch.uid];
   if (!p) return '';
   if (p.wear && TUXES[p.wear]) return 'tux-' + p.wear;
@@ -3910,6 +4013,138 @@ POST_HOOKS.push((dt, t) => {
     if (ch.halo) { ch.halo.material.opacity = 0.6 + 0.3 * Math.sin(t * 1.8); ch.halo.rotation.z = t * 0.3; }
   }
 });
+
+// ---- the shop: pets that tag along, glows and smells, and the beggar's 30-minute "effects"
+let inv = {}, buffs = {};
+const BUFF_MS = 30 * 60000;
+const buffOn = (uid, k) => !!(uid && buffs[uid] && buffs[uid][k] && serverNow() - buffs[uid][k] < BUFF_MS);
+const petGeo = (() => {
+  const g = {};
+  const BLK = [12, 10, 12];
+  // parrot: red and blue, sits on the shoulder
+  g.parrot = toGeometry([cyl(V(0, 0, 0), V(0, 0.14, 0.01), 0.045, 0.035, [200, 30, 30], { n: 8 }), cyl(V(0, 0.14, 0.01), V(0, 0.2, 0.02), 0.035, 0.03, [210, 40, 30], { n: 8 }),
+    cyl(V(0, 0.17, 0.045), V(0, 0.15, 0.08), 0.015, 0.002, [240, 220, 120], { n: 5 }), box(-0.05, -0.035, 0.02, 0.12, -0.03, 0.03, [40, 80, 200], 0.03), box(0.035, 0.05, 0.02, 0.12, -0.03, 0.03, [40, 80, 200], 0.03),
+    cyl(V(0, 0.01, -0.02), V(0, -0.1, -0.06), 0.02, 0.008, [240, 200, 40], { n: 5 }), box(-0.02, -0.01, 0.17, 0.18, 0.03, 0.035, BLK, 0), box(0.01, 0.02, 0.17, 0.18, 0.03, 0.035, BLK, 0)]);
+  // dog: a little brown dog sitting by your feet
+  const DOG = [120, 80, 46];
+  g.dog = toGeometry([box(-0.08, 0.08, 0.12, 0.26, -0.18, 0.08, DOG, 0.04), box(-0.07, 0.07, 0.24, 0.38, 0.02, 0.14, DOG, 0.04), box(-0.04, 0.04, 0.26, 0.31, 0.14, 0.2, DOG.map((v) => v * 0.8), 0.03),
+    box(-0.075, -0.05, 0.3, 0.38, 0.06, 0.09, DOG.map((v) => v * 0.6), 0.02), box(0.05, 0.075, 0.3, 0.38, 0.06, 0.09, DOG.map((v) => v * 0.6), 0.02),
+    ...[[-0.05, 0.05], [0.05, 0.05], [-0.05, -0.15], [0.05, -0.15]].map(([x, z]) => box(x - 0.022, x + 0.022, 0, 0.14, z - 0.022, z + 0.022, DOG, 0.03)),
+    box(-0.03, -0.015, 0.33, 0.345, 0.141, 0.146, BLK, 0), box(0.015, 0.03, 0.33, 0.345, 0.141, 0.146, BLK, 0), box(-0.012, 0.012, 0.29, 0.31, 0.2, 0.21, BLK, 0)]);
+  g.dogTail = toGeometry([cyl(V(0, 0, 0), V(0, 0.1, -0.06), 0.015, 0.008, DOG, { n: 5 })]);
+  // cat: black, tail curled up
+  g.cat = toGeometry([box(-0.06, 0.06, 0.08, 0.2, -0.12, 0.06, BLK, 0.03), box(-0.055, 0.055, 0.2, 0.3, 0.0, 0.1, BLK, 0.03), box(-0.05, -0.02, 0.3, 0.34, 0.03, 0.06, BLK, 0), box(0.02, 0.05, 0.3, 0.34, 0.03, 0.06, BLK, 0),
+    ...[[-0.04, 0.04], [0.04, 0.04], [-0.04, -0.1], [0.04, -0.1]].map(([x, z]) => box(x - 0.018, x + 0.018, 0, 0.1, z - 0.018, z + 0.018, BLK, 0.02)), cyl(V(0, 0.12, -0.12), V(0, 0.3, -0.2), 0.012, 0.008, BLK, { n: 4 })]);
+  g.catEyes = toGeometry([box(-0.035, -0.015, 0.25, 0.265, 0.1, 0.104, [230, 210, 60], 0), box(0.015, 0.035, 0.25, 0.265, 0.1, 0.104, [230, 210, 60], 0)]);
+  // demon and angel: small floating figures by your shoulder
+  g.demon = toGeometry([cyl(V(0, -0.08, 0), V(0, 0.08, 0), 0.05, 0.06, [130, 16, 20], { n: 8 }), cyl(V(0, 0.08, 0), V(0, 0.16, 0), 0.05, 0.04, [140, 20, 24], { n: 8 }),
+    cyl(V(-0.03, 0.15, 0), V(-0.05, 0.22, 0), 0.012, 0.002, [30, 10, 10], { n: 4 }), cyl(V(0.03, 0.15, 0), V(0.05, 0.22, 0), 0.012, 0.002, [30, 10, 10], { n: 4 }),
+    box(-0.16, -0.04, 0.0, 0.1, -0.03, -0.02, [60, 10, 14], 0.02), box(0.04, 0.16, 0.0, 0.1, -0.03, -0.02, [60, 10, 14], 0.02), cyl(V(0, -0.08, -0.02), V(0, -0.18, -0.08), 0.008, 0.002, [40, 6, 8], { n: 4 })]);
+  g.demonEyes = toGeometry([box(-0.025, -0.01, 0.12, 0.135, 0.04, 0.045, [255, 200, 40], 0), box(0.01, 0.025, 0.12, 0.135, 0.04, 0.045, [255, 200, 40], 0)]);
+  g.angel = toGeometry([cyl(V(0, -0.08, 0), V(0, 0.08, 0), 0.06, 0.04, [240, 238, 230], { n: 8 }), cyl(V(0, 0.08, 0), V(0, 0.16, 0), 0.045, 0.04, [236, 206, 176], { n: 8 }),
+    box(-0.18, -0.04, -0.02, 0.12, -0.03, -0.02, [250, 250, 245], 0.02), box(0.04, 0.18, -0.02, 0.12, -0.03, -0.02, [250, 250, 245], 0.02)]);
+  g.halo = toGeometry([cyl(V(0, 0.2, 0), V(0, 0.208, 0), 0.05, 0.05, [255, 230, 140], { n: 12 })]);
+  return g;
+})();
+const PET_ANIM = new Set();
+function makePet(ch, kind) {
+  const grp = new THREE.Group(); grp.userData.kind = kind;
+  if (kind === 'parrot') {
+    grp.add(new THREE.Mesh(petGeo.parrot, charMat));
+    grp.position.set(-0.2 - PIV.spine[0], 1.47 - PIV.spine[1], -0.02 - PIV.spine[2]);
+    ch.bones.spine.add(grp);
+  } else if (kind === 'dog' || kind === 'cat') {
+    grp.add(new THREE.Mesh(petGeo[kind], charMat));
+    if (kind === 'dog') { const tail = new THREE.Mesh(petGeo.dogTail, charMat); tail.position.set(0, 0.22, -0.18); grp.add(tail); grp.userData.tail = tail; }
+    else grp.add(new THREE.Mesh(petGeo.catEyes, glowMat));
+    grp.position.set(0.48, 0, 0.25); grp.rotation.y = -0.5; ch.root.add(grp);
+  } else {
+    grp.add(new THREE.Mesh(petGeo[kind], charMat));
+    if (kind === 'demon') grp.add(new THREE.Mesh(petGeo.demonEyes, glowMat)); else grp.add(new THREE.Mesh(petGeo.halo, glowMat));
+    const lg = new THREE.PointLight(kind === 'demon' ? 0xff3010 : 0xfff0c0, 0.5, 1.6, 1.5); grp.add(lg);
+    grp.position.set(kind === 'demon' ? -0.45 : 0.45, 1.75, -0.15); ch.root.add(grp);
+  }
+  return grp;
+}
+// a cloud of drifting particles (glows, stink lines) parented to a character
+function makeAura(ch, color, n, opts) {
+  const pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color, size: (opts && opts.size) || 0.03, transparent: true, opacity: 0.85, depthWrite: false, blending: opts && opts.normal ? THREE.NormalBlending : THREE.AdditiveBlending }));
+  pts.frustumCulled = false; ch.root.add(pts); return pts;
+}
+const FX_COLORS = { 'aura-gold': 0xffc860, 'aura-blue': 0x60a0ff, 'aura-purple': 0xb060ff, 'aura-green': 0x50ff90 };
+const redEyeMat = new THREE.MeshBasicMaterial({ color: 0xff2020, fog: false });
+function dressExtras(ch) {
+  if (!ch.uid) return;
+  const I = inv[ch.uid] || {}, eq = I.eq || {};
+  // pet
+  if (eq.pet && I[eq.pet] && petGeo[eq.pet]) { ch.pet = makePet(ch, eq.pet); PET_ANIM.add(ch); }
+  // shop effect: a coloured glow, a stink cloud with flies, or a permanent haze
+  const fx = eq.fx && I[eq.fx] ? eq.fx : '';
+  if (FX_COLORS[fx] && !ch.glow) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: goldGlowTex, color: FX_COLORS[fx], transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    sp.scale.set(1.5, 2.4, 1); sp.position.set(0, 1.0, 0); ch.root.add(sp); ch.fxGlow = sp; ch.fxPts = makeAura(ch, FX_COLORS[fx], 14); ch.fxKind = 'glow'; PET_ANIM.add(ch);
+  }
+  if (fx === 'smelly') { ch.fxPts = makeAura(ch, 0x7a9a30, 24, { size: 0.04, normal: true }); ch.flies = makeAura(ch, 0x101010, 5, { size: 0.025, normal: true }); ch.fxKind = 'smell'; PET_ANIM.add(ch); }
+  // red eyes while high (a 30-minute effect from the beggar, or the permanent haze from the shop)
+  const high = fx === 'haze' && I.haze || buffOn(ch.uid, 'high') || buffOn(ch.uid, 'twitch');
+  if (high) {
+    const z = (ch.look.eyes === 0 ? 0.0995 : 0.118) - PIV.head[2];
+    for (const sd of [-1, 1]) { const e = new THREE.Mesh(new THREE.PlaneGeometry(0.024, 0.012), redEyeMat); e.position.set(sd * 0.042, 1.69 - PIV.head[1], z); ch.bones.head.add(e); }
+    ch.high = true; ch.hazePts = makeAura(ch, 0xb8b8b0, 10, { size: 0.05, normal: true }); PET_ANIM.add(ch);
+  }
+  ch.twitch = buffOn(ch.uid, 'twitch');
+}
+POST_HOOKS.push((dt, t) => {
+  for (const ch of PET_ANIM) {
+    if (!crowd.includes(ch)) { PET_ANIM.delete(ch); continue; }
+    if (ch.pet) {
+      const k = ch.pet.userData.kind;
+      if (k === 'demon' || k === 'angel') { ch.pet.position.y = 1.75 + 0.08 * Math.sin(t * 2 + ch.phase * 5); ch.pet.rotation.y = 0.4 * Math.sin(t * 0.7); }
+      if (k === 'dog' && ch.pet.userData.tail) ch.pet.userData.tail.rotation.z = 0.6 * Math.sin(t * 12);
+      if (k === 'parrot') ch.pet.rotation.z = 0.1 * Math.sin(t * 1.3);
+    }
+    if (ch.fxPts) {
+      const a = ch.fxPts.geometry.attributes.position, n = a.count, smell = ch.fxKind === 'smell';
+      for (let i = 0; i < n; i++) {
+        const u = (t * (smell ? 0.2 : 0.35) + i / n + ch.phase) % 1, ang = i * 2.39 + t * 0.5;
+        a.setXYZ(i, Math.cos(ang) * (smell ? 0.25 + 0.08 * Math.sin(u * 12 + i) : 0.32), 0.2 + u * (smell ? 1.9 : 1.7), Math.sin(ang) * (smell ? 0.25 : 0.32));
+      }
+      a.needsUpdate = true;
+      if (ch.fxGlow) ch.fxGlow.material.opacity = 0.7 + 0.25 * Math.sin(t * 2 + ch.phase * 6);
+    }
+    if (ch.flies) {
+      const a = ch.flies.geometry.attributes.position;
+      for (let i = 0; i < a.count; i++) { const ang = t * (3 + i) + i * 1.3; a.setXYZ(i, Math.cos(ang) * 0.25, 1.85 + 0.08 * Math.sin(t * 7 + i), Math.sin(ang * 1.3) * 0.25); }
+      a.needsUpdate = true;
+    }
+    if (ch.hazePts) {
+      const a = ch.hazePts.geometry.attributes.position;
+      for (let i = 0; i < a.count; i++) { const u = (t * 0.15 + i / a.count) % 1; a.setXYZ(i, 0.05 * Math.sin(u * 9 + i), 1.75 + u * 0.7, 0.12 + 0.06 * Math.cos(u * 7 + i)); }
+      a.needsUpdate = true;
+      // a slow, heavy-lidded sway
+      ch.bones.head.rotation.z += 0.12 * Math.sin(t * 0.9 + ch.phase * 4); ch.bones.spine.rotation.z += 0.04 * Math.sin(t * 0.7 + ch.phase * 3);
+    }
+  }
+  // twitching: sudden jerks of the head and arms
+  for (const ch of crowd) {
+    if (!ch.twitch) continue;
+    const k = Math.floor(t * 6 + ch.phase * 50);
+    if (hash32(k) % 7 === 0) { const r = (hash32(k * 3) % 100) / 100 - 0.5; ch.bones.head.rotation.y += r * 0.9; ch.bones.head.rotation.z += r * 0.5; ch.bones.shR.rotation.z += r * 0.6; ch.bones.shL.rotation.x += r * 0.4; }
+  }
+});
+// ---- the beggar in the corner of the parking lot: ragged, sitting on the ground, cup out, and he smells
+const BEGGAR_LOOK = { jacket: 3, pants: 0, skin: 2, head: 4, hair: 4, beard: 2, eyes: 0, smoke: 0, dance: 3, spot: 7, body: 0, top: 3, bottom: 0, shoes: 0 };
+REBUILD_HOOKS.push(() => {
+  const b = addChar(BEGGAR_LOOK, 'Old Tobias', { npc: true, seedName: 'beggar' });
+  b.act = 'floorsit'; b.root.position.set(-13.1, 0, -18.35); b.root.rotation.y = 0.25;
+  const cup = new THREE.Mesh(toGeometry([cyl(V(0, -0.05, 0), V(0, 0.06, 0), 0.035, 0.04, [180, 170, 150], { n: 8 }), cyl(V(0, -0.04, 0), V(0, 0.05, 0), 0.03, 0.035, [40, 34, 30], { n: 8 })]), charMat);
+  cup.position.set(0.04, -0.33, 0.1); b.bones.elR.add(cup);
+  b.fxPts = makeAura(b, 0x7a9a30, 24, { size: 0.04, normal: true }); b.flies = makeAura(b, 0x101010, 6, { size: 0.025, normal: true }); b.fxKind = 'smell'; b.phase = 0.3; PET_ANIM.add(b);
+});
+// ragged details on the ground around him: cardboard, a bottle, a bundle
+scene.add(new THREE.Mesh(toGeometry([box(-13.7, -12.5, 0.03, 0.05, -18.9, -18.0, [120, 96, 64], 0.06), cyl(V(-12.55, 0, -18.6), V(-12.55, 0.24, -18.6), 0.035, 0.03, [40, 70, 40], { n: 6 }),
+  box(-13.85, -13.45, 0, 0.3, -18.95, -18.6, [70, 60, 50], 0.08)]), roomMat));
 
 // keep the card room, Charon's tag and the VIP rules in step with each rebuild
 function rebuildHooks() { for (const f of REBUILD_HOOKS) f(); }
@@ -4194,6 +4429,9 @@ window.BAR = {
   openCreator,
   // v42
   setVipMember(on) { vipMember = !!on; applyVipAccess(); rebuild(); },
+  setInv(v) { inv = v || {}; rebuild(); },
+  setBuffs(v) { buffs = v || {}; rebuild(); },
+  costumes: () => Object.fromEntries(Object.entries(COSTUMES).map(([k, c]) => [k, c.name])),
   setPerks(p) { perks = p || {}; rebuild(); },
   setCardOpen,
   cardOpen: () => cardOpen,
