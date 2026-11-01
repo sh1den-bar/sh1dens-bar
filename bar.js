@@ -1343,7 +1343,7 @@ martini(-11.1, 0.43, TV.z - 0.4); succulent(-11.1, 0.43, TV.z + 0.5, 1);
 sconce(-12.97, TV.z - 3.0, 1); sconce(-12.97, TV.z + 3.0, 1);
 
 // ===== POOL ROOM (next to the bar): the pool table, a poker table, cue rack and a corner bar =====
-const PT = { x: -9.4, z: 0.4, l: 2.6, w: 1.45 };
+const PT = { x: -9.4, z: -0.2, l: 2.6, w: 1.45 };
 const LUX_BLACK = [16, 14, 16], LUX_GOLD = [186, 142, 70], LUX_RED = [128, 20, 30], LUX_LEATHER = [22, 18, 18], LUX_CHROME = [176, 180, 188];
 // two heavy pedestal legs on a black plinth instead of four wooden ones
 for (const dx of [-1, 1]) {
@@ -1405,13 +1405,13 @@ function chandelierLinear(cx, cz, y, len, d) {
   }
   G.push(box(cx - len / 2, cx + len / 2, y + 0.045, y + 0.055, cz - d / 2, cz + d / 2, [255, 238, 210], 0));
 }
-chandelierLinear(PT.x, PT.z, 2.25, 1.7, 0.3);
+chandelierLinear(PT.x, PT.z, 2.6, 1.5, 0.24);
 // cue rack on the wall to the card room
 S.push(box(-11.79, -11.69, 0.9, 1.0, -3.3, -1.7, LUX_BLACK)); S.push(box(-11.79, -11.69, 1.6, 1.7, -3.3, -1.7, LUX_BLACK));
 S.push(box(-11.7, -11.68, 1.66, 1.68, -3.3, -1.7, LUX_GOLD, 0.02));
 for (let k = 0; k < 6; k++) S.push(cyl(V(-11.73, 0.92, -3.15 + k * 0.28), V(-11.73, 2.3, -3.15 + k * 0.28), 0.014, 0.008, [150, 110, 70], { n: 4 }));
 // a small self-serve bar along the front wall: backlit bottle shelves, a black counter with a pink glow underneath
-const MINIBAR = { px: -8.9, pz: 3.985, len: 2.6 };
+const MINIBAR = { px: -9.0, pz: 3.985, len: 2.0 };
 {
   const L = MINIBAR.len, P = [], Gl = [], D = 0.6;
   P.push(box(0, L, 0.05, 1.0, 0, D - 0.03, LUX_BLACK, 0.03));
@@ -1434,10 +1434,10 @@ const MINIBAR = { px: -8.9, pz: 3.985, len: 2.6 };
   });
   P.push(cyl(V(0.6, 1.04, 0.32), V(0.6, 1.22, 0.32), 0.09, 0.11, LUX_CHROME, { n: 10, amt: 0.04 }));
   P.push(cyl(V(0.6, 1.15, 0.32), V(0.6, 1.42, 0.32), 0.035, 0.035, [24, 70, 40], { n: 7, amt: 0.04 }));
-  P.push(cyl(V(1.5, 1.04, 0.34), V(1.5, 1.2, 0.34), 0.07, 0.05, [170, 120, 60], { n: 8, amt: 0.05 }));
-  P.push(cyl(V(1.5, 1.2, 0.34), V(1.5, 1.3, 0.34), 0.02, 0.03, [200, 210, 220], { n: 6, amt: 0.04 }));
-  for (const x of [1.9, 2.05, 2.2]) P.push(cyl(V(x, 1.04, 0.4), V(x, 1.12, 0.4), 0.032, 0.035, [170, 182, 188], { n: 8, amt: 0.04 }));
-  for (const lx of [0.8, 1.9]) {
+  P.push(cyl(V(1.3, 1.04, 0.34), V(1.3, 1.2, 0.34), 0.07, 0.05, [170, 120, 60], { n: 8, amt: 0.05 }));
+  P.push(cyl(V(1.3, 1.2, 0.34), V(1.3, 1.3, 0.34), 0.02, 0.03, [200, 210, 220], { n: 6, amt: 0.04 }));
+  for (const x of [1.62, 1.74, 1.86]) P.push(cyl(V(x, 1.04, 0.4), V(x, 1.12, 0.4), 0.032, 0.035, [170, 182, 188], { n: 8, amt: 0.04 }));
+  for (const lx of [0.55, 1.45]) {
     P.push(cyl(V(lx, 0, 0.95), V(lx, 0.02, 0.95), 0.2, 0.18, LUX_CHROME, { n: 10 }));
     P.push(cyl(V(lx, 0.02, 0.95), V(lx, 0.66, 0.95), 0.025, 0.025, LUX_CHROME, { n: 6 }));
     P.push(loft([rring(0.66, 0.38, 0.38, lx, 0.95, 12, 2), rring(0.74, 0.42, 0.42, lx, 0.95, 12, 2), rring(0.78, 0.36, 0.36, lx, 0.95, 12, 2)], [124, 16, 30], { smooth: true }));
@@ -2506,7 +2506,7 @@ COUCH_SEATS.forEach(([x, z], i) => addSpot('cinema-seat-' + i, 2, 'sitlow', x, z
 // billiards
 addSpot('pool-cue-0', 3, 'pool', PT.x - PT.l / 2 - 0.55, PT.z - 0.25, Math.PI / 2, 'Play pool', hitBox(PT.x - PT.l / 2 - 0.5, 0.8, PT.z - 0.25, 0.6, 1.6, 0.6));
 addSpot('pool-cue-1', 3, 'pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 2, 'Play pool', hitBox(PT.x + PT.l / 2 + 0.5, 0.8, PT.z + 0.2, 0.6, 1.6, 0.6));
-[-9.7, -10.8].forEach((x, i) => addSpot('pool-stool-' + i, 3, 'sit', x, 3.035, 0, 'Sit at the self-serve bar', hitBox(x, 0.45, 3.035, 0.45, 0.9, 0.45)));
+[-9.55, -10.45].forEach((x, i) => addSpot('pool-stool-' + i, 3, 'sit', x, 3.035, 0, 'Sit at the self-serve bar', hitBox(x, 0.45, 3.035, 0.45, 0.9, 0.45)));
 POOL_SOFA.forEach(([x, z, yaw], i) => addSpot('pool-sofa-' + i, 3, 'sitlow', x, z, yaw, 'Chill on the sofa', hitBox(x, 0.45, z, 0.6, 0.9, 0.6)));
 [[-11.3, -3.45, 0.6], [-7.9, 3.0, Math.PI + 0.3], [-10.2, -3.4, 0.2], [-7.0, 2.4, Math.PI + 0.5]].forEach(([x, z, yaw], i) =>
   addSpot('pool-watch-' + i, 3, 'lean', x, z, yaw, 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
@@ -3082,7 +3082,7 @@ const OBJECTS = [
   { id: 'djbooth', label: 'Change the music', hit: hitBox(13.25, 0.6, 0, 0.8, 1.2, 2.7), cat: 0, floor: [12.5, 0], size: 0.6 },
   { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, TV.z, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, TV.z], size: 0.7 },
   { id: 'humidor', label: 'Take a cigar (30 min)', hit: hitBox(1.0, 1.0, -4.26, 1.1, 1.96, 0.5), cat: 4, floor: [1.0, -4.85], size: 0.6 },
-  { id: 'minibar', label: 'Pour yourself a drink', hit: hitBox(-10.2, 1.2, 3.75, 2.6, 2.4, 0.55), cat: 3, floor: [-10.2, 3.2], size: 0.8 },
+  { id: 'minibar', label: 'Pour yourself a drink', hit: hitBox(-10.0, 1.2, 3.75, 2.0, 2.4, 0.55), cat: 3, floor: [-10.0, 3.2], size: 0.8 },
   { id: 'wcdoor', label: 'Restroom', hit: hitBox(11.75, 1.2, 3.1, 0.3, 2.4, 0.8), cat: 0, floor: [11.4, 3.1], size: 0.5 },
   { id: 'wcout', label: 'Back to the dance floor', hit: hitBox(11.95, 1.2, 3.1, 0.2, 2.4, 0.8), cat: 9, floor: [12.15, 3.1], size: 0.4 },
   { id: 'carddoor', label: 'Card room', hit: hitBox(-11.8, 1.2, 2.9, 0.3, 2.4, 1.4), cat: 3, floor: [-11.4, 2.9], size: 0.5 },
