@@ -159,6 +159,13 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 .gatebox p { margin: 0; color: var(--dim); line-height: 1.6; }
 .gatebox .small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
 #loading { font-family: var(--display); font-size: 26px; color: var(--dim); background: var(--bg); z-index: 6; }
+#poolPanel { background: #0c0b0d; box-shadow: 0 20px 60px rgba(0,0,0,0.7); left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(820px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; gap: 10px; padding: 14px 16px; z-index: 5; }
+#poolPanel[hidden] { display: none; }
+#poolPlayers { font-family: var(--display); font-size: 22px; color: var(--amber); }
+#poolStatus { min-height: 1.4em; color: var(--dim); }
+.poolwrap { width: 100%; display: flex; justify-content: center; }
+#poolCanvas { touch-action: none; border-radius: 8px; cursor: default; max-width: 100%; }
+#poolCanvas.myturn { cursor: crosshair; box-shadow: 0 0 0 2px var(--neon); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -265,6 +272,18 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
     </section>
   </aside>
 
+  <section class="panel" id="poolPanel" hidden aria-label="Pool">
+    <header><h2>Pool</h2><button class="x" type="button" id="poolClose" aria-label="Close">✕</button></header>
+    <div id="poolPlayers">Nobody at the table</div>
+    <div class="poolwrap"><canvas id="poolCanvas" width="700" height="380" aria-label="Pool table, drag back from the cue ball to shoot"></canvas></div>
+    <div id="poolStatus" role="status"></div>
+    <div class="row">
+      <button type="button" id="poolJoin" class="primary">Play</button>
+      <button type="button" id="poolLeave">Leave game</button>
+      <button type="button" id="poolReset" class="danger" hidden>Reset table</button>
+    </div>
+  </section>
+
   <section class="panel" id="creator" hidden aria-label="Create your character">
     <header><h2>Your regular</h2><button class="x" type="button" id="closeCreator" aria-label="Close">✕</button></header>
     <form id="form" novalidate>
@@ -304,9 +323,10 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=34"></script>
-<script src="net.js?v=34"></script>
-<script src="bar.js?v=34"></script>
+<script src="config.js?v=35"></script>
+<script src="net.js?v=35"></script>
+<script src="bar.js?v=35"></script>
+<script src="pool.js?v=35"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

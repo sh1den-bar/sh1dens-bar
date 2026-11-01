@@ -168,6 +168,23 @@ function joined() {
 }
 
 // ---------------------------------------------------------------- characters
+// small hooks for the games (pool.js)
+NET.db = () => db;
+NET.ts = () => TS;
+NET.now = () => now();
+NET.myName = () => myName;
+NET.isOnline = (uid) => !!uid && (uid === NET.uid || online.has(uid));
+// say something in the room chat as yourself (used for game announcements); waits out slow mode
+NET.say = function (text, tries) {
+  if (!db || !myName || banned) return;
+  const wait = lastSend + SLOW_MS - Date.now();
+  if (wait > 0 && !NET.isAdmin) { if ((tries || 0) < 3) setTimeout(() => NET.say(text, (tries || 0) + 1), wait + 300); return; }
+  const key = db.ref('chat').push().key, upd = {};
+  upd['chat/' + key] = { uid: NET.uid, name: myName, text: clean(String(text)).slice(0, MAX_LEN), t: TS };
+  upd['last/' + NET.uid] = TS;
+  lastSend = Date.now();
+  db.ref().update(upd).catch(() => { });
+};
 NET.saveChar = async function (name, code, oldName) {
   if (!db || !NET.uid) return { ok: false, msg: 'Still connecting to the room. Try again in a second.' };
   if (banned) return { ok: false, msg: "You're banned from this room." };

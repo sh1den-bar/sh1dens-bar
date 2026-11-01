@@ -661,6 +661,17 @@ function pose(ch, act, beat, t) {
       b.spine.rotation.x = -0.22;
       b.head.rotation.x = 0.05; b.head.rotation.y = 0.35 * Math.sin(t * 0.22 + ph * 3);
     } else b.head.rotation.y = 0.15 * Math.sin(t * 0.17 + ph * 5);
+  } else if (act === 'poker') {
+    // seated at the poker table, forearms on the rail, now and then peeking at the cards or tossing in chips
+    b.hips.position.y = 0.95 - 0.45;
+    b.thL.rotation.x = b.thR.rotation.x = -1.45;
+    b.knL.rotation.x = b.knR.rotation.x = 1.35;
+    b.thL.rotation.z = 0.08; b.thR.rotation.z = -0.08;
+    b.spine.rotation.x = 0.12;
+    const peek = Math.max(0, Math.sin(t * 0.7 + ph * 9)), toss = Math.max(0, Math.sin(t * 0.45 + ph * 5) - 0.85) * 6;
+    b.shL.rotation.x = -1.05 - 0.25 * peek; b.elL.rotation.x = -0.75 - 0.5 * peek; b.shL.rotation.z = -0.25;
+    b.shR.rotation.x = -1.0 - 0.3 * toss; b.elR.rotation.x = -0.6 + 0.3 * toss; b.shR.rotation.z = 0.2;
+    b.head.rotation.x = 0.28 - 0.12 * peek; b.head.rotation.y = 0.2 * Math.sin(t * 0.3 + ph * 4);
   } else if (act === 'pool') {
     // bent over the table, cue stroking
     const st = Math.sin(t * 1.6 + ph * 7), aim = Math.max(0, st);
@@ -732,8 +743,8 @@ const camera = new THREE.PerspectiveCamera(46, 1, 0.15, 80);
 const ROOMS = {
   bar: { x0: -5, x1: 5, z0: -4, z1: 4, name: 'Main bar' },
   dance: { x0: 5, x1: 14, z0: -4, z1: 4, name: 'Dance room' },
-  tv: { x0: -13, x1: -5, z0: -4, z1: 4, name: 'TV room' },
-  pool: { x0: -13, x1: -5, z0: -11, z1: -4, name: 'Pool room' },
+  tv: { x0: -13, x1: -5, z0: -11, z1: -4, name: 'TV room' },
+  pool: { x0: -17, x1: -5, z0: -4, z1: 4, name: 'Pool room' },
   vip: { x0: -5, x1: 2, z0: -11, z1: -4, name: 'VIP lounge' },
   swim: { x0: 5, x1: 14, z0: -12, z1: -4, name: 'Pool lounge' },
   change: { x0: 2, x1: 5, z0: -11, z1: -4, name: 'Changing room' },
@@ -756,10 +767,10 @@ const neonLight = pLight(0xffc070, 0.7, 4, 0, 2.85, -3.5);
 const danceLight = pLight(0x4a7cff, 1.8, 8, 9.5, 2.8, 0);
 const danceLight2 = pLight(0x6a4aff, 1.2, 7, 12.5, 2.6, -2.5);
 // tv room
-pLight(0x2c4c8c, 0.7, 8, -8, 2.8, 2.5);
+pLight(0x2c4c8c, 0.7, 8, -8, 2.8, -5.0);
 // pool room: the long lamp over the table
-const poolLamp = pLight(0xfff0c8, 1.4, 4.2, -9, 1.9, -7.5);
-pLight(0x2c4c8c, 0.5, 7, -6.5, 2.8, -5);
+const poolLamp = pLight(0xfff0c8, 1.4, 4.2, -9.4, 1.9, 0.4);
+const pokerLamp = pLight(0xffd8a0, 1.1, 4.2, -13.9, 1.9, -0.3);
 // vip: the glowing disc and the pink cove light
 const fireLight = pLight(0xff2a8a, 1.4, 5, -1.1, 1.6, -10.2);
 // pool lounge: hot magenta and red, plus a cool glow coming off the water
@@ -939,8 +950,8 @@ roomWalls(ROOMS.bar, { right: [DOOR.barDance], left: [DOOR.barTv], front: [[4.1,
 roomWalls(ROOMS.dance, { left: [DOOR.barDance], back: [[3.6, 5.4]] }, wallMats.deco);
 roomWalls(ROOMS.swim, { front: [[3.6, 5.4]], left: [[5.0, 6.2]] }, wallMats.brick);
 roomWalls(ROOMS.change, { right: [[4.0, 5.2]] }, wallMats.brick);
-roomWalls(ROOMS.tv, { right: [DOOR.barTv], back: [DOOR.tvPool] }, wallMats.deco);
-roomWalls(ROOMS.pool, { front: [DOOR.tvPool], right: [DOOR.poolVip] }, wallMats.green);
+roomWalls(ROOMS.tv, { front: [DOOR.tvPool], right: [DOOR.poolVip] }, wallMats.deco);
+roomWalls(ROOMS.pool, { back: [[7, 8.6]], right: [DOOR.barTv] }, wallMats.green);
 roomWalls(ROOMS.vip, { left: [DOOR.poolVip], back: [[0.6, 1.8]] }, wallMats.red);
 
 RNG = rngFrom(7);
@@ -1098,14 +1109,14 @@ S.push(box(9.25, 9.35, 3.05, 3.12, -3.6, 3.6, [30, 30, 34], 0.03));
 
 // ===== TV ROOM =====
 // big screen on the left wall (x = -13), facing the couches
-const TV = { x: -12.93, y: 1.75, z: 0, w: 3.6, h: 2.02 };
+const TV = { x: -12.93, y: 1.75, z: -7.5, w: 3.6, h: 2.02 };
 S.push(box(-13.0, -12.95, TV.y - TV.h / 2 - 0.1, TV.y + TV.h / 2 + 0.1, TV.z - TV.w / 2 - 0.1, TV.z + TV.w / 2 + 0.1, [12, 12, 16], 0.03));
 for (const [y0, y1, z0, z1] of [[TV.y - TV.h / 2 - 0.12, TV.y - TV.h / 2 - 0.04, TV.z - TV.w / 2 - 0.12, TV.z + TV.w / 2 + 0.12],
   [TV.y + TV.h / 2 + 0.04, TV.y + TV.h / 2 + 0.12, TV.z - TV.w / 2 - 0.12, TV.z + TV.w / 2 + 0.12],
   [TV.y - TV.h / 2 - 0.12, TV.y + TV.h / 2 + 0.12, TV.z - TV.w / 2 - 0.12, TV.z - TV.w / 2 - 0.04],
   [TV.y - TV.h / 2 - 0.12, TV.y + TV.h / 2 + 0.12, TV.z + TV.w / 2 + 0.04, TV.z + TV.w / 2 + 0.12]]) S.push(box(-12.97, -12.92, y0, y1, z0, z1, BRASS_D, 0.03));
-S.push(box(-12.95, -12.4, 0, 0.45, -1.4, 1.4, LACQUER));
-S.push(box(-12.95, -12.38, 0.45, 0.47, -1.42, 1.42, BRASS, 0.03));
+S.push(box(-12.95, -12.4, 0, 0.45, TV.z - 1.4, TV.z + 1.4, LACQUER));
+S.push(box(-12.95, -12.38, 0.45, 0.47, TV.z - 1.42, TV.z + 1.42, BRASS, 0.03));
 // two rows of couches facing the screen, three seats each
 const COUCH_SEATS = [];
 function couch(cx, cz, len) {
@@ -1117,14 +1128,14 @@ function couch(cx, cz, len) {
   for (const e of [-1, 1]) for (const f of [-1, 1]) S.push(cyl(V(cx + f * 0.35, 0, cz + e * (len / 2 - 0.06)), V(cx + f * 0.35, 0.08, cz + e * (len / 2 - 0.06)), 0.025, 0.025, BRASS, { n: 4 }));
   for (const o of [-0.55, 0, 0.55]) COUCH_SEATS.push([cx - 0.05, cz + o]);
 }
-for (const cx of [-10.0, -7.6]) for (const cz of [-1.6, 1.6]) couch(cx, cz, 2.0);
-S.push(box(-11.4, -10.8, 0, 0.4, -1.0, 1.0, LACQUER));
-S.push(box(-11.42, -10.78, 0.4, 0.43, -1.02, 1.02, MARBLE));
-martini(-11.1, 0.43, -0.4); succulent(-11.1, 0.43, 0.5, 1);
-sconce(-12.97, -3.0, 1); sconce(-12.97, 3.0, 1);
+for (const cx of [-10.0, -7.6]) for (const cz of [-1.6, 1.6]) couch(cx, TV.z + cz, 2.0);
+S.push(box(-11.4, -10.8, 0, 0.4, TV.z - 1.0, TV.z + 1.0, LACQUER));
+S.push(box(-11.42, -10.78, 0.4, 0.43, TV.z - 1.02, TV.z + 1.02, MARBLE));
+martini(-11.1, 0.43, TV.z - 0.4); succulent(-11.1, 0.43, TV.z + 0.5, 1);
+sconce(-12.97, TV.z - 3.0, 1); sconce(-12.97, TV.z + 3.0, 1);
 
-// ===== POOL ROOM =====
-const PT = { x: -9, z: -7.5, l: 2.6, w: 1.45 };
+// ===== POOL ROOM (next to the bar): the pool table, a poker table, cue rack and a corner bar =====
+const PT = { x: -9.4, z: 0.4, l: 2.6, w: 1.45 };
 for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) S.push(box(PT.x + dx * (PT.l / 2 - 0.2) - 0.08, PT.x + dx * (PT.l / 2 - 0.2) + 0.08, 0, 0.62, PT.z + dz * (PT.w / 2 - 0.15) - 0.08, PT.z + dz * (PT.w / 2 - 0.15) + 0.08, [40, 24, 14]));
 S.push(box(PT.x - PT.l / 2, PT.x + PT.l / 2, 0.6, 0.76, PT.z - PT.w / 2, PT.z + PT.w / 2, [52, 30, 18]));
 S.push(box(PT.x - PT.l / 2 + 0.12, PT.x + PT.l / 2 - 0.12, 0.76, 0.78, PT.z - PT.w / 2 + 0.12, PT.z + PT.w / 2 - 0.12, [26, 84, 52], 0.04));
@@ -1134,25 +1145,75 @@ for (const e of [-1, 1]) {
   S.push(box(PT.x + e * (PT.l / 2 - 0.06) - 0.06, PT.x + e * (PT.l / 2 - 0.06) + 0.06, 0.78, 0.84, PT.z - PT.w / 2, PT.z + PT.w / 2, [44, 26, 16]));
 }
 for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1]]) S.push(cyl(V(PT.x + dx * (PT.l / 2 - 0.14), 0.77, PT.z + dz * (PT.w / 2 - 0.14)), V(PT.x + dx * (PT.l / 2 - 0.14), 0.792, PT.z + dz * (PT.w / 2 - 0.14)), 0.05, 0.05, [6, 6, 6], { n: 8, amt: 0 }));
-const BALLS = [[230, 220, 200], [210, 170, 40], [40, 60, 170], [180, 40, 40], [90, 40, 120], [220, 110, 30], [30, 110, 60], [110, 30, 30], [14, 14, 14]];
-BALLS.forEach((c, i) => {
-  const bx = i === 0 ? PT.x - 0.75 : PT.x + 0.45 + Math.floor((i - 1) / 3) * 0.07, bz = i === 0 ? PT.z : PT.z + (((i - 1) % 3) - 1) * 0.07;
-  S.push(cyl(V(bx, 0.78, bz), V(bx, 0.83, bz), 0.028, 0.028, c, { n: 6, amt: 0.03 }));
+// the balls are their own meshes so the pool game can move them
+const POOL_BALL_COLS = [[236, 232, 220], [222, 178, 30], [30, 60, 170], [190, 30, 30], [90, 40, 130], [230, 110, 20], [20, 110, 60], [120, 24, 24], [14, 14, 14],
+  [222, 178, 30], [30, 60, 170], [190, 30, 30], [90, 40, 130], [230, 110, 20], [20, 110, 60], [120, 24, 24]];
+const POOL_TABLE = { W: PT.l - 0.24, H: PT.w - 0.24, R: 0.028, y: 0.78 + 0.028 };
+const poolBallMeshes = POOL_BALL_COLS.map((col, i) => {
+  const R = POOL_TABLE.R, rings = [];
+  for (let k = 0; k <= 6; k++) { const a = -Math.PI / 2 + Math.PI * k / 6, r = Math.max(0.0005, Math.cos(a) * R); rings.push(rring(Math.sin(a) * R, r * 2, r * 2, 0, 0, 10, 2)); }
+  const stripe = i >= 9, white = [236, 232, 220];
+  const geo = toGeometry([loft(rings, col, { amt: 0.02, smooth: true, colfn: (ri) => (stripe && (ri <= 1 || ri >= 5) ? white : col) })]);
+  const m = new THREE.Mesh(geo, roomMat); scene.add(m); return m;
 });
+function setPoolBalls(balls) {
+  for (let i = 0; i < 16; i++) {
+    const b = balls && balls[i], m = poolBallMeshes[i];
+    if (!b || b[2]) { m.visible = false; continue; }
+    m.visible = true;
+    m.position.set(PT.x - POOL_TABLE.W / 2 + b[0], POOL_TABLE.y, PT.z - POOL_TABLE.H / 2 + b[1]);
+  }
+}
 // lamp over the table
 S.push(box(PT.x - 0.9, PT.x + 0.9, 2.0, 2.12, PT.z - 0.18, PT.z + 0.18, [24, 64, 40]));
 for (const x of [PT.x - 0.85, PT.x + 0.85]) S.push(cyl(V(x, 2.12, PT.z), V(x, 3.2, PT.z), 0.008, 0.008, BRASS, { n: 4 }));
 G.push(box(PT.x - 0.85, PT.x + 0.85, 1.995, 2.0, PT.z - 0.14, PT.z + 0.14, [255, 236, 190], 0));
 // cue rack on the back wall
-S.push(box(-11.2, -9.6, 0.9, 1.0, -10.98, -10.88, [44, 26, 16]));
-S.push(box(-11.2, -9.6, 1.6, 1.7, -10.98, -10.88, [44, 26, 16]));
-for (let k = 0; k < 6; k++) S.push(cyl(V(-11.05 + k * 0.28, 0.92, -10.92), V(-11.05 + k * 0.28, 2.3, -10.92), 0.014, 0.008, [150, 110, 70], { n: 4 }));
+S.push(box(-14.3, -12.7, 0.9, 1.0, -3.98, -3.88, [44, 26, 16]));
+S.push(box(-14.3, -12.7, 1.6, 1.7, -3.98, -3.88, [44, 26, 16]));
+for (let k = 0; k < 6; k++) S.push(cyl(V(-14.15 + k * 0.28, 0.92, -3.92), V(-14.15 + k * 0.28, 2.3, -3.92), 0.014, 0.008, [150, 110, 70], { n: 4 }));
 // bar shelf and two stools in the corner
-S.push(box(-12.95, -12.6, 1.05, 1.1, -10.6, -7.2, [44, 26, 16]));
-for (const z of [-9.6, -8.2]) {
-  S.push(cyl(V(-12.25, 0, z), V(-12.25, 0.66, z), 0.025, 0.025, BRASS, { n: 6 }));
-  S.push(cyl(V(-12.25, 0.66, z), V(-12.25, 0.74, z), 0.17, 0.17, LEATHER, { n: 10 }));
+S.push(box(-16.95, -16.6, 1.05, 1.1, 1.0, 3.7, [44, 26, 16]));
+for (const z of [1.7, 3.0]) {
+  S.push(cyl(V(-16.25, 0, z), V(-16.25, 0.66, z), 0.025, 0.025, BRASS, { n: 6 }));
+  S.push(cyl(V(-16.25, 0.66, z), V(-16.25, 0.74, z), 0.17, 0.17, LEATHER, { n: 10 }));
 }
+sconceZ(-11.4, -3.97, 1); sconceZ(-15.6, -3.97, 1);
+// poker table: oval, black padded rail, green felt, six chairs; cards and chips at every seat
+const PK = { x: -13.9, z: -0.3, w: 2.3, d: 1.25 };
+const FELT = [26, 88, 56], RAIL = [22, 18, 16], PK_WOOD = [70, 40, 22];
+S.push(cyl(V(PK.x, 0, PK.z), V(PK.x, 0.04, PK.z), 0.5, 0.48, RAIL, { n: 12 }));
+S.push(cyl(V(PK.x, 0.04, PK.z), V(PK.x, 0.66, PK.z), 0.18, 0.22, RAIL, { n: 10 }));
+S.push(loft([rring(0.62, PK.w - 0.2, PK.d - 0.15, PK.x, PK.z, 20, 2), rring(0.74, PK.w + 0.1, PK.d + 0.1, PK.x, PK.z, 20, 2)], PK_WOOD, { amt: 0.04 }));
+S.push(loft([rring(0.74, PK.w, PK.d, PK.x, PK.z, 24, 2), rring(0.775, PK.w, PK.d, PK.x, PK.z, 24, 2)], FELT, { amt: 0.03 }));
+S.push(loft([rring(0.74, PK.w + 0.22, PK.d + 0.22, PK.x, PK.z, 24, 2), rring(0.795, PK.w + 0.24, PK.d + 0.24, PK.x, PK.z, 24, 2), rring(0.815, PK.w + 0.1, PK.d + 0.1, PK.x, PK.z, 24, 2), rring(0.79, PK.w - 0.01, PK.d - 0.01, PK.x, PK.z, 24, 2)], RAIL, { amt: 0.03, smooth: true, cap: false }));
+S.push(loft([rring(0.776, PK.w - 0.5, PK.d - 0.42, PK.x, PK.z, 24, 2), rring(0.7775, PK.w - 0.5, PK.d - 0.42, PK.x, PK.z, 24, 2)], [200, 170, 90], { amt: 0.02, cap: false }));
+// community cards and the pot in the middle, a dealer button
+for (let k = 0; k < 5; k++) S.push(box(PK.x - 0.2 + k * 0.1 - 0.032, PK.x - 0.2 + k * 0.1 + 0.032, 0.776, 0.778, PK.z - 0.045, PK.z + 0.045, [236, 232, 224], 0.02));
+for (let k = 0; k < 5; k++) S.push(box(PK.x - 0.2 + k * 0.1 - 0.01, PK.x - 0.2 + k * 0.1 + 0.01, 0.778, 0.7785, PK.z - 0.015, PK.z + 0.015, k % 2 ? [190, 20, 30] : [16, 16, 18], 0));
+const CHIP_COLS = [[180, 24, 30], [20, 20, 24], [230, 228, 220], [30, 70, 160], [30, 120, 60]];
+const chipStack = (x, z, col, n) => { for (let k = 0; k < n; k++) S.push(cyl(V(x, 0.776 + k * 0.0042, z), V(x, 0.776 + k * 0.0042 + 0.0038, z), 0.02, 0.02, k % 2 ? col : col.map((v) => v * 0.82), { n: 8, amt: 0.02 })); };
+chipStack(PK.x - 0.05, PK.z + 0.16, CHIP_COLS[0], 7); chipStack(PK.x + 0.03, PK.z + 0.18, CHIP_COLS[1], 5); chipStack(PK.x + 0.1, PK.z + 0.15, CHIP_COLS[3], 4);
+S.push(cyl(V(PK.x + 0.55, 0.776, PK.z - 0.3), V(PK.x + 0.55, 0.784, PK.z - 0.3), 0.03, 0.03, [236, 232, 224], { n: 10, amt: 0.02 }));
+const POKER_SEATS = [];
+for (let i = 0; i < 6; i++) {
+  const a = Math.PI * 2 * i / 6 + Math.PI / 6, ca = Math.cos(a), sa = Math.sin(a);
+  const ex = PK.x + ca * (PK.w / 2 + 0.5), ez = PK.z + sa * (PK.d / 2 + 0.5), yaw = Math.atan2(PK.x - ex, PK.z - ez);
+  // chair
+  const chair = [box(-0.22, 0.22, 0.42, 0.48, -0.22, 0.22, [60, 22, 22]), box(-0.22, 0.22, 0.48, 0.95, -0.28, -0.22, [60, 22, 22])];
+  for (const [lx, lz] of [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]]) chair.push(box(lx - 0.02, lx + 0.02, 0, 0.42, lz - 0.02, lz + 0.02, RAIL, 0.03));
+  S.push(...placeParts(chair, ex, ez, yaw, 0));
+  POKER_SEATS.push([ex + Math.sin(yaw) * 0.02, ez + Math.cos(yaw) * 0.02, yaw]);
+  // that seat's hole cards and chips on the felt
+  const cx = PK.x + ca * (PK.w / 2 - 0.22), cz = PK.z + sa * (PK.d / 2 - 0.2);
+  S.push(...placeParts([box(-0.032, 0.032, 0.776, 0.7772, -0.045, 0.045, [150, 20, 30], 0.02), box(-0.012, 0.052, 0.7772, 0.7784, -0.035, 0.055, [150, 20, 30], 0.02)], cx, cz, yaw, 0));
+  chipStack(cx + Math.cos(yaw) * 0.12, cz - Math.sin(yaw) * 0.12, CHIP_COLS[i % 5], 3 + (i * 3) % 6);
+  chipStack(cx + Math.cos(yaw) * 0.17, cz - Math.sin(yaw) * 0.17, CHIP_COLS[(i + 2) % 5], 2 + (i * 5) % 5);
+}
+// a low lamp over the poker table
+S.push(loft([rring(2.05, 1.2, 0.5, PK.x, PK.z, 12, 3), rring(2.2, 1.1, 0.4, PK.x, PK.z, 12, 3)], [60, 18, 20], { amt: 0.03 }));
+for (const x of [PK.x - 0.5, PK.x + 0.5]) S.push(cyl(V(x, 2.2, PK.z), V(x, 3.2, PK.z), 0.008, 0.008, BRASS, { n: 4 }));
+G.push(loft([rring(2.04, 1.1, 0.42, PK.x, PK.z, 12, 3), rring(2.045, 1.1, 0.42, PK.x, PK.z, 12, 3)], [255, 226, 180], { amt: 0, cap: true }));
 // velvet rope in front of the VIP door
 for (const z of [-8.75, -6.75]) {
   S.push(cyl(V(-5.4, 0, z), V(-5.4, 0.03, z), 0.13, 0.12, BRASS_D, { n: 8 }));
@@ -1235,10 +1296,10 @@ function painting(kind, px, pz, yaw, cy) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(cw, ch), new THREE.MeshLambertMaterial({ map: paintingTex(kind) }));
   m.position.set(px + Math.sin(yaw) * 0.034, cy, pz + Math.cos(yaw) * 0.034); m.rotation.y = yaw; scene.add(m);
 }
-painting(0, -11.6, -4.0, Math.PI, 1.85);
-painting(3, -6.6, -4.0, Math.PI, 1.85);
-painting(1, -7.9, -11.0, 0, 1.85);
-painting(2, -13.0, -8.9, Math.PI / 2, 2.0);
+painting(0, -15.2, 4.0, Math.PI, 1.85);
+painting(3, -6.8, 4.0, Math.PI, 1.85);
+painting(1, -6.8, -4.0, 0, 1.85);
+painting(2, -17.0, -1.6, Math.PI / 2, 2.0);
 
 // ===== VIP LOUNGE: dark panels, pink neon, a glowing disc behind a tall plant, cognac leather sofas =====
 const FX = -1.1;                       // centre of the feature wall
@@ -1689,17 +1750,19 @@ function facade(ax, az, bx, bz, nx, nz, gaps) {
   for (const [g0, g1] of gaps || []) { if (g0 > cur) piece(cur, g0, 0); piece(g0, g1, DOOR_H); cur = g1; }
   if (cur < len) piece(cur, len, 0);
 }
-facade(-13, 4.01, 14, 4.01, 0, 1, [[12.1, 13.9]]);   // front, entrance at x -0.9..0.9
-facade(-13.01, -11, -13.01, 4, -1, 0);                // left side
+facade(-17, 4.01, 14, 4.01, 0, 1, [[16.1, 17.9]]);   // front, entrance at x -0.9..0.9
+facade(-17.01, -4, -17.01, 4, -1, 0);                 // left side of the billiards room
+facade(-17, -4.01, -13, -4.01, 0, -1);                // the step back to the cinema
+facade(-13.01, -11, -13.01, -4, -1, 0);               // left side of the cinema
 facade(14.01, -12, 14.01, 4, 1, 0);                   // right side
 facade(-13, -11.01, 5, -11.01, 0, -1, [[8.6, 9.8]]);  // back of billiards + VIP, back door at x -4.4..-3.2
 facade(5.01, -12, 5.01, -11, -1, 0);                  // the step out at the pool lounge
 facade(5, -12.01, 14, -12.01, 0, -1);                 // back of the pool lounge
 // a brass band and cornice along the front
-S.push(box(-13, 14, 3.3, 3.36, 4.01, 4.06, BRASS_D, 0.03));
-S.push(box(-13.1, 14.1, FAC_H - 0.1, FAC_H, 4.0, 4.25, [20, 20, 24], 0.03));
+S.push(box(-17, 14, 3.3, 3.36, 4.01, 4.06, BRASS_D, 0.03));
+S.push(box(-17.1, 14.1, FAC_H - 0.1, FAC_H, 4.0, 4.25, [20, 20, 24], 0.03));
 // tall front windows, warm light behind frosted glass
-for (const x of [-11, -8, -5, 5, 8, 11]) {
+for (const x of [-15, -11, -8, -5, 5, 8, 11]) {
   S.push(box(x - 0.68, x + 0.68, 0.9, 0.98, 4.02, 4.14, BRASS_D, 0.03));
   G.push(box(x - 0.6, x + 0.6, 0.98, 2.6, 4.02, 4.035, [92, 62, 34], 0));
   for (const dx of [-0.2, 0.2]) S.push(box(x + dx - 0.02, x + dx + 0.02, 0.98, 2.6, 4.035, 4.06, [18, 18, 22], 0.03));
@@ -1873,10 +1936,10 @@ function doorSign(text, x, z, rotY) {
   m.position.set(x, 2.72, z); m.rotation.y = rotY; scene.add(m);
 }
 doorSign('DANCE', 4.97, 0, -Math.PI / 2); doorSign('BAR', 5.03, 0, Math.PI / 2);
-doorSign('CINEMA', -4.97, 1.5, Math.PI / 2); doorSign('BAR', -5.03, 1.5, -Math.PI / 2);
-doorSign('BILLIARDS', -9.2, -3.97, 0); doorSign('CINEMA', -9.2, -4.03, Math.PI);
+doorSign('BILLIARDS', -4.97, 1.5, Math.PI / 2); doorSign('BAR', -5.03, 1.5, -Math.PI / 2);
+doorSign('CINEMA', -9.2, -3.97, 0); doorSign('BILLIARDS', -9.2, -4.03, Math.PI);
 doorSign('POOL', 9.5, -3.97, 0); doorSign('DANCE', 9.5, -4.03, Math.PI);
-doorSign('VIP', -5.03, -7.75, -Math.PI / 2); doorSign('BILLIARDS', -4.97, -7.75, Math.PI / 2);
+doorSign('VIP', -5.03, -7.75, -Math.PI / 2); doorSign('CINEMA', -4.97, -7.75, Math.PI / 2);
 doorSign('BACKSTREET', -3.8, -10.97, 0); doorSign('POOL', 4.97, -6.4, -Math.PI / 2); doorSign('CHANGING', 5.03, -6.4, Math.PI / 2); doorSign('VIP', -3.8, -11.05, Math.PI);
 // the big sign over the street entrance
 const outSign = goldSign("SH1DEN'S", 320, 64, 46); SIGNS.push(outSign);
@@ -1966,13 +2029,14 @@ addSpot('bar-wall-0', 1, 'lean', -4.75, -0.2, Math.PI / 2, 'Lean on the wall', h
 addSpot('bar-wall-1', 1, 'lean', 4.75, -2.0, -Math.PI / 2, 'Lean on the wall', hitBox(4.75, 0.9, -2.0, 0.45, 1.8, 0.5));
 // cinema
 COUCH_SEATS.forEach(([x, z], i) => addSpot('cinema-seat-' + i, 2, 'sitlow', x, z, -Math.PI / 2, 'Sit and watch', hitBox(x, 0.32, z, 0.7, 0.64, 0.52)));
-[[-5.4, -3.3, -Math.PI / 2 - 0.4], [-5.4, 3.3, -Math.PI / 2 + 0.4], [-6.2, -0.2, -Math.PI / 2]].forEach(([x, z, yaw], i) =>
+[[-5.6, TV.z - 3.0, -Math.PI / 2 - 0.4], [-5.6, TV.z + 3.1, -Math.PI / 2 + 0.4], [-6.3, TV.z - 1.9, -Math.PI / 2]].forEach(([x, z, yaw], i) =>
   addSpot('cinema-stand-' + i, 2, 'lean', x, z, yaw, 'Stand at the back', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // billiards
 addSpot('pool-cue-0', 3, 'pool', PT.x - PT.l / 2 - 0.55, PT.z - 0.25, Math.PI / 2, 'Play pool', hitBox(PT.x - PT.l / 2 - 0.5, 0.8, PT.z - 0.25, 0.6, 1.6, 0.6));
 addSpot('pool-cue-1', 3, 'pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 2, 'Play pool', hitBox(PT.x + PT.l / 2 + 0.5, 0.8, PT.z + 0.2, 0.6, 1.6, 0.6));
-[-9.6, -8.2].forEach((z, i) => addSpot('pool-stool-' + i, 3, 'sit', -12.25, z, -Math.PI / 2, 'Sit at the corner bar', hitBox(-12.25, 0.45, z, 0.45, 0.9, 0.45)));
-[[-9.0, -5.2, Math.PI], [-7.2, -5.0, Math.PI + 0.5], [-10.8, -5.0, Math.PI - 0.5], [-6.0, -9.8, -Math.PI / 2 - 0.5], [-9.0, -10.3, 0]].forEach(([x, z, yaw], i) =>
+[1.7, 3.0].forEach((z, i) => addSpot('pool-stool-' + i, 3, 'sit', -16.25, z, -Math.PI / 2, 'Sit at the corner bar', hitBox(-16.25, 0.45, z, 0.45, 0.9, 0.45)));
+POKER_SEATS.forEach(([x, z, yaw], i) => addSpot('poker-seat-' + i, 3, 'poker', x, z, yaw, 'Sit in on poker', hitBox(x, 0.45, z, 0.55, 0.9, 0.55)));
+[[-7.6, -3.1, 0], [-7.0, -2.0, -0.6], [-11.8, -2.6, 0.5], [-6.0, 2.9, Math.PI + 0.6], [-11.2, 3.3, Math.PI - 0.4]].forEach(([x, z, yaw], i) =>
   addSpot('pool-watch-' + i, 3, 'lean', x, z, yaw, 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // VIP lounge: the host's armchair is his alone
 VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'lounge' : 'sitlow', x, z, yaw,
@@ -2274,8 +2338,8 @@ function beatNow() {
 const VIEWS = {
   bar: { tx: 0, ty: 1.2, tz: -1.4, d: 7, yaw: 0.0, pitch: 0.42 },
   dance: { tx: 9.6, ty: 1.0, tz: 0, d: 7, yaw: -1.25, pitch: 0.45 },
-  tv: { tx: -10.5, ty: 1.4, tz: 0, d: 6, yaw: Math.PI / 2, pitch: 0.16 },
-  pool: { tx: -9, ty: 0.9, tz: -7.5, d: 6, yaw: 0.75, pitch: 0.6 },
+  tv: { tx: -10.5, ty: 1.4, tz: -7.5, d: 6, yaw: Math.PI / 2, pitch: 0.16 },
+  pool: { tx: -11.4, ty: 0.9, tz: 0.0, d: 8, yaw: 0.0, pitch: 0.62 },
   vip: { tx: -1.3, ty: 1.0, tz: -8.9, d: 5.5, yaw: 0.2, pitch: 0.3 },
   swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
   change: { tx: 3.5, ty: 1.0, tz: -8.2, d: 5, yaw: 0.0, pitch: 0.5 },
@@ -2511,7 +2575,7 @@ const OBJECTS = [
   { id: 'bartender', label: 'Order a drink', hit: hitBox(0.4, 1.1, -3.1, 0.9, 2.0, 0.9), cat: 1, floor: [0.4, -2.75], size: 0.5 },
   { id: 'jukebox', label: 'Change the music', hit: hitBox(-4.7, 0.75, -1.6, 0.6, 1.5, 0.9), cat: 1, floor: [-4.25, -1.6], size: 0.45 },
   { id: 'djbooth', label: 'Change the music', hit: hitBox(13.25, 0.6, 0, 0.8, 1.2, 2.7), cat: 0, floor: [12.5, 0], size: 0.6 },
-  { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, 0, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, 0], size: 0.7 },
+  { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, TV.z, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, TV.z], size: 0.7 },
   { id: 'pooltable', label: 'Play pool', hit: hitBox(PT.x, 0.45, PT.z, PT.l, 0.9, PT.w), cat: 3, floor: [PT.x, PT.z], size: 1.2 }
 ];
 const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley, 8: ROOMS.change };
@@ -2608,14 +2672,14 @@ function activate(tg, x, y) {
   const info = describe(tg);
   if (info.needChar) { openCreator(); return; }
   if (!info.ok) return;
-  if (tg.kind === 'spot') { goTo(tg.s.id); return; }
+  if (tg.kind === 'spot') { if (/^pool-cue-/.test(tg.s.id) && window.POOL) { window.POOL.open(); return; } goTo(tg.s.id); return; }
   const id = tg.o.id;
   if (id === 'bartender') openDrinkMenu(x, y);
   else if (id === 'jukebox' || id === 'djbooth') changeMusic();
   else if (id === 'tv') { setView('tv'); const p = document.getElementById('room'); if (p && p.hidden) document.getElementById('roomBtn').click(); }
   else if (id === 'pooltable') {
-    const free = ['pool-cue-0', 'pool-cue-1'].find((sid) => !spotOwner.has(sid) || spotOwner.get(sid).mine);
-    if (free) goTo(free); else toast('Both cues are taken. Grab a spot to watch.');
+    if (window.POOL) window.POOL.open();
+    else { const free = ['pool-cue-0', 'pool-cue-1'].find((sid) => !spotOwner.has(sid) || spotOwner.get(sid).mine); if (free) goTo(free); }
   }
   showHover(null);
 }
@@ -2926,6 +2990,11 @@ window.BAR = {
   bubble: showBubble,
   setDucked,
   setTvOn(on) { tvOn = !!on; },
+  poolTable: () => POOL_TABLE,
+  setPoolBalls(b) { setPoolBalls(b); },
+  goTo(id) { goTo(id); },
+  hasCharacter() { return hasCharacter(); },
+  toast(t) { toast(t); },
   meInVip() { const me = crowd.find((c) => c.mine); const sp = me && SPOT_BY_ID[me.spot]; return !!sp && sp.cat === 4; },
   viewRoom() { if (camT.free) return 'map'; const r = roomAt(cam.tx, cam.tz); for (const k in ROOMS) if (ROOMS[k] === r) return k; return ''; },
   getMyState() { return myState; },

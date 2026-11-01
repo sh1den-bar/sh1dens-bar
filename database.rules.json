@@ -112,6 +112,13 @@
           ".validate": "$other == 'uid' || $other == 'name' || $other == 'text' || $other == 't'"
         }
       }
+    },
+    "games": {
+      ".read": true,
+      "pool": {
+        ".write": "auth != null && root.child('chars').child(auth.uid).exists() && !root.child('bans').child(auth.uid).exists()",
+        ".validate": "!newData.exists() || newData.hasChildren(['phase', 'seq'])"
+      }
     }
   }
 }
