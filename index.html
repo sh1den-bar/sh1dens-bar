@@ -270,6 +270,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
       <button id="v-tv" type="button">Cinema</button>
       <button id="v-pool" type="button">Billiards</button>
       <button id="v-card" type="button">Card room</button>
+      <button id="v-sec" type="button">Security</button>
       <button id="v-vip" type="button" hidden>VIP</button>
       <button id="v-street" type="button">Street</button>
       <button id="v-alley" type="button">Backstreet</button>
@@ -278,7 +279,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     <select id="roomSelect" aria-label="Go to a room">
       <option value="">Rooms ▾</option>
       <option value="bar">Bar</option><option value="dance">Dance</option><option value="swim">Pool lounge</option><option value="change">Changing</option>
-      <option value="tv">Cinema</option><option value="pool">Billiards</option><option value="card">Card room</option><option value="vip" hidden disabled>VIP</option>
+      <option value="tv">Cinema</option><option value="pool">Billiards</option><option value="card">Card room</option><option value="sec">Security</option><option value="vip" hidden disabled>VIP</option>
       <option value="street">Street</option><option value="alley">Backstreet</option><option value="map">Map</option>
     </select>
   </div>
@@ -447,12 +448,12 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=46"></script>
-<script src="net.js?v=46"></script>
-<script src="bar.js?v=46"></script>
-<script src="pool.js?v=46"></script>
-<script src="extras.js?v=46"></script>
-<script src="poker.js?v=46"></script>
+<script src="config.js?v=47"></script>
+<script src="net.js?v=47"></script>
+<script src="bar.js?v=47"></script>
+<script src="pool.js?v=47"></script>
+<script src="extras.js?v=47"></script>
+<script src="poker.js?v=47"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

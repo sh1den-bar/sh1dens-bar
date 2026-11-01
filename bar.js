@@ -716,6 +716,36 @@ function pose(ch, act, beat, t) {
     b.shL.rotation.x = -0.75; b.shL.rotation.z = -0.32; b.elL.rotation.x = -1.45;
     b.shR.rotation.x = -0.7 + 0.07 * Math.sin(w); b.shR.rotation.z = 0.36 + 0.05 * Math.cos(w); b.elR.rotation.x = -1.4 + 0.05 * Math.sin(w * 2);
     b.head.rotation.x = 0.32 - 0.34 * look; b.head.rotation.y = 0.45 * look * Math.sin(t * 0.13);
+  } else if (act === 'ben') {
+    // Ben at his monitors: typing, a phone call, a smoke, stubbing it out
+    b.hips.position.y = 0.95 - 0.45;
+    b.thL.rotation.x = b.thR.rotation.x = -1.5; b.knL.rotation.x = b.knR.rotation.x = 1.45;
+    b.thL.rotation.z = 0.12; b.thR.rotation.z = -0.12;
+    const T = (t + ph * 40) % 40;
+    const type = () => {
+      b.spine.rotation.x = 0.18;
+      b.shL.rotation.x = b.shR.rotation.x = -1.0; b.shL.rotation.z = -0.22; b.shR.rotation.z = 0.22;
+      b.elL.rotation.x = -0.75 + 0.06 * Math.sin(t * 19); b.elR.rotation.x = -0.75 + 0.06 * Math.sin(t * 23 + 1);
+      b.head.rotation.x = -0.12 + 0.04 * Math.sin(t * 0.7); b.head.rotation.y = 0.25 * Math.sin(t * 0.4);
+    };
+    if (T < 16 || T >= 37) type();
+    else if (T < 22) {
+      b.spine.rotation.x = -0.05; b.spine.rotation.z = 0.06;
+      b.shR.rotation.x = -1.3; b.shR.rotation.z = 0.55; b.elR.rotation.x = -2.25;
+      b.shL.rotation.x = -0.6; b.elL.rotation.x = -0.9; b.shL.rotation.z = -0.2;
+      b.head.rotation.z = 0.22; b.head.rotation.y = 0.3 * Math.sin(t * 0.6);
+    } else if (T < 34) {
+      const u = Math.max(0, Math.sin((T - 22) * 1.6));
+      b.spine.rotation.x = -0.08;
+      b.shR.rotation.x = -0.55 - 0.75 * u; b.elR.rotation.x = -1.3 - 0.8 * u; b.shR.rotation.z = 0.15;
+      b.shL.rotation.x = -0.9; b.elL.rotation.x = -0.8; b.shL.rotation.z = -0.25;
+      b.head.rotation.x = -0.1 - 0.12 * u;
+    } else {
+      b.spine.rotation.x = 0.4;
+      b.shR.rotation.x = -1.0; b.elR.rotation.x = -0.35; b.shR.rotation.z = 0.35 + 0.08 * Math.sin(t * 14);
+      b.shL.rotation.x = -0.7; b.elL.rotation.x = -0.6;
+      b.head.rotation.x = 0.35;
+    }
   } else if (act === 'walk') {
     const w = t * 7.5 + ph * 4, k = Math.sin(w);
     b.thL.rotation.x = -0.45 * k; b.thR.rotation.x = 0.45 * k;
@@ -811,6 +841,7 @@ const ROOMS = {
   // the restroom sits inside the dance room's front corner, so it is listed first
   wc: { x0: 14, x1: 18.4, z0: -10.4, z1: -5.6, name: 'Restroom', hidden: true },
   card: { x0: -17, x1: -11.8, z0: -4, z1: 4, name: 'Card room' },
+  sec: { x0: -17, x1: -13, z0: -11, z1: -4, name: 'Security' },
   bar: { x0: -5, x1: 5, z0: -4, z1: 4, name: 'Main bar' },
   dance: { x0: 5, x1: 14, z0: -4, z1: 4, name: 'Dance room' },
   tv: { x0: -13, x1: -5, z0: -11, z1: -4, name: 'TV room' },
@@ -1055,7 +1086,9 @@ roomWalls(ROOMS.bar, { right: [DOOR.barDance], left: [DOOR.barTv], front: [[4.1,
 roomWalls(ROOMS.dance, { left: [DOOR.barDance], back: [[3.6, 5.4]] }, wallMats.deco);
 roomWalls(ROOMS.swim, { front: [[3.6, 5.4]], left: [[5.0, 6.2]], right: [[3.4, 4.6]] }, wallMats.brick);
 roomWalls(ROOMS.change, { right: [[4.0, 5.2]] }, wallMats.brick);
-roomWalls(ROOMS.tv, { front: [DOOR.tvPool], right: [DOOR.poolVip] }, wallMats.deco);
+roomWalls(ROOMS.tv, { front: [DOOR.tvPool], right: [DOOR.poolVip], left: [[0.15, 1.25]] }, wallMats.deco);
+roomWalls(ROOMS.sec, { right: [[0.15, 1.25]] }, wallMats.brick);
+floorFor(ROOMS.sec, concreteTex, 2);
 roomWalls(ROOMS.pool, { back: [[1.8, 3.4]], right: [DOOR.barTv], left: [[6.2, 7.6]] }, wallMats.green);
 roomWalls(ROOMS.card, { right: [[6.2, 7.6]] }, wallMats.lacquer);
 // the restroom: inside walls only show when you're in there; the walls facing the dance room always do
@@ -1339,7 +1372,7 @@ for (const cx of [-10.0, -7.6]) for (const cz of [-1.6, 1.6]) couch(cx, TV.z + c
 S.push(box(-11.4, -10.8, 0, 0.4, TV.z - 1.0, TV.z + 1.0, LACQUER));
 S.push(box(-11.42, -10.78, 0.4, 0.43, TV.z - 1.02, TV.z + 1.02, MARBLE));
 martini(-11.1, 0.43, TV.z - 0.4); succulent(-11.1, 0.43, TV.z + 0.5, 1);
-sconce(-12.97, TV.z - 3.0, 1); sconce(-12.97, TV.z + 3.0, 1);
+sconce(-12.97, TV.z - 2.25, 1); sconce(-12.97, TV.z + 2.6, 1);
 
 // ===== POOL ROOM (next to the bar): the pool table, a poker table, cue rack and a corner bar =====
 const PT = { x: -9.4, z: -0.2, l: 2.6, w: 1.45 };
@@ -1535,6 +1568,60 @@ function doorLeaf(px, pz, yaw, w) {
 }
 doorLeaf(14, -7.4, Math.PI / 2, 1.2);
 doorLeaf(-4.4, -11, 0, 1.2);
+// ===== SECURITY OFFICE: Ben's cubbyhole behind the cinema, a wall of CCTV monitors and a very messy desk =====
+doorFrame(-13, -10.85, -13, -9.75);
+doorLeaf(-13, -9.75, Math.PI / 2, 1.1);
+const SEC_MON = [];      // [z, y] of each monitor's centre on the left wall
+{
+  const DESK = [40, 34, 30], DESK_T = [58, 50, 42], MET = [44, 46, 50], BEZ = [14, 14, 16];
+  // the desk along the monitor wall, on metal legs
+  S.push(box(-16.98, -16.1, 0.72, 0.76, -9.6, -5.9, DESK_T, 0.04));
+  for (const z of [-9.5, -6.0]) for (const x of [-16.9, -16.2]) S.push(box(x - 0.025, x + 0.025, 0, 0.72, z - 0.025, z + 0.025, MET, 0.02));
+  S.push(box(-16.98, -16.95, 0.3, 0.72, -9.6, -5.9, DESK, 0.03));
+  // the monitor wall: three by three on a steel frame
+  S.push(box(-16.99, -16.96, 0.88, 2.58, -9.45, -6.05, [24, 24, 28], 0.02));
+  for (const z of [-8.85, -7.75, -6.65]) for (const y of [1.15, 1.7, 2.25]) {
+    S.push(box(-16.96, -16.84, y - 0.27, y + 0.27, z - 0.52, z + 0.52, BEZ, 0.02));
+    SEC_MON.push([z, y]);
+  }
+  // keyboard, mouse, a desk phone, the ashtray and the mess
+  S.push(box(-16.55, -16.35, 0.76, 0.785, -8.05, -7.45, [26, 26, 30], 0.02), box(-16.54, -16.36, 0.785, 0.79, -8.02, -7.48, [60, 60, 66], 0.05));
+  S.push(box(-16.5, -16.42, 0.76, 0.785, -7.2, -7.12, [30, 30, 34], 0.02));
+  S.push(box(-16.85, -16.6, 0.76, 0.84, -9.35, -9.05, [24, 24, 28], 0.02), box(-16.84, -16.62, 0.84, 0.88, -9.34, -9.06, [36, 36, 40], 0.02));
+  S.push(cyl(V(-16.4, 0.76, -6.6), V(-16.4, 0.79, -6.6), 0.08, 0.07, [70, 70, 76], { n: 8 }));
+  for (let k = 0; k < 6; k++) { const a = k * 1.1; S.push(cyl(V(-16.4 + Math.cos(a) * 0.04, 0.795, -6.6 + Math.sin(a) * 0.04), V(-16.4 + Math.cos(a) * 0.075, 0.8, -6.6 + Math.sin(a) * 0.075), 0.006, 0.006, k % 2 ? [220, 214, 200] : [196, 150, 90], { n: 4, amt: 0 })); }
+  S.push(box(-16.75, -16.62, 0.76, 0.78, -6.35, -6.25, [200, 30, 30], 0.03), box(-16.74, -16.63, 0.78, 0.785, -6.34, -6.26, [230, 230, 230], 0.02));
+  // energy drink cans: standing, tipped over, one crushed
+  const CANS = [[[30, 140, 60], -16.75, -8.3], [[20, 60, 160], -16.7, -6.95], [[20, 20, 22], -16.82, -7.1], [[30, 140, 60], -16.3, -9.2], [[200, 200, 40], -16.88, -8.55]];
+  for (const [c, x, z] of CANS) { S.push(cyl(V(x, 0.76, z), V(x, 0.885, z), 0.032, 0.032, c, { n: 7, amt: 0.04 })); S.push(cyl(V(x, 0.885, z), V(x, 0.892, z), 0.026, 0.026, [190, 190, 196], { n: 6, amt: 0 })); }
+  S.push(cyl(V(-16.3, 0.79, -6.2), V(-16.18, 0.79, -6.05), 0.032, 0.032, [20, 60, 160], { n: 7, amt: 0.04 }));
+  S.push(cyl(V(-16.52, 0.76, -9.45), V(-16.52, 0.81, -9.45), 0.036, 0.02, [30, 140, 60], { n: 6, amt: 0.08 }));
+  for (const [x, z] of [[-14.2, -10.6], [-13.4, -6.3], [-15.0, -4.3]]) S.push(cyl(V(x, 0, z), V(x + 0.11, 0.03, z + 0.05), 0.032, 0.032, [30, 140, 60], { n: 6, amt: 0.05 }));
+  // paper, a pizza box, a bin overflowing with cans
+  S.push(box(-16.7, -16.45, 0.76, 0.765, -8.95, -8.65, [210, 206, 194], 0.03), box(-16.62, -16.38, 0.765, 0.77, -8.9, -8.6, [196, 192, 180], 0.03));
+  S.push(box(-14.6, -14.0, 0, 0.05, -4.7, -4.1, [150, 110, 60], 0.03));
+  S.push(cyl(V(-13.5, 0, -4.5), V(-13.5, 0.55, -4.5), 0.18, 0.2, [36, 36, 40], { n: 8 }));
+  for (let k = 0; k < 5; k++) S.push(cyl(V(-13.5 + Math.cos(k * 1.3) * 0.08, 0.55, -4.5 + Math.sin(k * 1.3) * 0.08), V(-13.5 + Math.cos(k * 1.3) * 0.1, 0.66, -4.5 + Math.sin(k * 1.3) * 0.1), 0.032, 0.032, k % 2 ? [30, 140, 60] : [20, 60, 160], { n: 6, amt: 0.04 }));
+  // office chair
+  S.push(cyl(V(-15.8, 0.02, -7.75), V(-15.8, 0.45, -7.75), 0.025, 0.025, MET, { n: 5 }));
+  for (let k = 0; k < 5; k++) { const a = k * 1.2566; S.push(box(-15.8 + Math.cos(a) * 0.05 - 0.02, -15.8 + Math.cos(a) * 0.05 + 0.02, 0.02, 0.05, -7.75 - 0.02, -7.75 + 0.02, MET, 0.02), cyl(V(-15.8, 0.04, -7.75), V(-15.8 + Math.cos(a) * 0.3, 0.04, -7.75 + Math.sin(a) * 0.3), 0.015, 0.015, MET, { n: 4 })); }
+  S.push(box(-16.02, -15.58, 0.43, 0.5, -7.98, -7.52, [24, 24, 26], 0.04));
+  S.push(box(-15.6, -15.52, 0.5, 1.15, -7.95, -7.55, [24, 24, 26], 0.04));
+  // a filing cabinet, a dim lamp, a gold nameplate
+  S.push(box(-14.2, -13.6, 0, 1.3, -10.95, -10.4, [56, 58, 62], 0.04));
+  for (const y of [0.4, 0.85, 1.2]) S.push(box(-14.15, -13.65, y - 0.02, y, -10.41, -10.39, [30, 30, 34], 0.02));
+  S.push(box(-14.15, -13.95, 2.9, 3.0, -7.7, -7.5, [30, 30, 34], 0.02)); G.push(box(-14.12, -13.98, 2.88, 2.9, -7.67, -7.53, [255, 236, 200], 0));
+  S.push(box(-16.4, -16.2, 0.76, 0.84, -6.05, -5.92, [40, 30, 16], 0.02));
+}
+const benPlate = goldSign('BEN', 96, 32, 22); CARD_SIGNS.push(benPlate);
+{
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.067), decal({ map: benPlate.tex, transparent: true }));
+  m.position.set(-16.3, 0.8, -5.91); m.rotation.y = 0; scene.add(m);
+  const ds = goldSign('SECURITY · BEN', 256, 64, 30); CARD_SIGNS.push(ds);
+  const d = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.3), decal({ map: ds.tex, transparent: true }));
+  d.position.set(-12.97, 2.62, -10.3); d.rotation.y = Math.PI / 2; scene.add(d);
+}
+pLight(0x7090c0, 0.8, 5, -15.6, 2.4, -7.6);
 const cardClosed = new THREE.Group(); scene.add(cardClosed);
 {
   const P = [box(-11.84, -11.76, 0, DOOR_H, 2.22, 2.89, [20, 16, 18]), box(-11.84, -11.76, 0, DOOR_H, 2.91, 3.58, [20, 16, 18])];
@@ -2121,11 +2208,9 @@ function facade(ax, az, bx, bz, nx, nz, gaps) {
   if (cur < len) piece(cur, len, 0);
 }
 facade(-17, 4.01, 14, 4.01, 0, 1, [[16.1, 17.9]]);   // front, entrance at x -0.9..0.9
-facade(-17.01, -4, -17.01, 4, -1, 0);                 // left side of the billiards room
-facade(-17, -4.01, -13, -4.01, 0, -1);                // the step back to the cinema
-facade(-13.01, -11, -13.01, -4, -1, 0);               // left side of the cinema
+facade(-17.01, -11, -17.01, 4, -1, 0);                // left side: security office and card room
 facade(14.01, -12, 14.01, 4, 1, 0);                   // right side
-facade(-13, -11.01, 5, -11.01, 0, -1, [[8.6, 9.8]]);  // back of billiards + VIP, back door at x -4.4..-3.2
+facade(-17, -11.01, 5, -11.01, 0, -1, [[12.6, 13.8]]);  // back of billiards + VIP, back door at x -4.4..-3.2
 facade(5.01, -12, 5.01, -11, -1, 0);                  // the step out at the pool lounge
 facade(5, -12.01, 14, -12.01, 0, -1);                 // back of the pool lounge
 // a brass band and cornice along the front
@@ -2855,6 +2940,7 @@ const VIEWS = {
   pool: { tx: -8.9, ty: 0.9, tz: 0.0, d: 7, yaw: 0.85, pitch: 0.6 },
   card: { tx: -14.4, ty: 0.9, tz: 0.0, d: 6, yaw: -1.25, pitch: 0.5 },
   viptv: { tx: VTV.x, ty: 1.5, tz: VTV.z - 1.6, d: 4, yaw: Math.PI, pitch: 0.08 },
+  sec: { tx: -16.0, ty: 1.3, tz: -7.6, d: 4.6, yaw: 0.8, pitch: 0.35 },
   wc: { tx: 15.6, ty: 0, tz: -8.0, d: 10, yaw: -0.55, pitch: 1.0, free: true },
   vip: { tx: -1.3, ty: 1.0, tz: -8.9, d: 5.5, yaw: 0.2, pitch: 0.3 },
   swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
@@ -3041,7 +3127,7 @@ function updateCamera(dt, t) {
   scene.fog.near = camDist > 12 ? 30 : outside ? 12 : 7; scene.fog.far = camDist > 12 ? 70 : outside ? 42 : 17;
   // the outside walls only show from street level outside the building
   const cx = camera.position.x, cz = camera.position.z;
-  const inBuilding = cx > -13 && cx < 14 && cz < 4 && cz > (cx > 5 ? -12 : -11);
+  const inBuilding = cx > -17 && cx < 14 && cz < 4 && cz > (cx > 5 ? -12 : -11);
   const showFacade = camera.position.y < 7.5 && !inBuilding;
   if (FACADES[0].visible !== showFacade) for (const f of FACADES) f.visible = showFacade;
   camera.lookAt(cam.tx, cam.ty, cam.tz);
@@ -3666,6 +3752,56 @@ setInterval(() => {
   if (now >= at && now < at + 20000 && lastHourly !== hour) { lastHourly = hour; runEvent(HOURLY[(h >>> 8) % HOURLY.length], hour); }
 }, 2000);
 
+// ---- Ben, the night watchman, and his CCTV wall: each monitor is a live picture from a camera in one of the rooms
+const BEN_LOOK = { jacket: 1, pants: 0, skin: 1, head: 2, hair: 0, beard: 1, eyes: 1, smoke: 1, dance: 3, spot: 1, body: 0, top: 3, bottom: 1, shoes: 1 };
+let ben = null;
+const benPhone = new THREE.Mesh(toGeometry([box(-0.025, 0.025, -0.11, 0.07, -0.02, 0.02, [20, 20, 22], 0.02)]), charMat);
+benPhone.position.set(0, -0.3, 0.06);
+REBUILD_HOOKS.push(() => {
+  ben = addChar(BEN_LOOK, 'Ben', { npc: true, seedName: 'ben', staff: true });
+  ben.act = 'ben'; ben.root.position.set(-15.92, 0, -7.75); ben.root.rotation.y = -Math.PI / 2;
+  ben.bones.elR.add(benPhone);
+});
+PRE_HOOKS.push((dt, t) => { if (ben) { const T = (t + ben.phase * 40) % 40; benPhone.visible = T >= 16 && T < 22; } });
+const SEC_FEEDS = [
+  ['BAR', [4.6, 2.9, 3.6], [0, 1, -1.2]], ['DANCE', [13.6, 2.9, 3.6], [9, 0.6, 0]], ['POOL LOUNGE', [13.6, 2.9, -4.4], [9, 0.5, -8]],
+  ['CINEMA', [-5.4, 2.9, -4.4], [-10, 1, -8]], ['BILLIARDS', [-5.4, 2.9, 3.6], [-9.4, 0.5, -0.2]], ['CARD ROOM', [-12.2, 2.9, 3.6], [-14.6, 0.5, 0]],
+  ['STREET', [6, 3.6, 4.6], [0, 0.6, 9]], ['BACKSTREET', [12, 3.6, -11.4], [0, 0.6, -15.5]], null
+];
+const secCams = [];
+SEC_FEEDS.forEach((f, i) => {
+  const [z, y] = SEC_MON[i];
+  let mat;
+  if (f) {
+    const rt = new THREE.WebGLRenderTarget(160, 120, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
+    const cam = new THREE.PerspectiveCamera(72, 4 / 3, 0.1, 40); cam.position.set(...f[1]); cam.lookAt(...f[2]);
+    secCams.push({ rt, cam });
+    mat = new THREE.MeshBasicMaterial({ map: rt.texture, color: 0xc4e6cc, fog: false });
+  } else {
+    mat = new THREE.MeshBasicMaterial({ map: canvasTex(32, 24, (x, w, h) => { for (let j = 0; j < h; j++) for (let k = 0; k < w; k++) { const v = 20 + Math.floor(Math.random() * 60); x.fillStyle = `rgb(${v},${v},${v})`; x.fillRect(k, j, 1, 1); } x.fillStyle = '#000'; x.fillRect(4, 9, 24, 7); x.fillStyle = '#ff4fa8'; x.font = '6px monospace'; x.fillText('VIP', 11, 15); }), fog: false });
+  }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(0.96, 0.5), mat);
+  m.position.set(-16.835, y, z); m.rotation.y = Math.PI / 2; scene.add(m);
+  // a camera label and a blinking REC dot in the corner
+  if (f) {
+    const ls = goldSign(f[0], 128, 22, 12); SIGNS.push(ls);
+    const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.05), decal({ map: ls.tex, transparent: true }));
+    lab.position.set(-16.83, y + 0.2, z + 0.28); lab.rotation.y = Math.PI / 2; scene.add(lab);
+  }
+});
+const recDots = new THREE.Group(); scene.add(recDots);
+for (const [z, y] of SEC_MON) { const d = new THREE.Mesh(new THREE.PlaneGeometry(0.03, 0.03), new THREE.MeshBasicMaterial({ color: 0xff2020, fog: false })); d.position.set(-16.828, y + 0.2, z - 0.42); d.rotation.y = Math.PI / 2; recDots.add(d); }
+let secIdx = 0, secFrame = 0;
+const secCenter = new THREE.Vector3(-15, 1, -7.5);
+POST_HOOKS.push((dt, t) => {
+  recDots.visible = Math.floor(t * 1.5) % 2 === 0;
+  // only film while someone is actually looking at the office
+  const near = camRoom() === ROOMS.sec || (camT.free && Math.hypot(cam.tx - secCenter.x, cam.tz - secCenter.z) < 14) || camera.position.distanceTo(secCenter) < 9;
+  if (!near || secFrame++ % 2) return;
+  const c = secCams[secIdx++ % secCams.length];
+  renderer.setRenderTarget(c.rt); renderer.render(scene, c.cam); renderer.setRenderTarget(null);
+});
+
 // keep the card room, Charon's tag and the VIP rules in step with each rebuild
 function rebuildHooks() { for (const f of REBUILD_HOOKS) f(); }
 
@@ -3902,7 +4038,7 @@ $('enter').onclick = () => enterBar(true);
 $('enterQuiet').onclick = () => enterBar(false);
 $('mute').onclick = () => { setMuted(!muted); $('mute').setAttribute('aria-pressed', muted ? 'true' : 'false'); $('mute').textContent = muted ? 'Sound off' : 'Sound on'; };
 $('track').onclick = () => { if (hasCharacter() || !(window.NET && window.NET.online)) changeMusic(); else { toast('Create a character to change the music.'); } };
-for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'card', 'vip', 'change', 'street', 'alley', 'map']) $('v-' + v).onclick = () => setView(v);
+for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'card', 'sec', 'vip', 'change', 'street', 'alley', 'map']) $('v-' + v).onclick = () => setView(v);
 // phones: one dropdown instead of a row of room buttons
 const roomSel = $('roomSelect');
 if (roomSel) roomSel.onchange = () => { const v = roomSel.value; if (v) setView(v); setTimeout(() => { roomSel.value = ''; }, 300); };
