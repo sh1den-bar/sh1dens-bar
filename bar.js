@@ -1259,10 +1259,12 @@ for (const x of [-4.3, -3.6, -2.9]) LOUNGE_SEATS.push([x, 3.6, Math.PI]);
 LOUNGE_SEATS.push([-4.6, 2.98, Math.PI / 2]);
 for (const x of [2.9, 3.6, 4.3]) LOUNGE_SEATS.push([x, 3.6, Math.PI]);
 for (const z of [1.55, 2.25, 2.95]) LOUNGE_SEATS.push([4.6, z, -Math.PI / 2]);
-// jukebox on the left wall
-S.push(box(-4.95, -4.45, 0, 1.2, -2.0, -1.2, LACQUER));
-S.push(cyl(V(-4.7, 1.2, -2.0), V(-4.7, 1.2, -1.2), 0.25, 0.25, LACQUER, { n: 12 }));
-tubeB([V(-4.44, 0.05, -1.98), V(-4.44, 1.2, -1.98), V(-4.44, 1.38, -1.82), V(-4.44, 1.45, -1.6), V(-4.44, 1.38, -1.38), V(-4.44, 1.2, -1.22), V(-4.44, 0.05, -1.22)], 0.014, BRASS);
+// jukebox in the billiards room, against the front wall by the bar door (built facing +x, turned to face into the room)
+const JUKE = { x: -5.75, z: 3.985 };
+S.push(...placeParts([box(0, 0.5, 0, 1.2, -0.4, 0.4, LACQUER), cyl(V(0.25, 1.2, -0.4), V(0.25, 1.2, 0.4), 0.25, 0.25, LACQUER, { n: 12 }),
+  tube([V(0.51, 0.05, -0.38), V(0.51, 1.2, -0.38), V(0.51, 1.38, -0.22), V(0.51, 1.45, 0), V(0.51, 1.38, 0.22), V(0.51, 1.2, 0.38), V(0.51, 0.05, 0.38)], [0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014], BRASS, { n: 4, smooth: false, amt: 0.04 })], JUKE.x, JUKE.z, Math.PI / 2, 0));
+// a dark backing board for the coin leaderboard, where the jukebox used to stand next to Charon
+S.push(box(-5.0, -4.975, 0.96, 2.44, -2.22, -0.98, [40, 30, 16], 0.02));
 // pendants over the bar
 for (const x of [-2, 0, 2]) {
   S.push(cyl(V(x, 3.2, -2.6), V(x, 2.5, -2.6), 0.008, 0.008, BRASS, { n: 4 }));
@@ -2305,7 +2307,7 @@ const jukeFace = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.7), decal({ map:
   for (let i = 0; i < 7; i++) { x.fillStyle = i % 2 ? '#ffc060' : '#d48a2a'; x.fillRect(2 + i * 2, 2, 1, 13); }
   x.fillStyle = '#ffe0a0'; x.fillRect(3, 16, 10, 1);
 }) }));
-jukeFace.position.set(-4.43, 0.8, -1.6); jukeFace.rotation.y = Math.PI / 2; scene.add(jukeFace);
+jukeFace.position.set(JUKE.x, 0.8, JUKE.z - 0.52); jukeFace.rotation.y = Math.PI; scene.add(jukeFace);
 
 function goldSign(text, w, h, px) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -2506,7 +2508,7 @@ addSpot('pool-cue-0', 3, 'pool', PT.x - PT.l / 2 - 0.55, PT.z - 0.25, Math.PI / 
 addSpot('pool-cue-1', 3, 'pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 2, 'Play pool', hitBox(PT.x + PT.l / 2 + 0.5, 0.8, PT.z + 0.2, 0.6, 1.6, 0.6));
 [-9.7, -10.8].forEach((x, i) => addSpot('pool-stool-' + i, 3, 'sit', x, 3.035, 0, 'Sit at the self-serve bar', hitBox(x, 0.45, 3.035, 0.45, 0.9, 0.45)));
 POOL_SOFA.forEach(([x, z, yaw], i) => addSpot('pool-sofa-' + i, 3, 'sitlow', x, z, yaw, 'Chill on the sofa', hitBox(x, 0.45, z, 0.6, 0.9, 0.6)));
-[[-11.3, -3.45, 0.6], [-7.9, 3.0, Math.PI + 0.3], [-10.2, -3.4, 0.2], [-6.0, 2.9, Math.PI + 0.6]].forEach(([x, z, yaw], i) =>
+[[-11.3, -3.45, 0.6], [-7.9, 3.0, Math.PI + 0.3], [-10.2, -3.4, 0.2], [-7.0, 2.4, Math.PI + 0.5]].forEach(([x, z, yaw], i) =>
   addSpot('pool-watch-' + i, 3, 'lean', x, z, yaw, 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // card room: five seats at the table (the dealer has the sixth), and room to stand and watch
 POKER_SEATS.forEach(([x, z, yaw], i) => addSpot('poker-seat-' + i, 10, 'poker', x, z, yaw, 'Sit in on poker', hitBox(x, 0.45, z, 0.55, 0.9, 0.55)));
@@ -3076,7 +3078,7 @@ function keepGlassUpright(ch) {
 // hover anything you can use and it lights up; click (or tap twice on a phone) to go there
 const OBJECTS = [
   { id: 'bartender', label: 'Order a drink', hit: hitBox(0.4, 1.1, -3.1, 0.9, 2.0, 0.9), cat: 1, floor: [0.4, -2.75], size: 0.5 },
-  { id: 'jukebox', label: 'Change the music', hit: hitBox(-4.7, 0.75, -1.6, 0.6, 1.5, 0.9), cat: 1, floor: [-4.25, -1.6], size: 0.45 },
+  { id: 'jukebox', label: 'Change the music', hit: hitBox(JUKE.x, 0.75, JUKE.z - 0.3, 0.9, 1.5, 0.6), cat: 3, floor: [JUKE.x, JUKE.z - 0.85], size: 0.45 },
   { id: 'djbooth', label: 'Change the music', hit: hitBox(13.25, 0.6, 0, 0.8, 1.2, 2.7), cat: 0, floor: [12.5, 0], size: 0.6 },
   { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, TV.z, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, TV.z], size: 0.7 },
   { id: 'humidor', label: 'Take a cigar (30 min)', hit: hitBox(1.0, 1.0, -4.26, 1.1, 1.96, 0.5), cat: 4, floor: [1.0, -4.85], size: 0.6 },
@@ -3084,7 +3086,7 @@ const OBJECTS = [
   { id: 'wcdoor', label: 'Restroom', hit: hitBox(11.75, 1.2, 3.1, 0.3, 2.4, 0.8), cat: 0, floor: [11.4, 3.1], size: 0.5 },
   { id: 'wcout', label: 'Back to the dance floor', hit: hitBox(11.95, 1.2, 3.1, 0.2, 2.4, 0.8), cat: 9, floor: [12.15, 3.1], size: 0.4 },
   { id: 'carddoor', label: 'Card room', hit: hitBox(-11.8, 1.2, 2.9, 0.3, 2.4, 1.4), cat: 3, floor: [-11.4, 2.9], size: 0.5 },
-  { id: 'plaque', label: 'Coin leaderboard', hit: hitBox(4.3, 1.8, -3.9, 1.2, 1.5, 0.3), cat: 1, floor: [4.3, -3.4], size: 0.5 },
+  { id: 'plaque', label: 'Coin leaderboard', hit: hitBox(-4.85, 1.7, -1.6, 0.3, 1.5, 1.2), cat: 1, floor: [-4.4, -1.6], size: 0.5 },
   { id: 'coin', label: 'Pick up the gold coin', hit: hitBox(0, -50, 0, 0.6, 0.6, 0.6), cat: 1, floor: [0, -50], size: 0.35 },
   { id: 'dealer', label: 'The card table', hit: hitBox(DEALER.x, 1.0, DEALER.z, 0.7, 2.0, 0.7), cat: 10, floor: [DEALER.x, DEALER.z], size: 0.45 },
   { id: 'pooltable', label: 'Play pool', hit: hitBox(PT.x, 0.45, PT.z, PT.l, 0.9, PT.w), cat: 3, floor: [PT.x, PT.z], size: 1.2 }
@@ -3362,7 +3364,7 @@ const CHARON_MODES = [
   (h) => ({ x: 0.4, yaw: 0, act: 'bartend' }),
   (h) => ({ x: -1.6 + (h % 5) * 0.8, yaw: 0, act: 'bt_wipe' }),
   (h) => ({ x: h % 2 ? -1.2 : 1.8, yaw: Math.PI, act: 'bt_reach' }),
-  (h) => ({ x: 2.75, yaw: 1.97, act: 'bt_board' }),
+  (h) => ({ x: -2.55, yaw: -0.94, act: 'bt_board' }),
   (h) => ({ x: -0.6, yaw: 0, act: 'bt_lean' }),
   (h) => ({ x: 0.4, yaw: 0.25, act: 'bartend' }),
   (h) => ({ x: 1.2, yaw: 0.2, act: 'bt_watch' })
@@ -3438,7 +3440,7 @@ POST_HOOKS.push((dt, t) => { if (coinMesh.visible) { coinMesh.rotation.y = t * 2
 const plaqueC = document.createElement('canvas'); plaqueC.width = 220; plaqueC.height = 280;
 const plaqueTex = new THREE.CanvasTexture(plaqueC); plaqueTex.minFilter = THREE.LinearFilter; plaqueTex.encoding = THREE.sRGBEncoding;
 const plaque = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.4), decal({ map: plaqueTex }));
-plaque.position.set(4.3, 1.8, -3.965); scene.add(plaque);
+plaque.position.set(-4.955, 1.7, -1.6); plaque.rotation.y = Math.PI / 2; scene.add(plaque);
 function drawPlaque(list) {
   const x = plaqueC.getContext('2d'), w = 220, h = 280;
   x.fillStyle = '#0d0b0c'; x.fillRect(0, 0, w, h);
