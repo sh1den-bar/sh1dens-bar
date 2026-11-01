@@ -1748,7 +1748,30 @@ const benPlate = goldSign('BEN', 96, 32, 22); CARD_SIGNS.push(benPlate);
   const d = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.3), decal({ map: ds.tex, transparent: true }));
   d.position.set(-12.97, 2.62, -10.3); d.rotation.y = Math.PI / 2; scene.add(d);
 }
-pLight(0x7090c0, 0.8, 5, -15.6, 2.4, -7.6);
+// the dance floor's blue and violet glow, held steady in here (it flickers now and then, see below)
+const secLight = pLight(0x4a7cff, 1.6, 6.5, -15.2, 2.7, -7.6);
+const secLight2 = pLight(0x6a4aff, 1.0, 5.5, -14.0, 2.5, -9.6);
+const SEC_NEON = [];
+for (const [ax, az, bx, bz] of [[-16.97, -10.97, -16.97, -4.03], [-16.97, -10.97, -13.03, -10.97], [-16.97, -4.03, -13.03, -4.03]]) {
+  const m = new THREE.Mesh(toGeometry([box(Math.min(ax, bx) - (ax === bx ? 0.01 : 0), Math.max(ax, bx) + (ax === bx ? 0.01 : 0), 3.02, 3.06, Math.min(az, bz) - (az === bz ? 0.01 : 0), Math.max(az, bz) + (az === bz ? 0.01 : 0), [74, 124, 255], 0)]), new THREE.MeshBasicMaterial({ vertexColors: true, fog: false }));
+  scene.add(m); SEC_NEON.push(m);
+}
+// a poster on the back wall: an original synthwave night-drive print
+{
+  const tex = canvasTex(32, 46, (x, w, h) => {
+    for (let j = 0; j < h; j++) { const k = j / h; x.fillStyle = `rgb(${Math.round(20 + 120 * k)},${Math.round(10 + 20 * k)},${Math.round(60 + 40 * (1 - k))})`; x.fillRect(0, j, w, 1); }
+    for (let j = 0; j < 9; j++) { x.fillStyle = j % 2 ? '#ff7a3a' : '#ffcc4a'; const r = 9 - j; x.fillRect(16 - r, 16 + j, r * 2, 1); }
+    x.fillStyle = '#1a0830'; x.fillRect(0, 25, w, h - 25);
+    x.strokeStyle = '#ff3aa8'; x.lineWidth = 1;
+    for (let i = -16; i <= 48; i += 6) { x.beginPath(); x.moveTo(16, 25); x.lineTo(i, h); x.stroke(); }
+    for (const y of [27, 30, 34, 39, 45]) { x.fillStyle = '#ff3aa8'; x.fillRect(0, y, w, 1); }
+    x.fillStyle = '#05020a'; x.fillRect(4, 13, 1, 12); x.fillRect(2, 13, 5, 1); x.fillRect(1, 14, 2, 1); x.fillRect(6, 14, 2, 1);
+    x.fillStyle = '#9ae6ff'; x.fillRect(3, 3, 26, 1); x.fillStyle = '#e8f6ff'; x.font = '6px monospace'; x.fillText('NIGHT', 7, 9);
+  });
+  const frame = new THREE.Mesh(toGeometry([box(-16.0, -15.1, 1.05, 2.37, -10.99, -10.965, [20, 20, 24], 0.02)]), roomMat); scene.add(frame);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), new THREE.MeshLambertMaterial({ map: tex }));
+  m.position.set(-15.55, 1.71, -10.955); scene.add(m);
+}
 const cardClosed = new THREE.Group(); scene.add(cardClosed);
 {
   const P = [box(-11.84, -11.76, 0, DOOR_H, 2.22, 2.89, [20, 16, 18]), box(-11.84, -11.76, 0, DOOR_H, 2.91, 3.58, [20, 16, 18])];
@@ -3929,7 +3952,16 @@ SEC_FEEDS.forEach((f, i) => {
 });
 const recDots = new THREE.Group(); scene.add(recDots);
 for (const [z, y] of SEC_MON) { const d = new THREE.Mesh(new THREE.PlaneGeometry(0.03, 0.03), new THREE.MeshBasicMaterial({ color: 0xff2020, fog: false })); d.position.set(-16.828, y + 0.2, z - 0.42); d.rotation.y = Math.PI / 2; recDots.add(d); }
-let secIdx = 0, secFrame = 0;
+let secIdx = 0, secFrame = 0, secFlick = 0;
+POST_HOOKS.push((dt, t) => {
+  if (blackout) return;
+  const now = performance.now();
+  if (now > secFlick + 600 && Math.random() < dt / 9) secFlick = now;
+  const e = now - secFlick, on = e > 600 || (Math.floor(e / 60) % 3 !== 1);
+  const k = on ? 1 : 0.15;
+  secLight.intensity = 1.6 * k; secLight2.intensity = 1.0 * k;
+  for (const m of SEC_NEON) m.visible = on;
+});
 const secCenter = new THREE.Vector3(-15, 1, -7.5);
 POST_HOOKS.push((dt, t) => {
   recDots.visible = Math.floor(t * 1.5) % 2 === 0;
@@ -3988,7 +4020,7 @@ function setGoldGlow(ch, kind) {
   // shiny suit
   ch.root.traverse((o) => { if (o.isMesh && o.userData.body) o.material = o.material === charOverMat ? (ruby ? rubyOverMat : tuxOverMat) : (ruby ? rubyMat : tuxMat); });
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: goldGlowTex, color: T.glow, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
-  sp.scale.set(ruby ? 2.0 : 1.5, ruby ? 2.9 : 2.4, 1); sp.position.set(0, 1.0, 0); ch.root.add(sp); ch.glow = sp; goldGlows.add(ch);
+  sp.scale.set(ruby ? 1.05 : 0.85, ruby ? 2.0 : 1.75, 1); sp.position.set(0, 0.95, 0); ch.root.add(sp); ch.glow = sp; goldGlows.add(ch);
   const n = ruby ? 28 : kind === 'diamond' ? 22 : 14, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: T.spark, size: ruby ? 0.035 : 0.03, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
   pts.frustumCulled = false; ch.root.add(pts); ch.glints = pts;
@@ -4002,7 +4034,7 @@ POST_HOOKS.push((dt, t) => {
   for (const ch of goldGlows) {
     if (!ch.glow || !crowd.includes(ch)) { goldGlows.delete(ch); continue; }
     const ruby = ch.glowKind === 'ruby';
-    ch.glow.material.opacity = (ruby ? 0.85 : 0.75) + 0.25 * Math.sin(t * (ruby ? 1.4 : 2.2) + ch.phase * 6);
+    ch.glow.material.opacity = (ruby ? 0.5 : 0.4) + 0.15 * Math.sin(t * (ruby ? 1.4 : 2.2) + ch.phase * 6);
     const a = ch.glints.geometry.attributes.position, n = a.count;
     for (let i = 0; i < n; i++) {
       const u = (t * (ruby ? 0.25 : 0.35) + i / n + ch.phase) % 1, ang = i * 2.39 + t * (ruby ? -0.8 : 0.6), r = ruby ? 0.38 + 0.1 * Math.sin(u * 6) : 0.32;
@@ -4083,7 +4115,7 @@ function dressExtras(ch) {
   const fx = eq.fx && I[eq.fx] ? eq.fx : '';
   if (FX_COLORS[fx] && !ch.glow) {
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: goldGlowTex, color: FX_COLORS[fx], transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
-    sp.scale.set(1.5, 2.4, 1); sp.position.set(0, 1.0, 0); ch.root.add(sp); ch.fxGlow = sp; ch.fxPts = makeAura(ch, FX_COLORS[fx], 14); ch.fxKind = 'glow'; PET_ANIM.add(ch);
+    sp.scale.set(0.85, 1.75, 1); sp.position.set(0, 0.95, 0); ch.root.add(sp); ch.fxGlow = sp; ch.fxPts = makeAura(ch, FX_COLORS[fx], 14); ch.fxKind = 'glow'; PET_ANIM.add(ch);
   }
   if (fx === 'smelly') { ch.fxPts = makeAura(ch, 0x7a9a30, 24, { size: 0.04, normal: true }); ch.flies = makeAura(ch, 0x101010, 5, { size: 0.025, normal: true }); ch.fxKind = 'smell'; PET_ANIM.add(ch); }
   // red eyes while high (a 30-minute effect from the beggar, or the permanent haze from the shop)
@@ -4111,7 +4143,7 @@ POST_HOOKS.push((dt, t) => {
         a.setXYZ(i, Math.cos(ang) * (smell ? 0.25 + 0.08 * Math.sin(u * 12 + i) : 0.32), 0.2 + u * (smell ? 1.9 : 1.7), Math.sin(ang) * (smell ? 0.25 : 0.32));
       }
       a.needsUpdate = true;
-      if (ch.fxGlow) ch.fxGlow.material.opacity = 0.7 + 0.25 * Math.sin(t * 2 + ch.phase * 6);
+      if (ch.fxGlow) ch.fxGlow.material.opacity = 0.4 + 0.15 * Math.sin(t * 2 + ch.phase * 6);
     }
     if (ch.flies) {
       const a = ch.flies.geometry.attributes.position;
