@@ -1524,6 +1524,17 @@ chandelierRound(PK.x, PK.z, 2.5, 0.62);
 // the door to the card room: shut, roped off and signed whenever the host is away
 doorFrame(-11.8, 2.2, -11.8, 3.6);
 doorFrame(14, -8.6, 14, -7.4);
+// solid doors on the restroom and the VIP's back door, so the camera can't peek through
+function doorLeaf(px, pz, yaw, w) {
+  const WOOD = [34, 20, 16], WOOD_D = [22, 13, 10], P = [box(0, w, 0, DOOR_H - 0.02, -0.03, 0.03, WOOD, 0.03)];
+  for (const e of [-1, 1]) {
+    P.push(box(0.1, w - 0.1, 0.15, 1.05, e * 0.03, e * 0.04, WOOD_D, 0.02), box(0.1, w - 0.1, 1.2, DOOR_H - 0.15, e * 0.03, e * 0.04, WOOD_D, 0.02));
+    P.push(cyl(V(w - 0.14, 1.0, e * 0.03), V(w - 0.14, 1.0, e * 0.09), 0.02, 0.02, BRASS, { n: 5 }), box(w - 0.24, w - 0.1, 0.98, 1.02, e * 0.09, e * 0.11, BRASS, 0.02));
+  }
+  S.push(...placeParts(P, px, pz, yaw, 0));
+}
+doorLeaf(14, -7.4, Math.PI / 2, 1.2);
+doorLeaf(-4.4, -11, 0, 1.2);
 const cardClosed = new THREE.Group(); scene.add(cardClosed);
 {
   const P = [box(-11.84, -11.76, 0, DOOR_H, 2.22, 2.89, [20, 16, 18]), box(-11.84, -11.76, 0, DOOR_H, 2.91, 3.58, [20, 16, 18])];
@@ -2843,6 +2854,7 @@ const VIEWS = {
   tv: { tx: -10.5, ty: 1.4, tz: -7.5, d: 6, yaw: Math.PI / 2, pitch: 0.16 },
   pool: { tx: -8.9, ty: 0.9, tz: 0.0, d: 7, yaw: 0.85, pitch: 0.6 },
   card: { tx: -14.4, ty: 0.9, tz: 0.0, d: 6, yaw: -1.25, pitch: 0.5 },
+  viptv: { tx: VTV.x, ty: 1.5, tz: VTV.z - 1.6, d: 4, yaw: Math.PI, pitch: 0.08 },
   wc: { tx: 15.6, ty: 0, tz: -8.0, d: 10, yaw: -0.55, pitch: 1.0, free: true },
   vip: { tx: -1.3, ty: 1.0, tz: -8.9, d: 5.5, yaw: 0.2, pitch: 0.3 },
   swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
@@ -2869,7 +2881,7 @@ function cutTo(apply) {
   setTimeout(() => { snapNow(); fadeEl.style.opacity = '0'; }, 170);
 }
 function setView(name) {
-  if (name === 'vip' && !isMod) return;
+  if ((name === 'vip' || name === 'viptv') && !isMod) return;
   if (name === 'card' && !cardOpen && !isMod) { toast('The card room is closed. Poker nights only happen when sh1den is in.'); return; }
   follow = null; velYaw = velPitch = 0;
   cutTo(() => Object.assign(camT, VIEWS[name]));
@@ -3081,6 +3093,7 @@ const OBJECTS = [
   { id: 'bartender', label: 'Order a drink', hit: hitBox(0.4, 1.1, -3.1, 0.9, 2.0, 0.9), cat: 1, floor: [0.4, -2.75], size: 0.5 },
   { id: 'jukebox', label: 'Change the music', hit: hitBox(JUKE.x, 0.75, JUKE.z - 0.3, 0.9, 1.5, 0.6), cat: 3, floor: [JUKE.x, JUKE.z - 0.85], size: 0.45 },
   { id: 'djbooth', label: 'Change the music', hit: hitBox(13.25, 0.6, 0, 0.8, 1.2, 2.7), cat: 0, floor: [12.5, 0], size: 0.6 },
+  { id: 'viptv', label: 'Watch the VIP TV', hit: hitBox(VTV.x, VTV.y, VTV.z - 0.1, VTV.w + 0.2, VTV.h + 0.3, 0.3), cat: 4, floor: [VTV.x, VTV.z - 0.7], size: 0.7 },
   { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, TV.z, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, TV.z], size: 0.7 },
   { id: 'humidor', label: 'Take a cigar (30 min)', hit: hitBox(1.0, 1.0, -4.26, 1.1, 1.96, 0.5), cat: 4, floor: [1.0, -4.85], size: 0.6 },
   { id: 'minibar', label: 'Pour yourself a drink', hit: hitBox(-10.0, 1.2, 3.75, 2.0, 2.4, 0.55), cat: 3, floor: [-10.0, 3.2], size: 0.8 },
@@ -3209,6 +3222,7 @@ function activate(tg, x, y) {
   }
   else if (id === 'coin') { if (window.EXTRAS) window.EXTRAS.claimCoin(); }
   else if (id === 'jukebox' || id === 'djbooth') changeMusic();
+  else if (id === 'viptv') setView('viptv');
   else if (id === 'tv') { setView('tv'); const p = document.getElementById('room'); if (p && p.hidden) document.getElementById('roomBtn').click(); }
   else if (id === 'pooltable') {
     if (window.POOL) window.POOL.open();
@@ -3893,7 +3907,6 @@ for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'card', 'vip', 'change', 
 const roomSel = $('roomSelect');
 if (roomSel) roomSel.onchange = () => { const v = roomSel.value; if (v) setView(v); setTimeout(() => { roomSel.value = ''; }, 300); };
 $('findMe').onclick = () => { const me = crowd.find((c) => c.mine); if (me) focusChar(me); else openCreator(); };
-$('pix').onclick = () => { pixels = !pixels; snapOn.value = pixels ? 1 : 0; $('pix').setAttribute('aria-pressed', pixels ? 'true' : 'false'); resize(); };
 
 // ---------------------------------------------------------------- API for the room layer (net.js)
 window.BAR = {
@@ -3911,6 +3924,8 @@ window.BAR = {
   goTo(id) { goTo(id); },
   hasCharacter() { return hasCharacter(); },
   toast(t) { toast(t); },
+  // the cinema's sound is only for people in the cinema (no character yet: whoever is looking at it)
+  meInCinema() { const me = crowd.find((c) => c.mine); const sp = me && SPOT_BY_ID[me.spot]; if (sp) return sp.cat === 2; return !camT.free && roomAt(cam.tx, cam.tz) === ROOMS.tv; },
   meInVip() { const me = crowd.find((c) => c.mine); const sp = me && SPOT_BY_ID[me.spot]; return !!sp && sp.cat === 4; },
   viewRoom() { if (camT.free) return 'map'; const r = roomAt(cam.tx, cam.tz); for (const k in ROOMS) if (ROOMS[k] === r) return k; return ''; },
   getMyState() { return myState; },
@@ -3931,6 +3946,7 @@ window.BAR = {
     if (!creatorEl.hidden && !formEl.hidden) renderOptions();
   },
   focusTv() { setView('tv'); },
+  focusVipTv() { setView('viptv'); },
   openCreator,
   // v42
   setCardOpen,

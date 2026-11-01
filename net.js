@@ -559,6 +559,7 @@ function syncVip(force) {
 }
 // you only hear the VIP TV while you're looking at the VIP lounge
 const meInVip = () => !!(window.BAR.meInVip && window.BAR.meInVip());
+const meInCinema = () => !!(window.BAR.meInCinema && window.BAR.meInCinema());
 function vipAudible() { return !!vip && NET.isAdmin && entered && !mutedAll && tvVolume > 0 && meInVip(); }
 function vipVolume() {
   if (!vipReady) return;
@@ -603,10 +604,10 @@ async function playVip(text) {
 function applyVolume() {
   if (!playerReady) return;
   player.setVolume(tvVolume);
-  if (mutedAll || tvVolume === 0 || meInVip() || pokerOn) player.mute(); else player.unMute();
+  if (mutedAll || tvVolume === 0 || !meInCinema() || pokerOn) player.mute(); else player.unMute();
   updateDuck();
 }
-function updateDuck() { window.BAR.setDucked((!!current && entered && !mutedAll && tvVolume > 0 && !meInVip()) || vipAudible()); }
+function updateDuck() { window.BAR.setDucked((!!current && entered && !mutedAll && tvVolume > 0 && !pokerOn && meInCinema()) || vipAudible()); }
 NET.setMuted = function (m) { mutedAll = !!m; applyVolume(); vipVolume(); };
 NET.onEnter = function (withSound) { entered = true; mutedAll = !withSound; syncTv(true); applyVolume(); syncVip(true); };
 
@@ -623,6 +624,7 @@ function wireUI() {
   $('tvVol').addEventListener('input', () => { tvVolume = parseInt($('tvVol').value, 10) || 0; applyVolume(); vipVolume(); });
   $('tvSkip').onclick = () => { if (current) { advancing = false; advance(current.id); } };
   $('tvWatch').onclick = () => window.BAR.focusTv();
+  $('vipWatch').onclick = () => window.BAR.focusVipTv();
   $('clearChat').onclick = async () => {
     const b = $('clearChat');
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Click again to clear'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Clear chat'; }, 4000); return; }

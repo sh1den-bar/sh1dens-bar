@@ -225,7 +225,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
   .bottom button { padding: 7px 9px; font-size: 11px; }
   .bottom .spacer { display: none; }
   .keyhint { display: none; }
-  #pix, #track { display: none; }
+  #track { display: none; }
   #coinsPanel, #pokerPanel { left: 8px !important; right: 8px; top: auto; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); width: auto; transform: none; max-height: 70%; }
   #poolPanel { width: calc(100vw - 16px); }
   #creator, #whoPanel, #room { left: 8px; right: 8px; top: auto; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); max-height: 64%; }
@@ -291,7 +291,6 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     <button id="coinBtn" type="button" title="Gold coins">🪙 0</button>
     <span class="spacer"></span>
     <button id="track" type="button" title="Next track">Jukebox</button>
-    <button id="pix" type="button" aria-pressed="true">PS1 mode</button>
     <button id="mute" type="button" aria-pressed="false">Sound on</button>
     <span class="keyhint">WASD move · hold middle mouse to turn · scroll zoom · click a spot to go there</span>
   </div>
@@ -336,7 +335,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
           <p>You're a host here: you can delete messages, ban people, skip and remove videos.</p>
           <div class="row"><button type="button" id="clearChat" class="danger">Clear chat</button></div>
           <div id="vipBox" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-            <h3 style="margin:0">VIP TV</h3>
+            <h3 style="margin:0;display:flex;justify-content:space-between;align-items:center">VIP TV <button type="button" id="vipWatch" class="mini">Watch</button></h3>
             <div id="vipNow">Nothing playing</div>
             <form id="vipForm" class="inline" novalidate>
               <input id="vipInput" name="vipInput" placeholder="YouTube link for the VIP TV" autocomplete="off" spellcheck="false" aria-label="YouTube link for the VIP TV">
@@ -448,12 +447,12 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=45"></script>
-<script src="net.js?v=45"></script>
-<script src="bar.js?v=45"></script>
-<script src="pool.js?v=45"></script>
-<script src="extras.js?v=45"></script>
-<script src="poker.js?v=45"></script>
+<script src="config.js?v=46"></script>
+<script src="net.js?v=46"></script>
+<script src="bar.js?v=46"></script>
+<script src="pool.js?v=46"></script>
+<script src="extras.js?v=46"></script>
+<script src="poker.js?v=46"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };
