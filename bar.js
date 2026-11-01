@@ -809,7 +809,7 @@ const camera = new THREE.PerspectiveCamera(46, 1, 0.15, 80);
 const signFont = '"Limelight", "Poiret One", Georgia, serif';
 const ROOMS = {
   // the restroom sits inside the dance room's front corner, so it is listed first
-  wc: { x0: 11.85, x1: 13.95, z0: 2.05, z1: 3.95, name: 'Restroom', hidden: true },
+  wc: { x0: 14, x1: 18.4, z0: -10.4, z1: -5.6, name: 'Restroom', hidden: true },
   card: { x0: -17, x1: -11.8, z0: -4, z1: 4, name: 'Card room' },
   bar: { x0: -5, x1: 5, z0: -4, z1: 4, name: 'Main bar' },
   dance: { x0: 5, x1: 14, z0: -4, z1: 4, name: 'Dance room' },
@@ -998,7 +998,7 @@ floorFor(ROOMS.dance, concreteTex, 2);
 floorFor(ROOMS.tv, carpetTex, 0.8);
 floorFor(ROOMS.pool, luxCarpetTex, 1.4);
 floorFor(ROOMS.card, cardFloorTex, 1.2);
-const wcFloor = floorFor(ROOMS.wc, wcFloorTex, 0.6);
+const wcFloor = floorFor(ROOMS.wc, wcFloorTex, 0.8);
 floorFor(ROOMS.vip, vipTex, 0.8);
 swimFloorTex.wrapS = swimFloorTex.wrapT = THREE.RepeatWrapping;
 floorFor(ROOMS.swim, swimFloorTex, 1.5);
@@ -1053,22 +1053,21 @@ const DOOR = {
 };
 roomWalls(ROOMS.bar, { right: [DOOR.barDance], left: [DOOR.barTv], front: [[4.1, 5.9]] }, wallMats.deco);
 roomWalls(ROOMS.dance, { left: [DOOR.barDance], back: [[3.6, 5.4]] }, wallMats.deco);
-roomWalls(ROOMS.swim, { front: [[3.6, 5.4]], left: [[5.0, 6.2]] }, wallMats.brick);
+roomWalls(ROOMS.swim, { front: [[3.6, 5.4]], left: [[5.0, 6.2]], right: [[3.4, 4.6]] }, wallMats.brick);
 roomWalls(ROOMS.change, { right: [[4.0, 5.2]] }, wallMats.brick);
 roomWalls(ROOMS.tv, { front: [DOOR.tvPool], right: [DOOR.poolVip] }, wallMats.deco);
 roomWalls(ROOMS.pool, { back: [[1.8, 3.4]], right: [DOOR.barTv], left: [[6.2, 7.6]] }, wallMats.green);
 roomWalls(ROOMS.card, { right: [[6.2, 7.6]] }, wallMats.lacquer);
 // the restroom: inside walls only show when you're in there; the walls facing the dance room always do
-const WC_MESHES = [];
+// the restroom: an annex off the pool lounge (door in its right wall, z -8.6..-7.4); tiled inside, stone outside
 {
-  const r = ROOMS.wc;
-  const inner = (ax, az, bx, bz, nx, nz, y0, y1) => WC_MESHES.push(wallPlane(ax, az, bx, bz, nx, nz, y0, y1, wallMats.tile, 1.2));
-  inner(r.x0, r.z0, r.x1, r.z0, 0, 1, 0, WALL_H); inner(r.x0, r.z1, r.x1, r.z1, 0, -1, 0, WALL_H); inner(r.x1, r.z0, r.x1, r.z1, -1, 0, 0, WALL_H);
-  inner(r.x0, r.z0, r.x0, 2.7, 1, 0, 0, WALL_H); inner(r.x0, 3.5, r.x0, r.z1, 1, 0, 0, WALL_H); inner(r.x0, 2.7, r.x0, 3.5, 1, 0, DOOR_H, WALL_H);
-  // seen from the dance floor: a plain wall with a door
-  wallPlane(11.8, 2.0, 11.8, 2.7, -1, 0, 0, WALL_H, wallMats.deco, 2); wallPlane(11.8, 3.5, 11.8, 4.0, -1, 0, 0, WALL_H, wallMats.deco, 2);
-  wallPlane(11.8, 2.7, 11.8, 3.5, -1, 0, DOOR_H, WALL_H, wallMats.deco, 2);
-  wallPlane(11.8, 2.0, 14.0, 2.0, 0, -1, 0, WALL_H, wallMats.deco, 2);
+  const r = ROOMS.wc, ti = (ax, az, bx, bz, nx, nz, y0, y1) => wallPlane(ax, az, bx, bz, nx, nz, y0, y1, wallMats.tile, 1.2);
+  ti(r.x0, r.z0 + 0.02, r.x1, r.z0 + 0.02, 0, 1, 0, WALL_H); ti(r.x0, r.z1 - 0.02, r.x1, r.z1 - 0.02, 0, -1, 0, WALL_H);
+  ti(r.x1 - 0.02, r.z0, r.x1 - 0.02, r.z1, -1, 0, 0, WALL_H);
+  ti(r.x0 + 0.02, r.z0, r.x0 + 0.02, -8.6, 1, 0, 0, WALL_H); ti(r.x0 + 0.02, -7.4, r.x0 + 0.02, r.z1, 1, 0, 0, WALL_H); ti(r.x0 + 0.02, -8.6, r.x0 + 0.02, -7.4, 1, 0, DOOR_H, WALL_H);
+  // the outside of the annex
+  const so = (ax, az, bx, bz, nx, nz) => wallPlane(ax, az, bx, bz, nx, nz, 0, WALL_H + 0.1, wallMats.brick, 2);
+  so(r.x0, r.z0 - 0.02, r.x1 + 0.02, r.z0 - 0.02, 0, -1); so(r.x0, r.z1 + 0.02, r.x1 + 0.02, r.z1 + 0.02, 0, 1); so(r.x1 + 0.02, r.z0 - 0.02, r.x1 + 0.02, r.z1 + 0.02, 1, 0);
 }
 roomWalls(ROOMS.vip, { left: [DOOR.poolVip], back: [[0.6, 1.8]] }, wallMats.red);
 
@@ -1524,6 +1523,7 @@ chandelierRound(PK.x, PK.z, 2.5, 0.62);
 }
 // the door to the card room: shut, roped off and signed whenever the host is away
 doorFrame(-11.8, 2.2, -11.8, 3.6);
+doorFrame(14, -8.6, 14, -7.4);
 const cardClosed = new THREE.Group(); scene.add(cardClosed);
 {
   const P = [box(-11.84, -11.76, 0, DOOR_H, 2.22, 2.89, [20, 16, 18]), box(-11.84, -11.76, 0, DOOR_H, 2.91, 3.58, [20, 16, 18])];
@@ -2339,7 +2339,7 @@ doorSign('DANCE', 4.97, 0, -Math.PI / 2); doorSign('BAR', 5.03, 0, Math.PI / 2);
 doorSign('BILLIARDS', -4.97, 1.5, Math.PI / 2); doorSign('BAR', -5.03, 1.5, -Math.PI / 2);
 doorSign('CINEMA', -9.2, -3.97, 0); doorSign('BILLIARDS', -9.2, -4.03, Math.PI);
 doorSign('CARD ROOM', -11.77, 2.9, Math.PI / 2); doorSign('BILLIARDS', -11.83, 2.9, -Math.PI / 2);
-doorSign('RESTROOM', 11.77, 3.1, -Math.PI / 2); doorSign('DANCE', 11.88, 3.1, Math.PI / 2);
+doorSign('RESTROOM', 13.97, -8.0, -Math.PI / 2); doorSign('POOL', 14.05, -8.0, Math.PI / 2);
 SIGNS.push(...CARD_SIGNS);
 doorSign('POOL', 9.5, -3.97, 0); doorSign('DANCE', 9.5, -4.03, Math.PI);
 doorSign('VIP', -5.03, -7.75, -Math.PI / 2); doorSign('CINEMA', -4.97, -7.75, Math.PI / 2);
@@ -2515,9 +2515,10 @@ POKER_SEATS.forEach(([x, z, yaw], i) => addSpot('poker-seat-' + i, 10, 'poker', 
 [[-12.5, -3.2], [-16.3, 1.6], [-12.6, -1.9], [-16.2, -2.0]].forEach(([x, z], i) =>
   addSpot('card-watch-' + i, 10, 'lean', x, z, yawTo(x, z, PK.x, PK.z), 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // restroom: the sink, and the stall (nobody chooses the stall)
-addSpot('wc-sink', 9, 'lean', 12.35, 2.5, Math.PI, 'Wash your hands', hitBox(12.35, 0.9, 2.5, 0.45, 1.8, 0.45));
-addSpot('wc-wait', 9, 'lean', 12.3, 3.55, -Math.PI / 2 + 0.4, 'Wait for the stall', hitBox(12.3, 0.9, 3.55, 0.45, 1.8, 0.45));
-SPOT_BY_ID['wc-stall-0'] = { id: 'wc-stall-0', cat: 9, act: 'slump', x: 13.42, z: 2.52, yaw: -Math.PI / 2, label: '', hit: hitBox(0, -9, 0, 0, 0, 0) };
+[[15.1, 'wc-sink-0'], [16.1, 'wc-sink-1']].forEach(([x, id]) => addSpot(id, 9, 'lean', x, -6.5, 0, 'Wash your hands', hitBox(x, 0.9, -6.5, 0.45, 1.8, 0.45)));
+[[15.2, -8.6, Math.PI / 2 + 0.5], [15.4, -9.6, Math.PI / 2], [16.0, -7.9, Math.PI / 2 - 0.3]].forEach(([x, z, yaw], i) =>
+  addSpot('wc-wait-' + i, 9, 'lean', x, z, yaw, 'Hang out in the restroom', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
+SPOT_BY_ID['wc-stall-0'] = { id: 'wc-stall-0', cat: 9, act: 'slump', x: 17.78, z: -9.75, yaw: -Math.PI / 2, label: '', hit: hitBox(0, -9, 0, 0, 0, 0) };
 // VIP lounge: the host's armchair is his alone
 VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'lounge' : 'sitlow', x, z, yaw,
   i === 0 ? "The host's seat" : 'Sink into the sofa', hitBox(x, 0.45, z, 0.7, 0.9, 0.7), { hostOnly: i === 0 }));
@@ -2530,7 +2531,7 @@ for (const [i, x] of [8.0, 9.0, 10.0, 11.0].entries()) {
   addSpot('swim-water-' + i + '1', 5, 'soak', x, SW.z1 - 0.24, Math.PI, 'Get in the pool', hitBox(x, 0.3, SW.z1 - 0.45, 0.9, 0.6, 0.9));
 }
 DAYBEDS.forEach(([x, z], i) => addSpot('swim-bed-' + i, 5, 'sitlow', x, z + 0.15, 0, 'Lie back on a daybed', hitBox(x, 0.45, z, 0.85, 0.9, 1.7)));
-[[6.4, -8.0, Math.PI / 2], [12.6, -8.0, -Math.PI / 2], [6.6, -6.2, 2.2], [12.4, -6.2, -2.2], [8.0, -5.0, Math.PI], [11.0, -5.0, Math.PI]].forEach(([x, z, yaw], i) =>
+[[6.4, -8.0, Math.PI / 2], [12.6, -9.4, -Math.PI / 2], [6.6, -6.2, 2.2], [12.4, -6.2, -2.2], [8.0, -5.0, Math.PI], [11.0, -5.0, Math.PI]].forEach(([x, z, yaw], i) =>
   addSpot('swim-side-' + i, 5, 'lean', x, z, yaw, 'Hang out by the pool', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // the street: by the door, smoking by the windows, leaning on the parked SUVs
 const standHit = (x, z) => hitBox(x, 0.9, z, 0.45, 1.8, 0.45);
@@ -2558,7 +2559,7 @@ addSpot('change-locker-0', 8, 'lean', 2.75, -7.5, -Math.PI / 2, 'Lean on the loc
 }
 function overflowSpot(idx) {
   const a = idx * 2.4, rx = 3.0 + (idx % 3) * 0.4, rz = 2.9 + (idx % 2) * 0.4;
-  const x = Math.min(13.0, DF.x + Math.cos(a) * rx), z = Math.max(-3.6, Math.min(x > 11.5 ? 1.7 : 3.6, DF.z + Math.sin(a) * rz));
+  const x = Math.min(13.0, DF.x + Math.cos(a) * rx), z = Math.max(-3.6, Math.min(3.6, DF.z + Math.sin(a) * rz));
   return { id: 'overflow-' + idx, cat: 0, act: 'dance', x, z, yaw: yawTo(x, z, DF.x, DF.z) };
 }
 
@@ -2842,7 +2843,7 @@ const VIEWS = {
   tv: { tx: -10.5, ty: 1.4, tz: -7.5, d: 6, yaw: Math.PI / 2, pitch: 0.16 },
   pool: { tx: -8.9, ty: 0.9, tz: 0.0, d: 7, yaw: 0.85, pitch: 0.6 },
   card: { tx: -14.4, ty: 0.9, tz: 0.0, d: 6, yaw: -1.25, pitch: 0.5 },
-  wc: { tx: 12.7, ty: 0.9, tz: 3.0, d: 2.2, yaw: Math.PI / 2, pitch: 0.75 },
+  wc: { tx: 15.6, ty: 0, tz: -8.0, d: 10, yaw: -0.55, pitch: 1.0, free: true },
   vip: { tx: -1.3, ty: 1.0, tz: -8.9, d: 5.5, yaw: 0.2, pitch: 0.3 },
   swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
   change: { tx: 3.5, ty: 1.0, tz: -8.2, d: 5, yaw: 0.0, pitch: 0.5 },
@@ -3083,8 +3084,7 @@ const OBJECTS = [
   { id: 'tv', label: 'Watch the TV', hit: hitBox(-12.9, 1.75, TV.z, 0.3, 2.1, 3.7), cat: 2, floor: [-12.3, TV.z], size: 0.7 },
   { id: 'humidor', label: 'Take a cigar (30 min)', hit: hitBox(1.0, 1.0, -4.26, 1.1, 1.96, 0.5), cat: 4, floor: [1.0, -4.85], size: 0.6 },
   { id: 'minibar', label: 'Pour yourself a drink', hit: hitBox(-10.0, 1.2, 3.75, 2.0, 2.4, 0.55), cat: 3, floor: [-10.0, 3.2], size: 0.8 },
-  { id: 'wcdoor', label: 'Restroom', hit: hitBox(11.75, 1.2, 3.1, 0.3, 2.4, 0.8), cat: 0, floor: [11.4, 3.1], size: 0.5 },
-  { id: 'wcout', label: 'Back to the dance floor', hit: hitBox(11.95, 1.2, 3.1, 0.2, 2.4, 0.8), cat: 9, floor: [12.15, 3.1], size: 0.4 },
+  { id: 'wcdoor', label: 'Go to the restroom', hit: hitBox(13.9, 1.2, -8.0, 0.4, 2.4, 1.2), cat: 5, floor: [13.5, -8.0], size: 0.5 },
   { id: 'carddoor', label: 'Card room', hit: hitBox(-11.8, 1.2, 2.9, 0.3, 2.4, 1.4), cat: 3, floor: [-11.4, 2.9], size: 0.5 },
   { id: 'plaque', label: 'Coin leaderboard', hit: hitBox(-4.85, 1.7, -1.6, 0.3, 1.5, 1.2), cat: 1, floor: [-4.4, -1.6], size: 0.5 },
   { id: 'coin', label: 'Pick up the gold coin', hit: hitBox(0, -50, 0, 0.6, 0.6, 0.6), cat: 1, floor: [0, -50], size: 0.35 },
@@ -3187,8 +3187,6 @@ function activate(tg, x, y) {
   if (myLock()) { toast("You can't move yet."); return; }
   const id0 = tg.kind === 'object' ? tg.o.id : '';
   // looking around doesn't need a character
-  if (id0 === 'wcdoor') { setView('wc'); showHover(null); return; }
-  if (id0 === 'wcout') { setView('dance'); showHover(null); return; }
   if (id0 === 'plaque') { if (window.EXTRAS) window.EXTRAS.openCoins(); showHover(null); return; }
   if (id0 === 'carddoor') { setView('card'); showHover(null); return; }
   if (id0 === 'dealer') { if (window.POKER) window.POKER.open(); showHover(null); return; }
@@ -3204,6 +3202,11 @@ function activate(tg, x, y) {
   if (id === 'bartender') { drinkFrom = 'bar'; $('dmCig').hidden = false; openDrinkMenu(x, y); }
   else if (id === 'minibar') { drinkFrom = 'minibar'; $('dmCig').hidden = true; openDrinkMenu(x, y); }
   else if (id === 'humidor') giveSmoke('cigar');
+  else if (id === 'wcdoor') {
+    const free = SPOT_LIST.find((s) => s.cat === 9 && (!spotOwner.has(s.id) || spotOwner.get(s.id).mine));
+    if (free) goTo(free.id); else toast("The restroom's full.");
+    setView('wc');
+  }
   else if (id === 'coin') { if (window.EXTRAS) window.EXTRAS.claimCoin(); }
   else if (id === 'jukebox' || id === 'djbooth') changeMusic();
   else if (id === 'tv') { setView('tv'); const p = document.getElementById('room'); if (p && p.hidden) document.getElementById('roomBtn').click(); }
@@ -3292,51 +3295,57 @@ const PRE_HOOKS = [], POST_HOOKS = [], REBUILD_HOOKS = [];
 const hash32 = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 9); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return n >>> 0; };
 const camRoom = () => (camT.free ? null : roomAt(cam.tx, cam.tz));
 
-// ---- the restroom: tiled, two stalls (one ajar), a sink and mirror, a hand dryer; only drawn when you're inside
-wcFloor.position.y = 0.03;
+// ---- the restroom fittings: three stalls, a double vanity, dryer; the roof comes off for whoever is in there
 const wcGroup = new THREE.Group(); scene.add(wcGroup);
-const wcLight = new THREE.PointLight(0xfff0d8, 0.9, 3.2, 1.5); wcLight.position.set(12.9, 2.8, 3.0); wcGroup.add(wcLight);
+const wcLight = new THREE.PointLight(0xfff0d8, 1.0, 5.5, 1.5); wcLight.position.set(16.2, 2.8, -8.0); wcGroup.add(wcLight);
 {
   const P = [], Lg = [];
-  const ST_C = [52, 54, 60], ST_D = [34, 36, 40], PORC = [224, 222, 216], CHR = [170, 172, 178];
-  // stall fronts with two doorways, and the partition between the stalls
-  P.push(box(12.9, 12.94, 0.12, 2.05, 2.06, 2.2, ST_C, 0.03), box(12.9, 12.94, 0.12, 2.05, 2.85, 3.15, ST_C, 0.03), box(12.9, 12.94, 0.12, 2.05, 3.8, 3.94, ST_C, 0.03));
-  P.push(box(12.9, 12.94, 1.9, 2.05, 2.2, 2.85, ST_D, 0.02), box(12.9, 12.94, 1.9, 2.05, 3.15, 3.8, ST_D, 0.02));
-  P.push(box(12.94, 13.94, 0.12, 2.05, 2.98, 3.02, ST_C, 0.03));
-  // stall 1's door hangs open; stall 2 is locked
-  P.push(box(12.95, 13.57, 0.15, 1.88, 2.215, 2.245, ST_C, 0.03));
-  P.push(box(12.905, 12.935, 0.15, 1.88, 3.16, 3.79, ST_C, 0.03));
-  Lg.push(box(12.885, 12.9, 1.05, 1.09, 3.66, 3.72, [220, 30, 30], 0));
-  // toilets against the back wall, facing out
-  for (const z of [2.52, 3.48]) {
-    P.push(box(13.76, 13.93, 0.42, 0.82, z - 0.2, z + 0.2, PORC, 0.02));
-    P.push(cyl(V(13.55, 0, z), V(13.55, 0.38, z), 0.13, 0.18, PORC, { n: 8 }));
-    P.push(cyl(V(13.55, 0.38, z), V(13.55, 0.42, z), 0.2, 0.2, [236, 234, 228], { n: 8 }));
-    P.push(box(13.86, 13.9, 0.82, 0.86, z - 0.04, z + 0.04, CHR, 0.02));
+  const ST_C = [52, 54, 60], ST_D = [34, 36, 40], PORC = [224, 222, 216], CHR = [170, 172, 178], GOLD = [150, 112, 54];
+  const FX = 17.0, BX = 18.38;               // stall fronts / back wall
+  const STALLS = [[-10.38, -9.1], [-9.1, -7.8], [-7.8, -6.5]];
+  for (const [a, b] of STALLS) {
+    P.push(box(FX, FX + 0.04, 0.12, 2.05, a, a + 0.15, ST_C, 0.03), box(FX, FX + 0.04, 0.12, 2.05, b - 0.15, b, ST_C, 0.03));
+    P.push(box(FX, FX + 0.04, 1.9, 2.05, a + 0.15, b - 0.15, ST_D, 0.02));
+    P.push(box(FX + 0.04, BX, 0.12, 2.05, b - 0.02, b + 0.02, ST_C, 0.03));
+    const c = (a + b) / 2;
+    P.push(box(BX - 0.17, BX, 0.42, 0.82, c - 0.2, c + 0.2, PORC, 0.02));
+    P.push(cyl(V(BX - 0.4, 0, c), V(BX - 0.4, 0.38, c), 0.13, 0.18, PORC, { n: 8 }));
+    P.push(cyl(V(BX - 0.4, 0.38, c), V(BX - 0.4, 0.42, c), 0.2, 0.2, [236, 234, 228], { n: 8 }));
+    P.push(box(BX - 0.08, BX - 0.04, 0.82, 0.86, c - 0.04, c + 0.04, CHR, 0.02));
   }
-  // vanity, basin, tap and mirror on the side wall
-  P.push(box(11.95, 12.75, 0.8, 0.86, 2.06, 2.5, [20, 20, 22], 0.03));
-  P.push(box(12.0, 12.7, 0, 0.8, 2.06, 2.42, [30, 30, 34], 0.03));
-  P.push(box(12.2, 12.5, 0.86, 0.9, 2.12, 2.4, PORC, 0.02));
-  P.push(cyl(V(12.35, 0.86, 2.1), V(12.35, 1.02, 2.1), 0.015, 0.015, CHR, { n: 5 }), cyl(V(12.35, 1.02, 2.1), V(12.35, 1.0, 2.2), 0.012, 0.012, CHR, { n: 5 }));
-  P.push(box(12.0, 12.7, 1.12, 1.92, 2.06, 2.08, [132, 144, 150], 0.02));
-  P.push(box(11.97, 12.73, 1.09, 1.12, 2.06, 2.1, [150, 112, 54], 0.02), box(11.97, 12.73, 1.92, 1.95, 2.06, 2.1, [150, 112, 54], 0.02));
-  // hand dryer and a bin by the door
-  P.push(box(12.2, 12.5, 1.1, 1.38, 3.82, 3.94, [180, 182, 186], 0.03), box(12.28, 12.42, 1.06, 1.1, 3.84, 3.9, [60, 60, 64], 0.02));
-  P.push(cyl(V(12.15, 0, 3.75), V(12.15, 0.5, 3.75), 0.13, 0.15, [140, 142, 148], { n: 8 }));
-  // ceiling lamp
-  Lg.push(box(12.6, 13.2, 3.08, 3.12, 2.8, 3.2, [255, 240, 214], 0));
+  // stall doors: the first and last swung open against their partitions, the middle one locked
+  P.push(box(FX + 0.04, FX + 1.0, 0.15, 1.88, STALLS[0][0] + 0.17, STALLS[0][0] + 0.2, ST_C, 0.03));
+  P.push(box(FX + 0.04, FX + 1.0, 0.15, 1.88, STALLS[2][1] - 0.2, STALLS[2][1] - 0.17, ST_C, 0.03));
+  P.push(box(FX + 0.005, FX + 0.035, 0.15, 1.88, STALLS[1][0] + 0.16, STALLS[1][1] - 0.16, ST_C, 0.03));
+  Lg.push(box(FX - 0.015, FX, 1.05, 1.09, STALLS[1][1] - 0.3, STALLS[1][1] - 0.24, [220, 30, 30], 0));
+  // a long vanity with two basins and a gold-framed mirror on the back wall
+  P.push(box(14.5, 16.7, 0.8, 0.86, -6.1, -5.62, [20, 20, 22], 0.03));
+  P.push(box(14.55, 16.65, 0, 0.8, -6.04, -5.62, [30, 30, 34], 0.03));
+  for (const x of [15.1, 16.1]) {
+    P.push(box(x - 0.17, x + 0.17, 0.86, 0.9, -6.05, -5.72, PORC, 0.02));
+    P.push(cyl(V(x, 0.86, -5.68), V(x, 1.02, -5.68), 0.015, 0.015, CHR, { n: 5 }), cyl(V(x, 1.02, -5.68), V(x, 1.0, -5.78), 0.012, 0.012, CHR, { n: 5 }));
+  }
+  P.push(box(14.55, 16.65, 1.12, 2.0, -5.64, -5.62, [132, 144, 150], 0.02));
+  P.push(box(14.52, 16.68, 1.09, 1.12, -5.66, -5.62, GOLD, 0.02), box(14.52, 16.68, 2.0, 2.03, -5.66, -5.62, GOLD, 0.02));
+  Lg.push(box(14.6, 16.6, 2.08, 2.12, -5.7, -5.64, [255, 236, 200], 0));
+  // dryer and bin on the front wall, a towel stand and a tall plant in the corner
+  P.push(box(15.0, 15.3, 1.1, 1.38, -10.38, -10.26, [180, 182, 186], 0.03), box(15.08, 15.22, 1.06, 1.1, -10.36, -10.3, [60, 60, 64], 0.02));
+  P.push(cyl(V(15.7, 0, -10.15), V(15.7, 0.5, -10.15), 0.13, 0.15, [140, 142, 148], { n: 8 }));
+  P.push(cyl(V(17.7, 0, -6.0), V(17.7, 0.45, -6.0), 0.2, 0.16, [40, 30, 22], { n: 8 }));
+  for (let k = 0; k < 7; k++) { const a = k * 0.9; P.push(cyl(V(17.7, 0.45, -6.0), V(17.7 + Math.cos(a) * 0.35, 1.1 + (k % 3) * 0.2, -6.0 + Math.sin(a) * 0.35), 0.03, 0.01, [30, 70, 36], { n: 4 })); }
+  // ceiling lamps
+  for (const z of [-9.4, -6.8]) Lg.push(box(15.6, 16.8, 3.08, 3.12, z - 0.15, z + 0.15, [255, 240, 214], 0));
   wcGroup.add(new THREE.Mesh(toGeometry(P), roomMat), new THREE.Mesh(toGeometry(Lg), glowMat));
 }
-// a flat roof so you can't peek into the restroom from the dance floor
-const wcRoof = new THREE.Mesh(new THREE.PlaneGeometry(ROOMS.wc.x1 - ROOMS.wc.x0 + 0.2, ROOMS.wc.z1 - ROOMS.wc.z0 + 0.1), new THREE.MeshLambertMaterial({ color: 0x18171a }));
-wcRoof.rotation.x = -Math.PI / 2; wcRoof.position.set((ROOMS.wc.x0 + ROOMS.wc.x1) / 2 - 0.05, WALL_H - 0.01, (ROOMS.wc.z0 + ROOMS.wc.z1) / 2); scene.add(wcRoof);
+// a roof over the annex: what happens in the restroom stays in the restroom, unless you're in there too
+const wcRoof = new THREE.Mesh(new THREE.PlaneGeometry(ROOMS.wc.x1 - ROOMS.wc.x0 + 0.1, ROOMS.wc.z1 - ROOMS.wc.z0 + 0.1), new THREE.MeshLambertMaterial({ color: 0x1c1a1e }));
+wcRoof.rotation.x = -Math.PI / 2; wcRoof.position.set((ROOMS.wc.x0 + ROOMS.wc.x1) / 2 + 0.02, WALL_H + 0.1, (ROOMS.wc.z0 + ROOMS.wc.z1) / 2); scene.add(wcRoof);
 const inRoom = (ch, r) => { const p = ch.root.position; return p.x >= r.x0 && p.x <= r.x1 && p.z >= r.z0 && p.z <= r.z1; };
 POST_HOOKS.push(() => {
-  const inside = camRoom() === ROOMS.wc;
-  wcGroup.visible = inside; wcFloor.visible = inside; wcRoof.visible = !inside;
-  for (const m of WC_MESHES) m.visible = inside;
-  if (!inside) for (const ch of crowd) if (inRoom(ch, ROOMS.wc)) ch.root.visible = false;
+  const me = crowd.find((c) => c.mine);
+  const open = camRoom() === ROOMS.wc || !!(me && inRoom(me, ROOMS.wc));
+  wcRoof.visible = !open; wcLight.visible = open;
+  if (!open) for (const ch of crowd) if (inRoom(ch, ROOMS.wc)) ch.root.visible = false;
 });
 
 // ---- VIP glass: everyone but the hosts sees the lounge through a dark smoked tint, without name tags or chat
