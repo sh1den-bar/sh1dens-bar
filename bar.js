@@ -1074,13 +1074,13 @@ const runnerMat = decal({ map: runnerTex });
 function runner(x0, x1, z0, z1) {
   const g = new THREE.PlaneGeometry(x1 - x0, z1 - z0);
   scaleUV(g, (x1 - x0) / 0.5, (z1 - z0) / 0.5);
-  const m = new THREE.Mesh(g, runnerMat); m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 0.008, (z0 + z1) / 2); scene.add(m);
+  const m = new THREE.Mesh(g, runnerMat); m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 0.024, (z0 + z1) / 2); scene.add(m);
 }
 runner(-0.75, 0.75, -2.0, 3.98); runner(-4.98, -0.75, 0.8, 2.2); runner(0.75, 4.98, -0.7, 0.7);
 // a thin gold edge all the way round, open at the doorways
 const RUNNER_EDGE = [[-0.75, -2.0, -0.75, 0.8], [-0.75, 2.2, -0.75, 3.98], [0.75, -2.0, 0.75, -0.7], [0.75, 0.7, 0.75, 3.98], [-0.75, -2.0, 0.75, -2.0],
   [-4.98, 0.8, -0.75, 0.8], [-4.98, 2.2, -0.75, 2.2], [0.75, -0.7, 4.98, -0.7], [0.75, 0.7, 4.98, 0.7]];
-for (const [ax, az, bx, bz] of RUNNER_EDGE) S.push(box(Math.min(ax, bx) - 0.015, Math.max(ax, bx) + 0.015, 0, 0.012, Math.min(az, bz) - 0.015, Math.max(az, bz) + 0.015, [150, 112, 54], 0.02));
+for (const [ax, az, bx, bz] of RUNNER_EDGE) S.push(box(Math.min(ax, bx) - 0.015, Math.max(ax, bx) + 0.015, 0, 0.034, Math.min(az, bz) - 0.015, Math.max(az, bz) + 0.015, [150, 112, 54], 0.02));
 // lounge corners by the entrance: copper leather banquettes with puffed backs, a pink glow underneath,
 // and a low brass-and-glass table with an ice bowl, bottles, glasses and an ashtray
 const COPPER = [170, 110, 62], COPPER_D = [128, 80, 44], BANQ_BASE = [24, 20, 22], GLOW_PINK = [255, 70, 170];
@@ -1091,7 +1091,7 @@ const glowTex = canvasTex(4, 32, (x, w, h) => {
 const floorGlowMat = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
 // a glow patch on the floor: bright along the edge a-b, fading out by `depth` in direction (nx, nz)
 function floorGlow(ax, az, bx, bz, nx, nz, depth) {
-  const g = new THREE.BufferGeometry(), y = 0.012;
+  const g = new THREE.BufferGeometry(), y = 0.03;
   const pos = new Float32Array([ax, y, az, bx, y, bz, bx + nx * depth, y, bz + nz * depth, ax, y, az, bx + nx * depth, y, bz + nz * depth, ax + nx * depth, y, az + nz * depth]);
   const uv = new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1]); // v = 0 (brightest) along the edge
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
@@ -1486,13 +1486,13 @@ const discTex = canvasTex(64, 64, (x, w, h) => {
   }
 });
 const disc = new THREE.Mesh(new THREE.CircleGeometry(0.95, 28), decal({ map: discTex, fog: false }));
-disc.position.set(FX, 1.62, -10.955); scene.add(disc);
+disc.position.set(FX, 1.62, -10.92); scene.add(disc);
 S.push(box(FX - 1.38, FX + 1.38, 0.37, 0.43, -10.965, -10.72, [16, 12, 14], 0.03));
 S.push(cyl(V(FX, 0.43, -10.83), V(FX, 0.68, -10.83), 0.1, 0.13, [12, 12, 14], { n: 10 }));
 for (let k = 0; k < 24; k++) {
   const a = (k / 24) * Math.PI * 2, lean = 0.06 + (k % 4) * 0.045, h = 1.1 + ((k * 7) % 5) * 0.16;
   const bx = FX + Math.cos(a) * 0.04, bz = -10.83 + Math.sin(a) * 0.03;
-  const tx = bx + Math.cos(a) * lean * 3, tz = Math.max(-10.93, bz + Math.sin(a) * lean * 1.2);
+  const tx = bx + Math.cos(a) * lean * 3, tz = Math.max(-10.88, bz + Math.sin(a) * lean * 1.2);
   S.push(tube([V(bx, 0.66, bz), V((bx + tx) / 2, 0.66 + h * 0.55, (bz + tz) / 2), V(tx, 0.66 + h, tz)], [0.02, 0.014, 0.003], k % 2 ? [22, 30, 20] : [30, 38, 24], { n: 4 }));
 }
 // black marble dado with small pink lights above it, neon cove strips along the tops of the side walls
@@ -1521,11 +1521,11 @@ const rugTex = canvasTex(32, 32, (x, w, h) => {
   x.fillStyle = 'rgb(70,40,30)'; for (let i = 4; i < w - 4; i += 2) { x.fillRect(i, 3, 1, 1); x.fillRect(i, h - 4, 1, 1); }
 });
 const rug = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 2.2), decal({ map: rugTex }));
-rug.rotation.x = -Math.PI / 2; rug.position.set(FX, 0.006, -8.55); scene.add(rug);
+rug.rotation.x = -Math.PI / 2; rug.position.set(FX, 0.024, -8.55); scene.add(rug);
 // a big round glass table: chrome rim and pedestal, a crystal ashtray, cigars, cutters, cards and chips
 const CHROME_C = [170, 174, 182], CIGAR = [92, 58, 32], BAND = [196, 156, 64];
 const GT = { x: FX, z: -8.6, r: 0.8, y: 0.44 };
-S.push(cyl(V(GT.x, 0, GT.z), V(GT.x, 0.03, GT.z), 0.36, 0.34, CHROME_C, { n: 16, amt: 0.03 }));
+S.push(cyl(V(GT.x, 0, GT.z), V(GT.x, 0.05, GT.z), 0.36, 0.34, CHROME_C, { n: 16, amt: 0.03 }));
 S.push(cyl(V(GT.x, 0.03, GT.z), V(GT.x, GT.y - 0.02, GT.z), 0.055, 0.055, CHROME_C, { n: 10, amt: 0.03 }));
 S.push(cyl(V(GT.x, GT.y - 0.02, GT.z), V(GT.x, GT.y - 0.015, GT.z), 0.25, 0.25, CHROME_C, { n: 12, amt: 0.03 }));
 S.push(cyl(V(GT.x, GT.y - 0.022, GT.z), V(GT.x, GT.y + 0.002, GT.z), GT.r + 0.012, GT.r + 0.012, CHROME_C, { n: 28, amt: 0.02, cap: false }));
@@ -1702,7 +1702,7 @@ const poolFloorTex = canvasTex(16, 16, (x, w, h) => {
   }
 }, [8, 6]);
 const poolFloor = new THREE.Mesh(new THREE.PlaneGeometry(SW.x1 - SW.x0, SW.z1 - SW.z0), decal({ map: poolFloorTex, fog: false }));
-poolFloor.rotation.x = -Math.PI / 2; poolFloor.position.set(SW.x, 0.012, SW.z); scene.add(poolFloor);
+poolFloor.rotation.x = -Math.PI / 2; poolFloor.position.set(SW.x, 0.03, SW.z); scene.add(poolFloor);
 const waterTex = canvasTex(64, 64, (x, w, h) => {
   x.fillStyle = 'rgb(90,170,210)'; x.fillRect(0, 0, w, h);
   x.strokeStyle = 'rgba(230,250,255,0.75)'; x.lineWidth = 1;
@@ -2066,7 +2066,7 @@ addStatic(S);
 addStatic(G, glowMat);
 for (const [x, z] of [[6.3, -8.0], [12.7, -8.0]]) {
   const rug = new THREE.Mesh(new THREE.CircleGeometry(0.85, 20), decal({ map: swirlTex }));
-  rug.rotation.x = -Math.PI / 2; rug.position.set(x, 0.006, z); scene.add(rug);
+  rug.rotation.x = -Math.PI / 2; rug.position.set(x, 0.024, z); scene.add(rug);
 }
 
 // jukebox face and the gold sign (unlit, glowing)
