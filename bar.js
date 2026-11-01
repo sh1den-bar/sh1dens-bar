@@ -1362,10 +1362,15 @@ sofa(FX, -10.15, 0, 2.6, 0.08, [0, -0.82, 0.82]);                    // the host
 sofa(-3.45, -8.05, Math.PI / 2 - 0.3, 1.9, 0.32, [-0.42, 0.42]);
 sofa(0.95, -8.05, -Math.PI / 2 + 0.3, 1.9, 0.32, [-0.42, 0.42]);
 // the VIP's own TV, on its front wall (hosts choose what plays on it)
-const VTV = { x: -1.5, y: 1.68, z: -4.07, w: 2.4, h: 1.35 };
+const VTV = { x: -1.5, y: 1.68, z: -4.09, w: 2.4, h: 1.35 };
 {
   const T = [];
-  T.push(box(VTV.x - VTV.w / 2 - 0.06, VTV.x + VTV.w / 2 + 0.06, VTV.y - VTV.h / 2 - 0.06, VTV.y + VTV.h / 2 + 0.06, -4.065, -4.015, [10, 10, 12], 0.02));
+  T.push(box(VTV.x - VTV.w / 2 - 0.06, VTV.x + VTV.w / 2 + 0.06, VTV.y - VTV.h / 2 - 0.06, VTV.y + VTV.h / 2 + 0.06, -4.065, -4.04, [10, 10, 12], 0.02));
+  // the same dark recess and pink neon square as the disc wall, framing the TV
+  const RX = VTV.w / 2 + 0.32, RY0 = 0.62, RY1 = 2.78;
+  T.push(box(VTV.x - RX, VTV.x + RX, RY0, RY1, -4.03, -4.012, [8, 6, 9], 0.02));
+  for (const [x0, x1, y0, y1] of [[VTV.x - RX - 0.04, VTV.x + RX + 0.04, RY1 - 0.02, RY1 + 0.02], [VTV.x - RX - 0.04, VTV.x + RX + 0.04, RY0 - 0.02, RY0 + 0.02], [VTV.x - RX - 0.04, VTV.x - RX, RY0 - 0.02, RY1 + 0.02], [VTV.x + RX, VTV.x + RX + 0.04, RY0 - 0.02, RY1 + 0.02]])
+    G.push(box(x0, x1, y0, y1, -4.055, -4.03, PINK, 0));
   // low media console with a pink light underneath
   T.push(box(VTV.x - 1.1, VTV.x + 1.1, 0.06, 0.48, -4.46, -4.015, [16, 14, 16], 0.03));
   T.push(box(VTV.x - 1.12, VTV.x + 1.12, 0.48, 0.51, -4.48, -4.015, [60, 58, 62], 0.02));

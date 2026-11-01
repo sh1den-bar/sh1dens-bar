@@ -214,20 +214,27 @@ function listenVipChat() {
     msgs.push({ key: s.key, uid: v.uid, name: v.name, text: v.text, t: v.t, vip: true });
     msgs.sort((a, b) => (a.t || 0) - (b.t || 0));
     while (msgs.length > 90) msgs.shift();
+    if (chatTab !== 'vip' && v.t && v.t > joinedAt + offset - 4000) vipUnread++;
     renderChat();
     if (v.t && v.t > joinedAt + offset - 4000) window.BAR.bubble(v.uid, clean(v.text));
   });
   vc.on('child_removed', (s) => { msgs = msgs.filter((m) => !(m.vip && m.key === s.key)); renderChat(); });
 }
-const inVipChat = () => NET.isAdmin && window.BAR.meInVip && window.BAR.meInVip();
+let chatTab = 'room', vipUnread = 0;
+const inVipChat = () => NET.isAdmin && chatTab === 'vip';
+function setChatTab(t) {
+  chatTab = t === 'vip' && NET.isAdmin ? 'vip' : 'room';
+  if (chatTab === 'vip') vipUnread = 0;
+  $('tabRoom').classList.toggle('on', chatTab === 'room'); $('tabVip').classList.toggle('on', chatTab === 'vip');
+  $('tabRoom').setAttribute('aria-selected', chatTab === 'room'); $('tabVip').setAttribute('aria-selected', chatTab === 'vip');
+  renderChat(); updateComposer();
+  const log = $('chatLog'); log.scrollTop = log.scrollHeight;
+}
 async function sendChat(text) {
   text = text.trim();
   if (!text) return;
   if (/^\/tv\s+/i.test(text)) { const ok = await queueVideo(text.replace(/^\/tv\s+/i, '')); if (ok) $('chatInput').value = ''; return; }
-  // in the VIP, start a message with /all to say it to the whole bar instead
-  const toAll = /^\/all\s+/i.test(text);
-  if (toAll) text = text.replace(/^\/all\s+/i, '');
-  if (inVipChat() && !toAll) {
+  if (inVipChat()) {
     if (!myName) { hint('Create your character first, then you can post.'); return; }
     try { const key = db.ref('vipchat').push().key; await db.ref('vipchat/' + key).set({ uid: NET.uid, name: myName, text: clean(text).slice(0, MAX_LEN), t: TS }); $('chatInput').value = ''; hint(''); }
     catch (e) { hint("Couldn't send to the VIP chat. The room's Firebase rules may need updating."); }
@@ -246,15 +253,15 @@ function renderChat() {
   const log = $('chatLog');
   const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   log.textContent = '';
-  if (!msgs.length) {
+  const shown = msgs.filter((m) => !!m.vip === (chatTab === 'vip'));
+  const tv = $('tabVip'); if (tv) { tv.hidden = !NET.isAdmin; tv.textContent = 'VIP chat' + (vipUnread ? ' (' + vipUnread + ')' : ''); }
+  if (!shown.length) {
     const li = document.createElement('li'); li.className = 'sys';
-    li.textContent = NET.online ? 'No messages yet. Say hi.' : 'Chat is offline.';
+    li.textContent = !NET.online ? 'Chat is offline.' : chatTab === 'vip' ? 'No VIP messages yet. Only hosts can see this chat.' : 'No messages yet. Say hi.';
     log.appendChild(li);
   }
-  for (const m of msgs) {
+  for (const m of shown) {
     const li = document.createElement('li');
-    if (m.vip) li.className = 'vip';
-    if (m.vip) { const tag = document.createElement('span'); tag.className = 'viptag'; tag.textContent = 'VIP '; li.appendChild(tag); }
     const nm = document.createElement('b'); nm.textContent = (m.name || 'someone') + ' '; nm.style.color = nameColor(m.name || '');
     const tx = document.createElement('span'); tx.textContent = clean(m.text);
     li.append(nm, tx);
@@ -298,7 +305,7 @@ function updateComposer() {
   if (!NET.online) { ph = 'Chat is offline'; off = true; }
   else if (banned) { ph = "You're banned from this room"; off = true; }
   else if (!myName) { ph = 'Create your character to chat'; }
-  else if (inVipChat()) { ph = 'VIP chat, hosts only (start with /all to talk to everyone)'; }
+  else if (inVipChat()) { ph = 'VIP chat, only hosts can see this…'; }
   inp.placeholder = ph; inp.disabled = off; send.disabled = off;
   $('tvInput').disabled = off; $('tvAdd').disabled = off;
 }
@@ -487,7 +494,8 @@ function syncVip(force) {
   vipVolume();
 }
 // you only hear the VIP TV while you're looking at the VIP lounge
-function vipAudible() { return !!vip && entered && !mutedAll && tvVolume > 0 && window.BAR.viewRoom && window.BAR.viewRoom() === 'vip'; }
+const meInVip = () => !!(window.BAR.meInVip && window.BAR.meInVip());
+function vipAudible() { return !!vip && entered && !mutedAll && tvVolume > 0 && meInVip(); }
 function vipVolume() {
   if (!vipReady) return;
   vipPlayer.setVolume(tvVolume);
@@ -504,7 +512,7 @@ function onVipState(e) {
   }
 }
 function vipTick() {
-  vipVolume(); updateDuck(); if (NET.online) updateComposer();
+  vipVolume(); applyVolume(); if (NET.online) updateComposer();
   if (!vip || !vipReady || !entered) return;
   const st = vipPlayer.getPlayerState(), exp = vipExpected();
   if (vipDur && exp > vipDur + 3) { if (NET.isAdmin) db.ref('viptv').remove().catch(() => { }); return; }
@@ -521,15 +529,17 @@ async function playVip(text) {
 function applyVolume() {
   if (!playerReady) return;
   player.setVolume(tvVolume);
-  if (mutedAll || tvVolume === 0) player.mute(); else player.unMute();
+  if (mutedAll || tvVolume === 0 || meInVip()) player.mute(); else player.unMute();
   updateDuck();
 }
-function updateDuck() { window.BAR.setDucked((!!current && entered && !mutedAll && tvVolume > 0) || vipAudible()); }
+function updateDuck() { window.BAR.setDucked((!!current && entered && !mutedAll && tvVolume > 0 && !meInVip()) || vipAudible()); }
 NET.setMuted = function (m) { mutedAll = !!m; applyVolume(); vipVolume(); };
 NET.onEnter = function (withSound) { entered = true; mutedAll = !withSound; syncTv(true); applyVolume(); syncVip(true); };
 
 // ---------------------------------------------------------------- UI wiring
 function wireUI() {
+  $('tabRoom').onclick = () => setChatTab('room');
+  $('tabVip').onclick = () => setChatTab('vip');
   $('vipForm').addEventListener('submit', (e) => { e.preventDefault(); playVip($('vipInput').value); });
   $('vipStop').onclick = () => { if (db && NET.isAdmin) db.ref('viptv').remove().then(() => vipMsg('VIP TV stopped.')).catch(() => vipMsg("Couldn't stop it.")); };
   $('chatForm').addEventListener('submit', (e) => { e.preventDefault(); sendChat($('chatInput').value); });

@@ -124,8 +124,10 @@ button.danger { border-color: #6a2620; color: #ff8a7a; }
 #chatLog li { line-height: 1.45; overflow-wrap: anywhere; }
 #chatLog li.sys { color: var(--dim); }
 #chatLog b { font-weight: 500; }
-#chatLog .viptag { color: #ff4fa8; font-size: 11px; letter-spacing: 0.08em; }
-#chatLog li.vip { background: rgba(255,60,160,0.07); }
+.chattabs { display: flex; gap: 4px; }
+.chattabs button { font-family: var(--display); font-size: 20px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--dim); padding: 2px 8px 4px; cursor: pointer; }
+.chattabs button.on { color: var(--amber); border-bottom-color: var(--amber); }
+#tabVip.on { color: #ff4fa8; border-bottom-color: #ff4fa8; }
 #myId { font-size: 11px; color: var(--dim); overflow-wrap: anywhere; user-select: all; }
 details summary { cursor: pointer; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
 details[open] { display: flex; flex-direction: column; gap: 8px; }
@@ -232,7 +234,7 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
       <ol id="tvQueue"></ol>
     </section>
     <section class="chatsec">
-      <h3>Room chat</h3>
+      <div class="chattabs" role="tablist"><button type="button" id="tabRoom" class="on" role="tab" aria-selected="true">Room chat</button><button type="button" id="tabVip" role="tab" aria-selected="false" hidden>VIP chat</button></div>
       <ol id="chatLog" aria-live="polite"></ol>
       <form id="chatForm" class="inline" novalidate>
         <input id="chatInput" name="chatInput" maxlength="200" autocomplete="off" aria-label="Chat message">
@@ -302,9 +304,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=33"></script>
-<script src="net.js?v=33"></script>
-<script src="bar.js?v=33"></script>
+<script src="config.js?v=34"></script>
+<script src="net.js?v=34"></script>
+<script src="bar.js?v=34"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };
