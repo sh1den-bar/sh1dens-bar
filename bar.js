@@ -237,7 +237,7 @@ const TUXES = {
   platinum: { jacket: [226, 228, 234], pants: [204, 206, 214], shirt: [28, 30, 36], tie: [180, 186, 200], lapel: [150, 154, 166], square: [200, 220, 255], glow: 0xe6f0ff, spark: 0xf4f8ff },
   emerald: { jacket: [22, 118, 70], pants: [16, 92, 54], shirt: [10, 14, 12], tie: [200, 170, 80], lapel: [10, 60, 36], square: [220, 196, 110], glow: 0x40ff9a, spark: 0xb0ffd8 },
   diamond: { jacket: [206, 236, 250], pants: [172, 212, 234], shirt: [18, 24, 32], tie: [240, 250, 255], lapel: [130, 180, 210], square: [255, 255, 255], glow: 0x9ae6ff, spark: 0xffffff },
-  ruby: { jacket: [118, 10, 26], pants: [84, 6, 18], shirt: [10, 6, 8], tie: [150, 14, 34], lapel: [26, 4, 10], square: [200, 30, 56], glow: 0xb0102c, spark: 0xff4466 }
+  ruby: { jacket: [88, 12, 20], pants: [16, 12, 14], shirt: [14, 10, 10], tie: [10, 8, 8], lapel: [18, 8, 10], square: [178, 140, 70], glow: 0x6a1a0c, spark: 0xffa860 }
 };
 function costumeParts(k, C, P, O, F) {
   const hc = [0, 1.69, 0];
@@ -754,17 +754,19 @@ function makeTag(name, accent) {
 // ---------------------------------------------------------------- NPC idle loops
 const smooth01 = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
 // hands folded low in front, arms folded across the chest, a hand pressed to the earpiece, checking the phone
-const BNC_CLASP = { 'shL.x': -0.22, 'shL.z': -0.22, 'elL.x': -0.78, 'elL.y': -1.1, 'shR.x': -0.24, 'shR.z': 0.22, 'elR.x': -0.74, 'elR.y': 1.1 };
+const BNC_CROSS = { 'shL.x': -0.35, 'shL.z': -0.1, 'elL.x': -1.45, 'elL.z': -1.35, 'shR.x': -0.35, 'shR.z': 0.1, 'elR.x': -1.25, 'elR.z': 1.35, 'spine.x': -0.04 };
+const BNC_LARM = { 'shL.x': -0.35, 'shL.z': -0.1, 'elL.x': -1.45, 'elL.z': -1.35 };
 const NPC_LOOPS = {
+  // the door staff: arms folded, looking the street over; a word into the earpiece, a glance at the phone
   bouncer: {
     len: 40,
-    base: (b, t) => { b.thL.rotation.z = 0.1; b.thR.rotation.z = -0.1; b.hips.position.x = 0.012 * Math.sin(t * 0.37); b.spine.rotation.x = -0.04; },
+    base: (b, t) => { b.thL.rotation.z = 0.1; b.thR.rotation.z = -0.1; b.hips.position.x = 0.012 * Math.sin(t * 0.37); },
     segs: [
-      [0, (t) => Object.assign({ 'head.y': 0.6 * Math.sin(t * 0.31), 'spine.y': 0.1 * Math.sin(t * 0.31 - 0.7), 'head.x': 0.04 }, BNC_CLASP)],
-      [11, (t, u) => ({ 'shR.x': -0.9, 'shR.z': -0.85, 'elR.x': -2.45, 'elR.y': 0.55, 'head.z': 0.12, 'head.x': 0.06 + 0.07 * Math.max(0, Math.sin(t * 3.1)) * (u > 1.2 ? 1 : 0), 'head.y': -0.25, 'shL.x': -0.12, 'shL.z': -0.08, 'elL.x': -0.25 })],
-      [16, (t) => Object.assign({ 'head.y': -0.4 + 0.25 * Math.sin(t * 0.5), 'head.x': 0.02 }, BNC_CLASP)],
-      [23, (t) => ({ 'shR.x': -0.5, 'shR.z': 0.16, 'elR.x': -1.42 + 0.03 * Math.sin(t * 5), 'elR.y': 0.9, 'shL.x': -0.46, 'shL.z': -0.2, 'elL.x': -1.3, 'elL.y': -0.9, 'head.x': 0.42, 'spine.x': 0.08 })],
-      [31, (t) => ({ 'shL.x': -0.35, 'shL.z': -0.3, 'elL.x': -1.5, 'elL.y': -1.2, 'shR.x': -0.35, 'shR.z': 0.3, 'elR.x': -1.55, 'elR.y': 1.25, 'head.y': 0.5 * Math.sin(t * 0.27 + 1), 'spine.x': -0.03 })]
+      [0, (t) => Object.assign({ 'head.y': 0.6 * Math.sin(t * 0.31), 'spine.y': 0.08 * Math.sin(t * 0.31 - 0.7), 'head.x': 0.04 }, BNC_CROSS)],
+      [11, (t, u) => Object.assign({ 'shR.x': -0.9, 'shR.z': -0.85, 'elR.x': -2.45, 'elR.y': 0.55, 'head.z': 0.12, 'head.x': 0.06 + 0.07 * Math.max(0, Math.sin(t * 3.1)) * (u > 1.2 ? 1 : 0), 'head.y': -0.25 }, BNC_LARM)],
+      [16, (t) => Object.assign({ 'head.y': -0.4 + 0.25 * Math.sin(t * 0.5), 'head.x': 0.02 }, BNC_CROSS)],
+      [23, (t) => ({ 'shR.x': -0.45, 'shR.z': 0.05, 'elR.x': -1.5 + 0.03 * Math.sin(t * 5), 'elR.z': 0.75, 'shL.x': -0.4, 'shL.z': -0.05, 'elL.x': -1.45, 'elL.z': -0.8, 'head.x': 0.42, 'spine.x': 0.06 })],
+      [31, (t) => Object.assign({ 'head.y': 0.5 * Math.sin(t * 0.27 + 1) }, BNC_CROSS)]
     ]
   },
   // the valet at his desk: the ledger, a look outside, a call, a sip of coffee, a stretch
@@ -782,6 +784,34 @@ const NPC_LOOPS = {
 };
 const npcLoopT = (ch, t) => { const L = NPC_LOOPS[ch.act]; return L ? (t + (ch.phase || 0) * 60) % L.len : 0; };
 
+// relaxed ways to sit on a sofa or an armchair (one per person, picked from their seed)
+function relaxSit(b, v, t, ph, beat) {
+  const br = 0.02 * Math.sin(t * 1.3 + ph * 7);
+  b.spine.rotation.x += br;
+  if (v === 1) {            // legs crossed, one arm along the armrest
+    b.thR.rotation.x = -1.62; b.thR.rotation.z = 0.3; b.knR.rotation.x = 1.2;
+    b.thL.rotation.z = 0.04; b.spine.rotation.x = -0.22 + br;
+    b.shR.rotation.x = -0.2; b.shR.rotation.z = -0.25; b.elR.rotation.x = -0.6;
+    b.head.rotation.y = 0.3 * Math.sin(t * 0.2 + ph * 4);
+  } else if (v === 2) {     // leaning forward, elbows on the knees, hands together, nodding along
+    b.spine.rotation.x = 0.32 + br;
+    b.shL.rotation.x = b.shR.rotation.x = -0.6; b.shL.rotation.z = -0.05; b.shR.rotation.z = 0.05;
+    b.elL.rotation.x = b.elR.rotation.x = -1.35; b.elL.rotation.z = -0.65; b.elR.rotation.z = 0.65;
+    b.head.rotation.x = -0.18 + 0.08 * Math.abs(Math.sin(Math.PI * beat));
+  } else if (v === 3) {     // sprawled: knees apart, both arms out along the back
+    b.spine.rotation.x = -0.3 + br; b.thL.rotation.z = 0.32; b.thR.rotation.z = -0.32; b.knL.rotation.x = b.knR.rotation.x = 1.15;
+    b.shL.rotation.x = 0.55; b.shR.rotation.x = 0.55; b.shL.rotation.z = 0.8; b.shR.rotation.z = -0.8; b.elL.rotation.x = b.elR.rotation.x = -0.2;
+    b.head.rotation.x = -0.1; b.head.rotation.y = 0.4 * Math.sin(t * 0.15 + ph * 3);
+  } else if (v === 4) {     // chin in hand, thinking
+    b.spine.rotation.x = 0.16 + br; b.spine.rotation.z = -0.05;
+    b.shR.rotation.x = -0.95; b.shR.rotation.z = 0.12; b.elR.rotation.x = -2.25;
+    b.shL.rotation.x = -0.35; b.elL.rotation.x = -1.0;
+    b.head.rotation.x = 0.12; b.head.rotation.z = 0.08;
+  } else {                  // upright and easy, now and then shifting in the seat
+    const sh = Math.max(0, Math.sin(t * 0.21 + ph * 9)) ** 6;
+    b.hips.position.x += 0.03 * sh; b.spine.rotation.z = 0.06 * sh;
+  }
+}
 // ---------------------------------------------------------------- poses
 const ZERO = ['hips', 'spine', 'head', 'shL', 'elL', 'shR', 'elR', 'thL', 'knL', 'thR', 'knR'];
 function resetPose(ch) {
@@ -841,13 +871,18 @@ function pose(ch, act, beat, t) {
     if (cyc < 2.4) { const u = Math.sin(Math.min(1, cyc / 2.4) * PI); b.shL.rotation.x = -0.75 - 0.6 * u; b.elL.rotation.x = -1.05 - 0.9 * u; b.head.rotation.x = -0.18 * u; }
     b.head.rotation.y = 0.35 * Math.sin(t * 0.3 + ph * 5);
     b.head.rotation.x += 0.08 * Math.abs(Math.sin(PI * beat));
+    // everyone sits a little differently: turned to chat, a foot up on the rail tapping along, or slouched on one elbow
+    const v = Math.floor(((ph * 13.7) % 1) * 4);
+    if (v === 1) { b.spine.rotation.y = 0.35; b.head.rotation.y += 0.35; b.shR.rotation.x = -0.25; b.elR.rotation.x = -0.5; b.shR.rotation.z = 0.05; }
+    else if (v === 2) { b.thL.rotation.x = -1.25; b.knL.rotation.x = 1.95; b.knR.rotation.x = 1.45 + 0.1 * Math.abs(Math.sin(PI * beat)); }
+    else if (v === 3) { b.spine.rotation.x = 0.2; b.spine.rotation.z = 0.08; b.shR.rotation.x = -1.0; b.elR.rotation.x = -2.1; b.elR.rotation.z = 0.3; b.head.rotation.z = 0.12; }
   } else if (act === 'lean') {
     b.spine.rotation.x = -0.05 + 0.012 * Math.sin(t * 1.7 + ph);
     b.thL.rotation.x = -0.25; b.knL.rotation.x = 0.5; b.thL.rotation.z = 0.05;
     b.shL.rotation.x = b.shR.rotation.x = -0.5; b.shL.rotation.z = -0.35; b.shR.rotation.z = 0.35;
     b.elL.rotation.x = b.elR.rotation.x = -1.55; b.elL.rotation.y = -0.4; b.elR.rotation.y = 0.4;
     b.head.rotation.x = 0.07 * Math.abs(Math.sin(PI * beat)); b.head.rotation.y = 0.4 * Math.sin(t * 0.25 + ph * 3);
-  } else if (act === 'sitlow' || act === 'lounge') {
+  } else if (act === 'sitlow' || act === 'lounge' || act === 'club') {
     // couch or armchair: seat about 45 cm high
     b.hips.position.y = 0.95 - 0.47;
     b.thL.rotation.x = b.thR.rotation.x = -1.45;
@@ -864,7 +899,10 @@ function pose(ch, act, beat, t) {
       b.shR.rotation.x = -0.55; b.elR.rotation.x = -1.3;
       b.spine.rotation.x = -0.22;
       b.head.rotation.x = 0.05; b.head.rotation.y = 0.35 * Math.sin(t * 0.22 + ph * 3);
-    } else b.head.rotation.y = 0.15 * Math.sin(t * 0.17 + ph * 5);
+    } else {
+      b.head.rotation.y = 0.15 * Math.sin(t * 0.17 + ph * 5);
+      relaxSit(b, Math.floor(((ph * 7.31) % 1) * 5), t, ph, beat);
+    }
   } else if (act === 'poker') {
     // seated at the poker table, forearms on the rail, now and then peeking at the cards or tossing in chips
     b.hips.position.y = 0.95 - 0.45;
@@ -972,6 +1010,7 @@ function pose(ch, act, beat, t) {
       const [bone, ax] = k.split('.'), v = (a[k] || 0) * (1 - w) + (bb ? (bb[k] || 0) * w : 0);
       if (bone === 'hips') b.hips.position[ax] += v; else b[bone].rotation[ax] += v;
     }
+    if (ch.nodUntil && ch.nodUntil > performance.now()) { const u = (ch.nodUntil - performance.now()) / 1600; b.head.rotation.y *= 1 - Math.sin(u * Math.PI); b.head.rotation.x += 0.12 * Math.sin(u * Math.PI * 3); }
   } else if (act === 'walk') {
     const w = t * 7.5 + ph * 4, k = Math.sin(w);
     b.thL.rotation.x = -0.45 * k; b.thR.rotation.x = 0.45 * k;
@@ -1041,18 +1080,29 @@ function pose(ch, act, beat, t) {
   }
   // holding a drink: take a sip every so often (sitting at the bar already has its own sip)
   if (ch.glass && act !== 'sit' && act !== 'pool' && act !== 'dance') {
-    const cyc = (t + ph * 9) % 9;
+    const cyc = (t + ph * 9) % (act === 'club' ? 14 : 9);
     const u = cyc < 2.2 ? Math.sin((cyc / 2.2) * PI) : 0;
     b.shL.rotation.x = -0.45 - 0.75 * u; b.shL.rotation.z = -0.12; b.shL.rotation.y = 0;
-    b.elL.rotation.x = -1.25 - 0.75 * u; b.elL.rotation.y = 0;
+    b.elL.rotation.x = -1.25 - 0.75 * u; b.elL.rotation.y = 0; b.elL.rotation.z = 0;
     b.head.rotation.x -= 0.15 * u;
+  }
+  // in the lounge, everyone at a table raises a glass together every so often
+  if (act === 'club' && ch.toastN >= 2) {
+    const T = (t + (ch.toastT || 0) * 11) % 34;
+    if (T < 3.4) {
+      const k = smooth01(T / 0.7) * smooth01((3.4 - T) / 0.7), clink = T > 1.5 && T < 1.9 ? 0.05 * Math.sin((T - 1.5) * 40) : 0;
+      const mix = (a, v) => a * (1 - k) + v * k;
+      b.shL.rotation.x = mix(b.shL.rotation.x, -1.35 + clink); b.shL.rotation.z = mix(b.shL.rotation.z, -0.18);
+      b.elL.rotation.x = mix(b.elL.rotation.x, -0.5); b.elL.rotation.z = mix(b.elL.rotation.z, 0);
+      b.spine.rotation.x = mix(b.spine.rotation.x, 0.12); b.head.rotation.x = mix(b.head.rotation.x, -0.08); b.head.rotation.y *= 1 - k;
+    }
   }
 }
 
 // ---------------------------------------------------------------- scene: a five-room art deco venue
 // Floor plan (x to the right, z toward the front; the camera starts in the main bar):
 //   [ Pool room ][ VIP lounge ]
-//   [ TV room   ][ Main bar   ][ Dance room ]
+//   [ TV room   ][ Main bar   ][ Lounge ][ Dance room ]
 const canvas = document.getElementById('c');
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true });
@@ -1069,9 +1119,11 @@ const ROOMS = {
   card: { x0: -17, x1: -11.8, z0: -4, z1: 4, name: 'Card room' },
   sec: { x0: -17, x1: -13, z0: -11, z1: -4, name: 'Security' },
   bar: { x0: -5, x1: 5, z0: -4, z1: 4, name: 'Main bar' },
-  dance: { x0: 5, x1: 14, z0: -4, z1: 4, name: 'Dance room' },
+  lounge: { x0: 5, x1: 14, z0: -4, z1: 4, name: 'Lounge' },
+  dance: { x0: 14, x1: 23, z0: -4, z1: 4, name: 'Dance room' },
   tv: { x0: -13, x1: -5, z0: -11, z1: -4, name: 'TV room' },
   pool: { x0: -11.8, x1: -5, z0: -4, z1: 4, name: 'Pool room' },
+  vest: { x0: -5, x1: -3.3, z0: -5.9, z1: -4, name: 'VIP entrance' },
   vip: { x0: -5, x1: 2, z0: -11, z1: -4, name: 'VIP lounge' },
   swim: { x0: 5, x1: 14, z0: -12, z1: -4, name: 'Pool lounge' },
   change: { x0: 2, x1: 5, z0: -11, z1: -4, name: 'Changing room' },
@@ -1091,8 +1143,8 @@ const barLights = [-2, 0, 2].map((x) => pLight(0xffb070, 1.2, 4.8, x, 2.35, -2.6
 const backBar = pLight(0xffa048, 0.9, 3.6, 0, 1.8, -3.55);
 const neonLight = pLight(0xffc070, 0.7, 4, 0, 2.85, -3.5);
 // dance room
-const danceLight = pLight(0x4a7cff, 1.8, 8, 9.5, 2.8, 0);
-const danceLight2 = pLight(0x6a4aff, 1.2, 7, 12.5, 2.6, -2.5);
+const danceLight = pLight(0x4a7cff, 1.8, 8, 18.5, 2.8, 0);
+const danceLight2 = pLight(0x6a4aff, 1.2, 7, 21.5, 2.6, -2.5);
 // tv room
 pLight(0x2c4c8c, 0.7, 8, -8, 2.8, -5.0);
 // pool room: the long lamp over the table
@@ -1252,6 +1304,8 @@ function floorFor(r, tex, tile) {
 for (const t of [marbleTex, concreteTex, carpetTex, woodTex, vipTex]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; }
 floorFor(ROOMS.bar, marbleTex, 2);
 floorFor(ROOMS.dance, concreteTex, 2);
+floorFor(ROOMS.lounge, woodTex, 1.6);
+{ const vf = floorFor(ROOMS.vest, vipTex, 0.8); vf.material.polygonOffset = true; vf.material.polygonOffsetFactor = -1; vf.material.polygonOffsetUnits = -4; vf.position.y = 0.004; }
 floorFor(ROOMS.tv, carpetTex, 0.8);
 floorFor(ROOMS.pool, luxCarpetTex, 1.4);
 floorFor(ROOMS.card, cardFloorTex, 1.2);
@@ -1273,7 +1327,24 @@ swimFloorTex.wrapS = swimFloorTex.wrapT = THREE.RepeatWrapping;
 // walls: each room gets its own inward-facing walls (seen from inside, invisible from behind),
 // with doorway gaps given as [from, to] distances along the wall
 const WALL_H = 3.2, DOOR_H = 2.4;
+// lounge: walnut panelling below a brass rail, deep red damask above
+const panelTex = canvasTex(64, 128, (x, w, h) => {
+  x.fillStyle = 'rgb(58,12,16)'; x.fillRect(0, 0, w, h);
+  for (let j = 0; j < 72; j += 8) for (let i = 0; i < w; i += 8) { x.fillStyle = 'rgb(84,20,24)'; const o = (j / 8) % 2 ? 4 : 0; x.fillRect(i + o + 3, j + 1, 2, 2); x.fillRect(i + o + 2, j + 2, 4, 2); x.fillRect(i + o + 3, j + 4, 2, 2); }
+  x.fillStyle = 'rgb(150,112,54)'; x.fillRect(0, 72, w, 2);
+  x.fillStyle = 'rgb(44,26,16)'; x.fillRect(0, 74, w, h - 74);
+  for (let i = 0; i < w; i += 32) { x.fillStyle = 'rgb(30,17,10)'; x.fillRect(i + 3, 79, 26, 1); x.fillRect(i + 3, 79, 1, 42); x.fillRect(i + 3, 120, 26, 1); x.fillRect(i + 28, 79, 1, 42); x.fillStyle = 'rgb(56,34,20)'; x.fillRect(i + 5, 81, 22, 38); }
+  x.fillStyle = 'rgb(22,13,8)'; x.fillRect(0, h - 4, w, 4);
+});
+// dance room: black acoustic slats with a thin blue line
+const clubWallTex = canvasTex(32, 64, (x, w, h) => {
+  x.fillStyle = 'rgb(12,12,16)'; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < w; i += 4) { x.fillStyle = 'rgb(20,20,26)'; x.fillRect(i, 0, 3, h); }
+  x.fillStyle = 'rgb(40,60,140)'; x.fillRect(0, 40, w, 1);
+});
 const wallMats = {
+  panel: ps1(new THREE.MeshLambertMaterial({ map: panelTex })),
+  club: ps1(new THREE.MeshLambertMaterial({ map: clubWallTex })),
   deco: ps1(new THREE.MeshLambertMaterial({ map: wallTex })),
   green: ps1(new THREE.MeshLambertMaterial({ map: greenWallTex })),
   red: ps1(new THREE.MeshLambertMaterial({ map: redWallTex })),
@@ -1318,11 +1389,12 @@ const DOOR = {
   tvPool: [3, 4.6],      // z = -4, x -10..-8.4
   poolVip: [2.5, 4]      // x = -5, z -8.5..-7
 };
-roomWalls(ROOMS.bar, { right: [DOOR.barDance], left: [DOOR.barTv], front: [[4.1, 5.9]] }, wallMats.deco);
-roomWalls(ROOMS.dance, { left: [DOOR.barDance], back: [[3.6, 5.4]] }, wallMats.deco);
+roomWalls(ROOMS.bar, { right: [DOOR.barDance], left: [DOOR.barTv], front: [[4.1, 5.9]], back: [[0.4, 1.4]] }, wallMats.deco);
+roomWalls(ROOMS.lounge, { left: [DOOR.barDance], back: [[3.6, 5.4]], right: [[3, 5]] }, wallMats.panel);
+roomWalls(ROOMS.dance, { left: [[3, 5]] }, wallMats.club);
 roomWalls(ROOMS.swim, { front: [[3.6, 5.4]], left: [[5.0, 6.2]], right: [[3.4, 4.6]] }, wallMats.brick);
 roomWalls(ROOMS.change, { right: [[4.0, 5.2]] }, wallMats.brick);
-roomWalls(ROOMS.tv, { front: [DOOR.tvPool], right: [DOOR.poolVip], left: [[0.15, 1.25]] }, wallMats.deco);
+roomWalls(ROOMS.tv, { front: [DOOR.tvPool], left: [[0.15, 1.25]] }, wallMats.deco);
 roomWalls(ROOMS.sec, { right: [[0.15, 1.25]] }, wallMats.brick);
 floorFor(ROOMS.sec, concreteTex, 2);
 roomWalls(ROOMS.pool, { back: [[1.8, 3.4]], right: [DOOR.barTv], left: [[6.2, 7.6]] }, wallMats.green);
@@ -1338,7 +1410,14 @@ roomWalls(ROOMS.card, { right: [[6.2, 7.6]] }, wallMats.lacquer);
   const so = (ax, az, bx, bz, nx, nz) => wallPlane(ax, az, bx, bz, nx, nz, 0, WALL_H + 0.1, wallMats.brick, 2);
   so(r.x0, r.z0 - 0.02, r.x1 + 0.02, r.z0 - 0.02, 0, -1); so(r.x0, r.z1 + 0.02, r.x1 + 0.02, r.z1 + 0.02, 0, 1); so(r.x1 + 0.02, r.z0 - 0.02, r.x1 + 0.02, r.z1 + 0.02, 1, 0);
 }
-roomWalls(ROOMS.vip, { left: [DOOR.poolVip], back: [[0.6, 1.8]] }, wallMats.red);
+// the VIP lounge is entered from the main bar through a small vestibule in its corner, left of Charon
+wallLine(-5, -11, 2, -11, 0, 1, [[0.6, 1.8]], wallMats.red, 2);
+wallLine(-3.3, -4, 2, -4, 0, -1, [], wallMats.red, 2);
+wallLine(-5, -11, -5, -5.9, 1, 0, [], wallMats.red, 2);
+wallLine(2, -11, 2, -4, -1, 0, [], wallMats.red, 2);
+wallLine(-3.3, -5.9, -3.3, -4, 1, 0, [], wallMats.red, 2);
+wallLine(-5, -5.9, -3.3, -5.9, 0, -1, [[0.4, 1.4]], wallMats.red, 2);
+roomWalls(ROOMS.vest, { front: [[0.4, 1.4]], back: [[0.4, 1.4]] }, wallMats.red);
 
 RNG = rngFrom(7);
 const LACQUER = [16, 17, 22], MARBLE = [26, 27, 32], MARBLE_L = [58, 58, 64], BRASS = [150, 112, 54], BRASS_D = [96, 72, 36];
@@ -1356,7 +1435,7 @@ function doorFrame(x0, z0, x1, z1) {
   if (alongX) S.push(box(Math.min(x0, x1) - 0.06, Math.max(x0, x1) + 0.06, DOOR_H, DOOR_H + 0.08, z0 - 0.095, z0 + 0.095, BRASS, 0.03));
   else S.push(box(x0 - 0.095, x0 + 0.095, DOOR_H, DOOR_H + 0.08, Math.min(z0, z1) - 0.06, Math.max(z0, z1) + 0.06, BRASS, 0.03));
 }
-doorFrame(8.6, -4, 10.4, -4); doorFrame(5, -1, 5, 1); doorFrame(-5, 0.5, -5, 2.5); doorFrame(-10, -4, -8.4, -4); doorFrame(-5, -8.5, -5, -7); doorFrame(-4.4, -11, -3.2, -11); doorFrame(5, -7.0, 5, -5.8);
+doorFrame(8.6, -4, 10.4, -4); doorFrame(5, -1, 5, 1); doorFrame(-5, 0.5, -5, 2.5); doorFrame(-10, -4, -8.4, -4); doorFrame(14, -1, 14, 1); doorFrame(-4.6, -4, -3.6, -4); doorFrame(-4.6, -5.9, -3.6, -5.9); doorFrame(-4.4, -11, -3.2, -11); doorFrame(5, -7.0, 5, -5.8);
 
 // ===== MAIN BAR =====
 // counter: lacquered front with brass fluting, black marble top, brass foot rail
@@ -1532,7 +1611,7 @@ const JUKE = { x: -5.75, z: 3.985 };
 S.push(...placeParts([box(0, 0.5, 0, 1.2, -0.4, 0.4, LACQUER), cyl(V(0.25, 1.2, -0.4), V(0.25, 1.2, 0.4), 0.25, 0.25, LACQUER, { n: 12 }),
   tube([V(0.51, 0.05, -0.38), V(0.51, 1.2, -0.38), V(0.51, 1.38, -0.22), V(0.51, 1.45, 0), V(0.51, 1.38, 0.22), V(0.51, 1.2, 0.38), V(0.51, 0.05, 0.38)], [0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014], BRASS, { n: 4, smooth: false, amt: 0.04 })], JUKE.x, JUKE.z, Math.PI / 2, 0));
 // a dark backing board for the coin leaderboard, where the jukebox used to stand next to Charon
-S.push(box(-5.0, -4.975, 0.96, 2.44, -2.22, -0.98, [40, 30, 16], 0.02));
+S.push(box(-4.99, -4.97, 0.96, 2.44, -2.22, -0.98, [40, 30, 16], 0.02));
 // pendants over the bar
 for (const x of [-2, 0, 2]) {
   S.push(cyl(V(x, 3.2, -2.6), V(x, 2.5, -2.6), 0.008, 0.008, BRASS, { n: 4 }));
@@ -1557,36 +1636,318 @@ function sconceZ(x, wz, dir) {
 }
 sconce(-4.97, -0.6, 1); sconce(4.97, -2.6, -1); sconce(4.97, 2.6, -1); sconce(-4.97, 3.4, 1);
 
-// ===== DANCE ROOM =====
-const DF = { x: 9.3, z: 0, n: 6, s: 0.75 };
+// ===== DANCE ROOM (east of the lounge): light-up floor, DJ riser with an LED wall, mirror ball, lasers, neon =====
+const DF = { x: 18.3, z: 0, n: 6, s: 0.75 };
 S.push(box(DF.x - DF.s * 3 - 0.06, DF.x + DF.s * 3 + 0.06, -0.02, 0.012, DF.z - DF.s * 3 - 0.06, DF.z + DF.s * 3 + 0.06, BRASS_D, 0.02));
-// DJ booth against the far wall
-S.push(box(12.9, 13.6, 0, 1.0, -1.3, 1.3, LACQUER));
-S.push(box(12.88, 12.9, 0.1, 0.9, -1.2, 1.2, BRASS_D, 0.03));
-S.push(box(12.85, 13.65, 1.0, 1.05, -1.35, 1.35, MARBLE));
+// DJ booth on a low riser against the far wall
+S.push(box(21.5, 23.0, 0, 0.16, -2.2, 2.2, [18, 18, 22], 0.03));
+G.push(box(21.47, 21.5, 0.06, 0.1, -2.2, 2.2, [70, 110, 255], 0));
+S.push(box(21.9, 22.6, 0.16, 1.16, -1.3, 1.3, LACQUER));
+S.push(box(21.88, 21.9, 0.26, 1.06, -1.2, 1.2, BRASS_D, 0.03));
+S.push(box(21.85, 22.65, 1.16, 1.21, -1.35, 1.35, MARBLE));
 for (const z of [-0.55, 0.55]) {
-  S.push(cyl(V(13.25, 1.05, z), V(13.25, 1.08, z), 0.2, 0.2, [30, 30, 34], { n: 10 }));
-  S.push(cyl(V(13.25, 1.08, z), V(13.25, 1.09, z), 0.16, 0.16, [12, 12, 14], { n: 10 }));
+  S.push(cyl(V(22.25, 1.21, z), V(22.25, 1.24, z), 0.2, 0.2, [30, 30, 34], { n: 12 }));
+  S.push(cyl(V(22.25, 1.24, z), V(22.25, 1.25, z), 0.16, 0.16, [12, 12, 14], { n: 12 }));
+  G.push(cyl(V(22.25, 1.25, z), V(22.25, 1.252, z), 0.03, 0.03, [120, 160, 255], { n: 8, amt: 0 }));
 }
-S.push(box(13.1, 13.4, 1.05, 1.1, -0.2, 0.2, [40, 40, 46], 0.03));
-G.push(box(12.875, 12.88, 0.2, 0.3, -1.1, 1.1, [80, 120, 255], 0));
-// speaker stacks in the corners
-for (const [x, z] of [[13.4, -3.3], [13.4, 3.3], [5.6, -3.4], [5.6, 3.4]]) {
-  S.push(box(x - 0.35, x + 0.35, 0, 1.6, z - 0.35, z + 0.35, LACQUER));
-  const f = x > 9 ? -1 : 1;
-  for (const [y, r] of [[0.45, 0.22], [1.1, 0.13]]) {
+S.push(box(22.1, 22.4, 1.21, 1.26, -0.2, 0.2, [40, 40, 46], 0.03));
+for (let k = 0; k < 6; k++) G.push(box(22.12 + (k % 3) * 0.1, 22.16 + (k % 3) * 0.1, 1.26, 1.265, -0.15 + Math.floor(k / 3) * 0.2, -0.1 + Math.floor(k / 3) * 0.2, [[255, 60, 160], [60, 220, 255], [255, 200, 60]][k % 3], 0));
+G.push(box(21.875, 21.88, 0.36, 0.46, -1.1, 1.1, [80, 120, 255], 0));
+// speaker stacks in the corners, bigger at the DJ end
+for (const [x, z, big] of [[22.4, -3.3, 1], [22.4, 3.3, 1], [14.6, -3.4, 0], [14.6, 3.4, 0]]) {
+  const h = big ? 2.1 : 1.6;
+  S.push(box(x - 0.36, x + 0.36, 0, h, z - 0.36, z + 0.36, LACQUER));
+  const f = x > 18 ? -1 : 1;
+  for (const [y, r] of big ? [[0.45, 0.24], [1.15, 0.24], [1.75, 0.13]] : [[0.45, 0.22], [1.1, 0.13]]) {
     S.push(cyl(V(x + f * 0.36, y, z), V(x + f * 0.37, y, z), r + 0.02, r + 0.02, BRASS_D, { n: 12 }));
     S.push(cyl(V(x + f * 0.365, y, z), V(x + f * 0.39, y, z), r, r, [24, 24, 28], { n: 12 }));
   }
 }
-// light rig bar across the ceiling
-S.push(box(6.2, 13.0, 3.05, 3.12, -0.05, 0.05, [30, 30, 34], 0.03));
-S.push(box(9.25, 9.35, 3.05, 3.12, -3.6, 3.6, [30, 30, 34], 0.03));
+// a drinks ledge with stools along the front wall, a long booth bench along the back
+S.push(box(15.3, 21.0, 1.0, 1.06, 3.55, 3.95, MARBLE)); S.push(box(15.3, 21.0, 0.0, 1.0, 3.85, 3.95, LACQUER));
+G.push(box(15.3, 21.0, 0.96, 0.98, 3.54, 3.56, [90, 70, 255], 0));
+const DANCE_STOOLS = [15.9, 16.9, 17.9, 19.4, 20.4];
+for (const x of DANCE_STOOLS) {
+  S.push(cyl(V(x, 0, 3.2), V(x, 0.03, 3.2), 0.2, 0.18, [24, 24, 28], { n: 10 }));
+  S.push(cyl(V(x, 0.03, 3.2), V(x, 0.68, 3.2), 0.03, 0.03, [150, 152, 160], { n: 6 }));
+  S.push(cyl(V(x, 0.68, 3.2), V(x, 0.74, 3.2), 0.19, 0.19, [30, 22, 40], { n: 12 }));
+}
+S.push(box(15.0, 21.2, 0.08, 0.42, -3.95, -3.45, [30, 24, 44])); S.push(box(15.0, 21.2, 0.42, 1.0, -3.98, -3.8, [36, 28, 52]));
+G.push(box(15.0, 21.2, 0.03, 0.06, -3.44, -3.42, [140, 70, 255], 0));
+const DANCE_BENCH = [15.6, 16.6, 17.6, 18.6, 19.6, 20.6];
+// light rig across the ceiling, the mirror ball hanging from it
+S.push(box(15.2, 22.0, 3.05, 3.12, -0.05, 0.05, [30, 30, 34], 0.03));
+S.push(box(DF.x - 0.05, DF.x + 0.05, 3.05, 3.12, -3.6, 3.6, [30, 30, 34], 0.03));
+S.push(cyl(V(DF.x, 3.05, DF.z), V(DF.x, 2.82, DF.z), 0.008, 0.008, [150, 152, 160], { n: 4 }));
+const mirrorBall = (() => {
+  const P = [], R = 0.26, rings = [];
+  for (let k = 0; k <= 8; k++) { const a = -Math.PI / 2 + Math.PI * k / 8, r = Math.max(0.001, Math.cos(a) * R); rings.push(rring(Math.sin(a) * R, r * 2, r * 2, 0, 0, 16, 2)); }
+  P.push(loft(rings, [170, 172, 180], { amt: 0.35 }));
+  const m = new THREE.Mesh(toGeometry(P), ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 120, specular: 0xffffff, emissive: 0x202030 })));
+  m.position.set(DF.x, 2.55, DF.z); scene.add(m); return m;
+})();
+// the LED wall behind the DJ: a little equaliser that dances to the jukebox
+const ledCanvas = document.createElement('canvas'); ledCanvas.width = 32; ledCanvas.height = 14;
+const ledTex = new THREE.CanvasTexture(ledCanvas); ledTex.magFilter = THREE.NearestFilter; ledTex.minFilter = THREE.NearestFilter;
+{ const m = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.55), new THREE.MeshBasicMaterial({ map: ledTex, fog: false })); m.position.set(22.88, 2.1, 0); m.rotation.y = -Math.PI / 2; scene.add(m); }
+S.push(box(22.9, 22.97, 1.27, 2.93, -1.86, 1.86, [10, 10, 12], 0.02));
+// neon strips around the top of the walls, all one colour that moves with the music
+const danceNeonMat = new THREE.MeshBasicMaterial({ color: 0x4a7cff, fog: false });
+{
+  const P = [];
+  P.push(box(14.05, 22.95, 3.08, 3.12, 3.92, 3.96, [255, 255, 255], 0), box(14.05, 22.95, 3.08, 3.12, -3.96, -3.92, [255, 255, 255], 0));
+  P.push(box(22.92, 22.96, 3.08, 3.12, -3.95, 3.95, [255, 255, 255], 0), box(14.04, 14.08, 3.08, 3.12, -3.95, 3.95, [255, 255, 255], 0));
+  for (const z of [-3.93, 3.93]) for (const x of [16, 18.3, 20.6]) P.push(box(x - 0.02, x + 0.02, 0.4, 2.9, z - 0.02, z + 0.02, [255, 255, 255], 0));
+  scene.add(new THREE.Mesh(toGeometry(P), danceNeonMat));
+}
+// laser fans from the DJ riser and the mirror ball's sparkles on the walls
+const lasers = [];
+for (let k = 0; k < 3; k++) {
+  const mat = new THREE.MeshBasicMaterial({ color: [0x40ff90, 0xff40c0, 0x40c8ff][k], transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 9, 4, 1, true), mat);
+  beam.rotation.z = Math.PI / 2; beam.position.x = -4.5;
+  const pivot = new THREE.Group(); pivot.position.set(22.3, 2.95, -0.9 + k * 0.9); pivot.add(beam); scene.add(pivot);
+  lasers.push({ pivot, mat, k });
+}
+const SPARK_N = 90, sparkPos = new Float32Array(SPARK_N * 3), sparkDir = [];
+for (let i = 0; i < SPARK_N; i++) { const u = Math.random() * 2 - 1, a = Math.random() * Math.PI * 2, r = Math.sqrt(1 - u * u); sparkDir.push([r * Math.cos(a), -Math.abs(u) * 0.8 - 0.05, r * Math.sin(a)]); }
+const sparkGeo = new THREE.BufferGeometry(); sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({ color: 0xdfe8ff, size: 0.06, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+sparks.frustumCulled = false; scene.add(sparks);
+const danceHazeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 4, 32, 32, 32); g.addColorStop(0, 'rgba(120,150,255,0.45)'); g.addColorStop(1, 'rgba(90,110,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+const DANCE_HAZE = [];
+for (let i = 0; i < 6; i++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: danceHazeTex, color: i % 2 ? 0x8a6aff : 0x5a8aff, transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  sp.scale.set(3.6, 1.4, 1); sp.position.set(15.6 + (i % 3) * 2.8, 0.7 + (i % 2) * 1.2, -1.8 + Math.floor(i / 3) * 3.6); scene.add(sp); DANCE_HAZE.push({ sp, x: sp.position.x, k: i });
+}
+let ledBeat = -1;
+function danceFxTick(dt, t, beat) {
+  const near = Math.hypot(camera.position.x - 18.5, camera.position.z) < 16;
+  mirrorBall.rotation.y = t * 0.6;
+  const hue = [0x4a7cff, 0x8a4aff, 0xff4ab8, 0x3ad0ff][Math.floor(beat / 16) % 4];
+  danceNeonMat.color.setHex(hue);
+  const kb = Math.pow(1 - (beat % 1), 2);
+  danceNeonMat.color.multiplyScalar(0.55 + 0.45 * kb);
+  for (const h of DANCE_HAZE) { h.sp.position.x = h.x + 0.5 * Math.sin(t * 0.09 + h.k); h.sp.material.opacity = 0.12 + 0.06 * Math.sin(t * 0.4 + h.k); }
+  const sec = Math.floor(beat / 32) % 4;
+  for (const L of lasers) {
+    L.pivot.rotation.y = 0.45 * Math.sin(t * 0.9 + L.k * 2.1); L.pivot.rotation.z = -0.18 - 0.12 * Math.sin(t * 0.7 + L.k);
+    L.mat.opacity = sec === 1 || sec === 3 ? 0.35 * (0.4 + 0.6 * kb) : 0;
+  }
+  if (!near) { sparks.visible = false; return; }
+  sparks.visible = true;
+  const c = Math.cos(t * 0.6), s = Math.sin(t * 0.6), bx = DF.x, by = 2.55, bz = DF.z;
+  for (let i = 0; i < SPARK_N; i++) {
+    const d = sparkDir[i], dx = d[0] * c - d[2] * s, dz = d[0] * s + d[2] * c, dy = d[1];
+    let k = 99;
+    if (dx > 0) k = Math.min(k, (22.9 - bx) / dx); else if (dx < 0) k = Math.min(k, (14.1 - bx) / dx);
+    if (dz > 0) k = Math.min(k, (3.9 - bz) / dz); else if (dz < 0) k = Math.min(k, (-3.9 - bz) / dz);
+    if (dy < 0) k = Math.min(k, (0.03 - by) / dy);
+    sparkPos[i * 3] = bx + dx * k; sparkPos[i * 3 + 1] = by + dy * k; sparkPos[i * 3 + 2] = bz + dz * k;
+  }
+  sparkGeo.attributes.position.needsUpdate = true;
+  const qb = Math.floor(beat * 4);
+  if (qb !== ledBeat) {
+    ledBeat = qb;
+    const x = ledCanvas.getContext('2d'); x.fillStyle = '#05060c'; x.fillRect(0, 0, 32, 14);
+    const pal = ['#3a6cff', '#8a4aff', '#ff4ab8', '#3ad0ff'], base = Math.floor(beat / 16) % 4;
+    for (let i = 0; i < 16; i++) {
+      const h = Math.max(1, Math.round(12 * Math.abs(Math.sin(i * 0.7 + beat * 1.3)) * (0.5 + 0.5 * kb) * (0.6 + 0.4 * Math.random())));
+      x.fillStyle = pal[(base + (i > 10 ? 1 : 0)) % 4]; x.fillRect(i * 2, 13 - h, 1, h);
+      x.fillStyle = '#ffffff'; x.fillRect(i * 2, 12 - h, 1, 1);
+    }
+    ledTex.needsUpdate = true;
+  }
+}
+
+// ===== LOUNGE (where the dance room used to be): walnut panelling, red damask, leather wingbacks, a fire =====
+const L_OXB = [74, 22, 20], L_COGNAC = [104, 56, 28], L_GREEN = [26, 48, 34], L_WAL = [58, 34, 20], L_WAL_D = [36, 21, 13];
+const LOUNGE_TABLES = [], LOUNGE_CLUB = [];
+// a deep wingback armchair, built facing +z around the sitter (seat top at 0.45)
+function wingChair(x, z, yaw, col) {
+  const P = [], d = col.map((v) => v * 0.72), btn = col.map((v) => v * 0.45);
+  P.push(box(-0.36, 0.36, 0.07, 0.3, -0.38, 0.34, d, 0.04));
+  P.push(loft([rring(0.3, 0.6, 0.56, 0, 0.06, 12, 5), rring(0.43, 0.6, 0.56, 0, 0.06, 12, 5), rring(0.46, 0.54, 0.5, 0, 0.06, 12, 5)], col, { smooth: true, amt: 0.04 }));
+  P.push(loft([[V(-0.34, 0.3, -0.39), V(0.34, 0.3, -0.39), V(0.34, 0.3, -0.21), V(-0.34, 0.3, -0.21)],
+    [V(-0.35, 0.9, -0.42), V(0.35, 0.9, -0.42), V(0.35, 0.9, -0.26), V(-0.35, 0.9, -0.26)],
+    [V(-0.33, 1.12, -0.45), V(0.33, 1.12, -0.45), V(0.33, 1.12, -0.31), V(-0.33, 1.12, -0.31)],
+    [V(-0.25, 1.18, -0.45), V(0.25, 1.18, -0.45), V(0.25, 1.18, -0.34), V(-0.25, 1.18, -0.34)]], col, { amt: 0.04 }));
+  for (let r = 0; r < 3; r++) for (let k = 0; k < 4 - (r % 2); k++) {
+    const bx = -0.21 + k * 0.14 + (r % 2) * 0.07, by = 0.58 + r * 0.17, bz = -0.21 - (by - 0.3) * 0.08 - 0.005;
+    P.push(box(bx - 0.012, bx + 0.012, by - 0.012, by + 0.012, bz - 0.006, bz + 0.004, btn, 0));
+  }
+  for (const e of [-1, 1]) {
+    // wings and rolled arms
+    P.push(loft([[V(e * 0.33, 0.62, -0.42), V(e * 0.4, 0.62, -0.42), V(e * 0.4, 0.62, -0.05), V(e * 0.33, 0.62, -0.05)], [V(e * 0.33, 1.08, -0.44), V(e * 0.41, 1.08, -0.44), V(e * 0.41, 1.02, -0.12), V(e * 0.33, 1.02, -0.12)]], col, { amt: 0.04 }));
+    P.push(box(e * 0.3 - (e > 0 ? 0 : 0.12), e * 0.3 + (e > 0 ? 0.12 : 0), 0.3, 0.6, -0.38, 0.33, col, 0.04));
+    P.push(tube([V(e * 0.37, 0.62, -0.38), V(e * 0.38, 0.64, 0.0), V(e * 0.37, 0.62, 0.35)], [0.075, 0.08, 0.075], col, { n: 8, amt: 0.04 }));
+    for (const zz of [-0.32, 0.28]) P.push(cyl(V(e * 0.3, 0, zz), V(e * 0.3, 0.07, zz), 0.03, 0.04, L_WAL_D, { n: 6 }));
+  }
+  S.push(...placeParts(P, x, z, yaw, 0));
+}
+function chesterfield(x, z, yaw, len, col) {
+  const P = [], d = col.map((v) => v * 0.72), btn = col.map((v) => v * 0.45), h = len / 2;
+  P.push(box(-h, h, 0.07, 0.3, -0.42, 0.38, d, 0.04));
+  P.push(loft([rring(0.3, len - 0.3, 0.6, 0, 0.06, 14, 6), rring(0.44, len - 0.3, 0.6, 0, 0.06, 14, 6), rring(0.47, len - 0.36, 0.54, 0, 0.06, 14, 6)], col, { smooth: true, amt: 0.04 }));
+  P.push(box(-h, h, 0.3, 0.86, -0.44, -0.22, col, 0.04));
+  P.push(tube([V(-h, 0.86, -0.33), V(0, 0.88, -0.33), V(h, 0.86, -0.33)], [0.09, 0.09, 0.09], col, { n: 8, amt: 0.04 }));
+  for (let r = 0; r < 2; r++) for (let k = 0; k < Math.floor(len / 0.18); k++) {
+    const bx = -h + 0.2 + k * 0.18 + (r % 2) * 0.09; if (bx > h - 0.15) continue;
+    P.push(box(bx - 0.012, bx + 0.012, 0.56 + r * 0.16 - 0.012, 0.56 + r * 0.16 + 0.012, -0.226, -0.216, btn, 0));
+  }
+  for (const e of [-1, 1]) {
+    P.push(box(e * h - (e > 0 ? 0.16 : 0), e * h + (e > 0 ? 0 : 0.16), 0.3, 0.78, -0.42, 0.38, col, 0.04));
+    P.push(tube([V(e * (h - 0.08), 0.8, -0.42), V(e * (h - 0.07), 0.82, 0.0), V(e * (h - 0.08), 0.8, 0.38)], [0.09, 0.095, 0.09], col, { n: 8, amt: 0.04 }));
+    for (const zz of [-0.36, 0.32]) P.push(cyl(V(e * (h - 0.08), 0, zz), V(e * (h - 0.08), 0.07, zz), 0.03, 0.04, L_WAL_D, { n: 6 }));
+  }
+  S.push(...placeParts(P, x, z, yaw, 0));
+}
+// a green-shaded banker's lamp: a little pool of light on each table
+function bankLamp(x, y, z) {
+  S.push(box(x - 0.09, x + 0.09, y, y + 0.025, z - 0.06, z + 0.06, BRASS_D, 0.03));
+  S.push(cyl(V(x, y + 0.025, z), V(x, y + 0.3, z), 0.012, 0.012, BRASS, { n: 5 }));
+  S.push(loft([[V(x - 0.17, y + 0.27, z - 0.05), V(x + 0.17, y + 0.27, z - 0.05), V(x + 0.17, y + 0.27, z + 0.08), V(x - 0.17, y + 0.27, z + 0.08)], [V(x - 0.16, y + 0.36, z - 0.01), V(x + 0.16, y + 0.36, z - 0.01), V(x + 0.16, y + 0.36, z + 0.03), V(x - 0.16, y + 0.36, z + 0.03)]], [20, 92, 46], { amt: 0.03 }));
+  G.push(box(x - 0.15, x + 0.15, y + 0.268, y + 0.272, z - 0.04, z + 0.07, [255, 220, 150], 0));
+}
+function decanterSet(x, y, z) {
+  S.push(loft([rring(y, 0.1, 0.1, x, z, 10, 2), rring(y + 0.12, 0.12, 0.12, x, z, 10, 2), rring(y + 0.2, 0.06, 0.06, x, z, 10, 2), rring(y + 0.26, 0.035, 0.035, x, z, 10, 2)], [120, 74, 30], { smooth: true, amt: 0.03 }));
+  S.push(loft([rring(y + 0.26, 0.05, 0.05, x, z, 8, 2), rring(y + 0.3, 0.06, 0.06, x, z, 8, 2), rring(y + 0.33, 0.01, 0.01, x, z, 8, 2)], [180, 196, 206], { smooth: true, amt: 0.03 }));
+  for (const [dx, dz] of [[0.14, 0.05], [-0.12, 0.1]]) S.push(cyl(V(x + dx, y, z + dz), V(x + dx, y + 0.07, z + dz), 0.03, 0.034, [150, 110, 50], { n: 8, amt: 0.03 }));
+}
+function lTable(x, z, kind) {
+  if (kind === 'low') {
+    S.push(box(x - 0.55, x + 0.55, 0.36, 0.42, z - 0.3, z + 0.3, L_WAL, 0.04));
+    S.push(box(x - 0.5, x + 0.5, 0.42, 0.44, z - 0.26, z + 0.26, [30, 46, 36], 0.03));
+    for (const [dx, dz] of [[-0.48, -0.24], [0.48, -0.24], [-0.48, 0.24], [0.48, 0.24]]) S.push(cyl(V(x + dx, 0, z + dz), V(x + dx, 0.36, z + dz), 0.025, 0.03, L_WAL_D, { n: 6 }));
+    decanterSet(x - 0.2, 0.44, z);
+    for (const dx of [0.2, 0.32]) { S.push(cyl(V(x + dx, 0.44, z - 0.05), V(x + dx, 0.47, z - 0.05), 0.022, 0.022, [230, 220, 200], { n: 8 })); G.push(cyl(V(x + dx, 0.47, z - 0.05), V(x + dx, 0.5, z - 0.05), 0.004, 0.002, [255, 190, 90], { n: 4, amt: 0 })); }
+    return;
+  }
+  S.push(cyl(V(x, 0, z), V(x, 0.04, z), 0.26, 0.24, L_WAL_D, { n: 12 }));
+  S.push(cyl(V(x, 0.04, z), V(x, 0.56, z), 0.05, 0.04, L_WAL, { n: 8 }));
+  S.push(cyl(V(x, 0.56, z), V(x, 0.6, z), 0.44, 0.44, L_WAL, { n: 18, amt: 0.04 }));
+  S.push(cyl(V(x, 0.6, z), V(x, 0.605, z), 0.38, 0.38, [36, 52, 40], { n: 18, amt: 0.03 }));
+  bankLamp(x + 0.1, 0.605, z - 0.12);
+  decanterSet(x - 0.16, 0.605, z + 0.1);
+  S.push(cyl(V(x + 0.18, 0.605, z + 0.17), V(x + 0.18, 0.625, z + 0.17), 0.06, 0.05, [30, 30, 34], { n: 10 }));
+  S.push(cyl(V(x + 0.14, 0.63, z + 0.16), V(x + 0.26, 0.632, z + 0.2), 0.012, 0.012, [96, 60, 30], { n: 5 }));
+}
+// table groups: three wingbacks round each table, the fireside sofa and two chairs at the coffee table
+function tableGroup(tx, tz, seats, kind) {
+  const ti = LOUNGE_TABLES.length; LOUNGE_TABLES.push({ x: tx, z: tz, seats: [] });
+  lTable(tx, tz, kind);
+  for (const [x, z, col, sofa] of seats) {
+    const yaw = Math.atan2(tx - x, tz - z);
+    if (!sofa) wingChair(x, z, yaw, col);
+    LOUNGE_CLUB.push([x, z, sofa ? 0 : yaw, ti]);
+  }
+}
+tableGroup(6.5, 2.55, [[5.6, 2.55, L_OXB], [7.4, 2.55, L_COGNAC], [6.5, 1.65, L_OXB]]);
+tableGroup(12.5, 2.55, [[11.6, 2.55, L_COGNAC], [13.4, 2.55, L_OXB], [12.5, 1.65, L_COGNAC]]);
+tableGroup(6.5, -2.55, [[5.6, -2.55, L_GREEN], [7.4, -2.55, L_OXB], [6.5, -1.65, L_GREEN]]);
+tableGroup(12.5, -2.55, [[11.6, -2.55, L_OXB], [13.4, -2.55, L_GREEN], [12.5, -1.65, L_OXB]]);
+chesterfield(9.5, 1.82, 0, 1.9, L_OXB);
+tableGroup(9.5, 2.75, [[8.95, 1.85, L_OXB, 1], [9.5, 1.85, L_OXB, 1], [10.05, 1.85, L_OXB, 1], [8.45, 2.95, L_COGNAC], [10.55, 2.95, L_COGNAC]], 'low');
+// the fireplace on the front wall: black marble surround, brass fender, a log fire; a painting over the mantel
+{
+  const FX = 9.5, MB = [22, 22, 26];
+  S.push(box(FX - 1.1, FX + 1.1, 0, 0.05, 3.3, 3.98, [40, 38, 40], 0.03));
+  for (const e of [-1, 1]) S.push(box(FX + e * 0.5 - (e > 0 ? 0 : 0.4), FX + e * 0.5 + (e > 0 ? 0.4 : 0), 0.05, 1.265, 3.72, 3.975, MB, 0.03));
+  S.push(box(FX - 0.5, FX + 0.5, 0.86, 1.265, 3.72, 3.975, MB, 0.03));
+  S.push(box(FX - 0.5, FX + 0.5, 0.05, 0.86, 3.94, 3.98, [8, 6, 6], 0.02));
+  for (const e of [-1, 1]) S.push(box(FX + e * 0.5 - 0.01, FX + e * 0.5 + 0.01, 0.05, 0.86, 3.73, 3.94, [10, 8, 8], 0.02));
+  S.push(box(FX - 1.05, FX + 1.05, 1.3, 1.38, 3.6, 3.98, MB, 0.03));
+  S.push(box(FX - 1.06, FX + 1.06, 1.27, 1.295, 3.62, 3.975, BRASS, 0.02));
+  for (const e of [-1, 1]) S.push(box(FX + e * 0.62 - 0.08, FX + e * 0.62 + 0.08, 0.05, 1.265, 3.66, 3.725, MB, 0.03));
+  S.push(box(FX - 0.6, FX + 0.6, 0.05, 0.14, 3.38, 3.42, BRASS, 0.02));
+  for (const [x0, x1] of [[-0.35, 0.3], [-0.25, 0.38]]) S.push(cyl(V(FX + x0, 0.18, 3.82), V(FX + x1, 0.22, 3.86), 0.06, 0.06, [50, 30, 18], { n: 6 }));
+  G.push(box(FX - 0.32, FX + 0.32, 0.14, 0.2, 3.78, 3.92, [255, 110, 30], 0));
+  for (const dx of [-0.75, 0.75]) { S.push(cyl(V(FX + dx, 1.38, 3.8), V(FX + dx, 1.62, 3.8), 0.025, 0.025, [236, 228, 210], { n: 6 })); G.push(cyl(V(FX + dx, 1.62, 3.8), V(FX + dx, 1.67, 3.8), 0.008, 0.003, [255, 190, 90], { n: 4, amt: 0 })); }
+  S.push(box(FX - 0.12, FX + 0.12, 1.38, 1.62, 3.78, 3.9, L_WAL, 0.03)); G.push(cyl(V(FX, 1.52, 3.776), V(FX, 1.52, 3.772), 0.07, 0.07, [230, 220, 190], { n: 10, amt: 0 }));
+  S.push(box(FX - 0.66, FX + 0.66, 1.62, 2.64, 3.93, 3.97, BRASS_D, 0.03));
+}
+const loungePainting = new THREE.Mesh(new THREE.PlaneGeometry(1.16, 0.86), decal({ map: canvasTex(32, 24, (x, w, h) => {
+  for (let j = 0; j < h; j++) { const k = j / h; x.fillStyle = `rgb(${Math.round(40 + 70 * k)},${Math.round(30 + 40 * k)},${Math.round(30 + 10 * k)})`; x.fillRect(0, j, w, 1); }
+  x.fillStyle = 'rgb(22,30,20)'; for (let i = 0; i < w; i++) { const hh = 6 + Math.round(3 * Math.sin(i * 0.4) + 2 * Math.sin(i * 1.3)); x.fillRect(i, h - hh, 1, hh); }
+  x.fillStyle = 'rgb(220,180,110)'; x.fillRect(20, 5, 3, 3);
+  x.fillStyle = 'rgb(30,20,14)'; x.fillRect(8, 12, 1, 8); x.fillRect(6, 11, 5, 3);
+}) }));
+loungePainting.position.set(9.5, 2.13, 3.925); loungePainting.rotation.y = Math.PI; scene.add(loungePainting);
+// bookcases either side of the fire, a drinks cabinet and a long-case clock at the back
+function bookcase(x0, x1, z0, z1, face) {
+  S.push(box(x0, x1, 0, 0.1, z0, z1, L_WAL_D, 0.03));
+  S.push(box(x0, x1, 0.1, 2.55, face > 0 ? z0 : z1 - 0.04, face > 0 ? z0 + 0.04 : z1, L_WAL_D, 0.03));
+  for (const xx of [x0, x1 - 0.04]) S.push(box(xx, xx + 0.04, 0.1, 2.55, z0, z1, L_WAL_D, 0.03));
+  S.push(box(x0 - 0.03, x1 + 0.03, 2.55, 2.63, z0 - (face < 0 ? 0.04 : 0), z1 + (face > 0 ? 0.04 : 0), L_WAL, 0.03));
+  const fz = face > 0 ? z1 : z0, back = face > 0 ? z0 + 0.04 : z1 - 0.04;
+  const BOOK = [[90, 20, 20], [30, 50, 36], [24, 30, 60], [110, 80, 40], [60, 30, 50], [140, 120, 90], [40, 40, 44]];
+  for (let s = 0; s < 5; s++) {
+    const y = 0.12 + s * 0.48;
+    S.push(box(x0 + 0.03, x1 - 0.03, y - 0.03, y, Math.min(fz, back), Math.max(fz, back), L_WAL, 0.03));
+    let bx = x0 + 0.06;
+    while (bx < x1 - 0.1) {
+      const w = 0.035 + rr() * 0.04, h = 0.26 + rr() * 0.12;
+      if (rr() < 0.06) { bx += 0.12; continue; }
+      const zA = back, zB = back + face * (0.18 + rr() * 0.04);
+      S.push(box(bx, bx + w, y, y + h, Math.min(zA, zB), Math.max(zA, zB), BOOK[Math.floor(rr() * BOOK.length)], 0.12));
+      bx += w + 0.004;
+    }
+  }
+}
+bookcase(5.3, 8.1, 3.62, 3.98, -1);
+bookcase(10.9, 13.7, 3.62, 3.98, -1);
+S.push(box(7.3, 8.3, 0, 0.95, -3.98, -3.55, L_WAL_D, 0.03)); S.push(box(7.28, 8.32, 0.95, 0.99, -3.985, -3.53, MARBLE, 0.03));
+for (let k = 0; k < 5; k++) S.push(cyl(V(7.45 + k * 0.18, 0.99, -3.75), V(7.45 + k * 0.18, 1.15 + (k % 2) * 0.08, -3.75), 0.035, 0.03, [[110, 60, 20], [40, 70, 40], [160, 120, 50]][k % 3], { n: 8, amt: 0.04 }));
+S.push(box(13.3, 13.85, 0, 2.15, -3.98, -3.62, L_WAL_D, 0.03)); S.push(cyl(V(13.575, 1.75, -3.61), V(13.575, 1.75, -3.6), 0.17, 0.17, [220, 210, 180], { n: 14, amt: 0 }));
+S.push(box(13.36, 13.79, 0.5, 1.4, -3.63, -3.6, [20, 14, 10], 0.02)); S.push(cyl(V(13.575, 1.2, -3.61), V(13.575, 0.75, -3.61), 0.008, 0.008, BRASS, { n: 4 })); S.push(cyl(V(13.575, 0.72, -3.615), V(13.575, 0.72, -3.605), 0.05, 0.05, BRASS, { n: 8 }));
+// red velvet drapes on the side walls, two brass chandeliers with candle bulbs
+for (const [x, nx] of [[5.06, 1], [13.94, -1]]) for (const zc of [-2.6, 2.6]) {
+  for (let k = 0; k < 6; k++) { const z = zc - 0.55 + k * 0.22; S.push(tube([V(x, 0.02, z), V(x + nx * (0.05 + 0.03 * (k % 2)), 1.4, z), V(x, 2.95, z)], [0.07, 0.08, 0.06], [92, 12, 20], { n: 6, amt: 0.08 })); }
+  S.push(box(x - 0.04, x + 0.04, 2.95, 3.02, zc - 0.7, zc + 0.7, BRASS, 0.02));
+}
+for (const cx of [7.25, 11.75]) {
+  S.push(cyl(V(cx, 3.2, 0), V(cx, 2.75, 0), 0.01, 0.01, BRASS_D, { n: 4 }));
+  S.push(loft([rring(2.62, 0.04, 0.04, cx, 0, 8, 2), rring(2.68, 0.2, 0.2, cx, 0, 8, 2), rring(2.76, 0.08, 0.08, cx, 0, 8, 2)], BRASS, { amt: 0.03 }));
+  for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4, ax = cx + Math.cos(a) * 0.48, az = Math.sin(a) * 0.48;
+    S.push(tube([V(cx, 2.66, 0), V(cx + Math.cos(a) * 0.3, 2.56, Math.sin(a) * 0.3), V(ax, 2.62, az)], [0.012, 0.012, 0.012], BRASS, { n: 4 }));
+    S.push(cyl(V(ax, 2.62, az), V(ax, 2.7, az), 0.02, 0.016, [236, 228, 210], { n: 6 }));
+    G.push(loft([rring(2.7, 0.01, 0.01, ax, az, 6, 2), rring(2.74, 0.05, 0.05, ax, az, 6, 2), rring(2.79, 0.01, 0.01, ax, az, 6, 2)], [255, 200, 120], { amt: 0 }));
+  }
+}
+const loungeLights = [7.25, 11.75].map((x) => pLight(0xffa860, 0.85, 6.5, x, 2.4, 0));
+const hearthLight = pLight(0xff7a30, 1.1, 5.5, 9.5, 0.7, 3.2);
+// flames: a few flickering additive cards in the firebox
+const flameTex = (() => { const c = document.createElement('canvas'); c.width = 16; c.height = 32; const x = c.getContext('2d'), g = x.createLinearGradient(0, 32, 0, 0); g.addColorStop(0, 'rgba(255,200,80,0.95)'); g.addColorStop(0.5, 'rgba(255,110,30,0.7)'); g.addColorStop(1, 'rgba(255,60,10,0)'); x.fillStyle = g; x.beginPath(); x.moveTo(8, 0); x.quadraticCurveTo(16, 20, 8, 32); x.quadraticCurveTo(0, 20, 8, 0); x.fill(); return new THREE.CanvasTexture(c); })();
+const FLAMES = [];
+for (let k = 0; k < 4; k++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  sp.position.set(9.5 - 0.27 + k * 0.18, 0.36, 3.84); sp.scale.set(0.2, 0.36, 1); scene.add(sp); FLAMES.push(sp);
+}
+function loungeTick(dt, t) {
+  const f = 0.85 + 0.15 * Math.sin(t * 13) * Math.sin(t * 7.3 + 1) + 0.1 * Math.sin(t * 2.1);
+  hearthLight.intensity = 1.1 * f;
+  FLAMES.forEach((sp, k) => { const s = 0.85 + 0.25 * Math.abs(Math.sin(t * (5 + k) + k * 2)); sp.scale.set(0.18 + 0.04 * Math.sin(t * 9 + k), 0.34 * s, 1); sp.material.opacity = 0.7 + 0.3 * Math.sin(t * 11 + k * 3); });
+  for (const l of loungeLights) l.intensity = 0.85 + 0.03 * Math.sin(t * 3.1 + l.position.x);
+}
+// a Persian rug by the fire and a runner down the middle
+const loungeRugTex = (field, border) => canvasTex(32, 48, (x, w, h) => {
+  x.fillStyle = border; x.fillRect(0, 0, w, h);
+  x.fillStyle = '#c8a050'; x.fillRect(2, 2, w - 4, h - 4);
+  x.fillStyle = field; x.fillRect(3, 3, w - 6, h - 6);
+  for (let j = 6; j < h - 6; j += 6) for (let i = 6; i < w - 6; i += 6) { x.fillStyle = (i + j) % 12 ? '#2a3050' : '#c8a050'; x.fillRect(i, j, 2, 2); }
+  x.fillStyle = '#d8b060'; x.fillRect(w / 2 - 5, h / 2 - 8, 10, 16); x.fillStyle = field; x.fillRect(w / 2 - 3, h / 2 - 6, 6, 12); x.fillStyle = '#2a3050'; x.fillRect(w / 2 - 1, h / 2 - 3, 2, 6);
+});
+{
+  const r1 = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.4), decal({ map: loungeRugTex('#6a1418', '#1e2440') })); r1.rotation.x = -Math.PI / 2; r1.position.set(9.5, 0.012, 2.35); scene.add(r1);
+  const r2 = new THREE.Mesh(new THREE.PlaneGeometry(8.4, 1.2), decal({ map: loungeRugTex('#4a1014', '#1e2440') })); r2.rotation.x = -Math.PI / 2; r2.position.set(9.5, 0.012, 0); scene.add(r2);
+  for (const [x, z] of [[6.5, 2.55], [12.5, 2.55], [6.5, -2.55], [12.5, -2.55]]) { const r = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.3), decal({ map: loungeRugTex('#3a1a12', '#14181e') })); r.rotation.x = -Math.PI / 2; r.position.set(x, 0.011, z); scene.add(r); }
+}
 
 // ===== TV ROOM =====
 // big screen on the left wall (x = -13), facing the couches
 const TV = { x: -12.93, y: 1.75, z: -7.5, w: 3.6, h: 2.02 };
-S.push(box(-13.0, -12.95, TV.y - TV.h / 2 - 0.1, TV.y + TV.h / 2 + 0.1, TV.z - TV.w / 2 - 0.1, TV.z + TV.w / 2 + 0.1, [12, 12, 16], 0.03));
+S.push(box(-12.99, -12.95, TV.y - TV.h / 2 - 0.1, TV.y + TV.h / 2 + 0.1, TV.z - TV.w / 2 - 0.1, TV.z + TV.w / 2 + 0.1, [12, 12, 16], 0.03));
 for (const [y0, y1, z0, z1] of [[TV.y - TV.h / 2 - 0.12, TV.y - TV.h / 2 - 0.04, TV.z - TV.w / 2 - 0.12, TV.z + TV.w / 2 + 0.12],
   [TV.y + TV.h / 2 + 0.04, TV.y + TV.h / 2 + 0.12, TV.z - TV.w / 2 - 0.12, TV.z + TV.w / 2 + 0.12],
   [TV.y - TV.h / 2 - 0.12, TV.y + TV.h / 2 + 0.12, TV.z - TV.w / 2 - 0.12, TV.z - TV.w / 2 - 0.04],
@@ -1923,13 +2284,13 @@ banquette(-5.05, -3.29, -Math.PI / 2, 3.4, VELVET_R, VELVET_RD);
 loungeTable(-6.5, -2.3);
 for (const x of [-7.7, -7.0, -6.3, -5.6]) POOL_SOFA.push([x, -3.62, 0]);
 for (const z of [-2.7, -2.0, -1.3, -0.6]) POOL_SOFA.push([-5.38, z, -Math.PI / 2]);
-// velvet rope in front of the VIP door
-for (const z of [-8.75, -6.75]) {
-  S.push(cyl(V(-5.4, 0, z), V(-5.4, 0.03, z), 0.13, 0.12, BRASS_D, { n: 8 }));
-  S.push(cyl(V(-5.4, 0.03, z), V(-5.4, 0.95, z), 0.025, 0.025, BRASS, { n: 6 }));
-  S.push(cyl(V(-5.4, 0.95, z), V(-5.4, 1.01, z), 0.045, 0.03, BRASS, { n: 6 }));
+// velvet rope in front of the VIP door, in the main bar
+for (const x of [-4.85, -3.35]) {
+  S.push(cyl(V(x, 0, -3.55), V(x, 0.03, -3.55), 0.13, 0.12, BRASS_D, { n: 8 }));
+  S.push(cyl(V(x, 0.03, -3.55), V(x, 0.95, -3.55), 0.025, 0.025, BRASS, { n: 6 }));
+  S.push(cyl(V(x, 0.95, -3.55), V(x, 1.01, -3.55), 0.045, 0.03, BRASS, { n: 6 }));
 }
-S.push(tube([V(-5.4, 0.9, -8.75), V(-5.43, 0.72, -8.25), V(-5.45, 0.66, -7.75), V(-5.43, 0.72, -7.25), V(-5.4, 0.9, -6.75)], [0.022, 0.022, 0.022, 0.022, 0.022], VELVET, { n: 5 }));
+S.push(tube([V(-4.85, 0.9, -3.55), V(-4.47, 0.72, -3.57), V(-4.1, 0.66, -3.58), V(-3.72, 0.72, -3.57), V(-3.35, 0.9, -3.55)], [0.022, 0.022, 0.022, 0.022, 0.022], VELVET, { n: 5 }));
 sconceZ(-6.2, -10.97, 1); sconceZ(-12.0, -10.97, 1);
 
 
@@ -2150,7 +2511,6 @@ const VTV = { x: -1.5, y: 1.68, z: -4.09, w: 2.4, h: 1.35 };
   S.push(...T);
   G.push(box(VTV.x - 1.05, VTV.x + 1.05, 0.045, 0.06, -4.44, -4.05, PINK, 0));
 }
-succulent(-4.55, 0, -4.45, 2.2);
 // a tall glass-front humidor beside the TV, stocked with cigars (a few gaps where some have been smoked)
 {
   const HX0 = 0.45, HX1 = 1.55, HZ0 = -4.5, HZ1 = -4.02, WOOD_H = [48, 28, 18], CEDAR = [150, 96, 58];
@@ -2239,7 +2599,7 @@ for (const [x0, x1, z0, z1, nx, nz] of [[SW.x0, SW.x1, SW.z0, SW.z0, 0, 1], [SW.
 for (const [x0, x1, z0, z1] of [[SW.x0 - 0.22, SW.x1 + 0.22, SW.z0 - 0.22, SW.z0], [SW.x0 - 0.22, SW.x1 + 0.22, SW.z1, SW.z1 + 0.22], [SW.x0 - 0.22, SW.x0, SW.z0, SW.z1], [SW.x1, SW.x1 + 0.22, SW.z0, SW.z1]])
   S.push(box(x0, x1, 0, 0.035, z0, z1, [214, 206, 196], 0.03));
 // steps down into the water at one end
-for (let k = 0; k < 3; k++) S.push(box(SW.x1 - 0.35 - k * 0.3, SW.x1 - 0.02, SW.deep, -0.25 - k * 0.22, SW.z - 0.6, SW.z + 0.6, TILE, 0.04));
+for (let k = 0; k < 3; k++) S.push(box(SW.x1 - 0.35 - k * 0.3, k ? SW.x1 - 0.35 - (k - 1) * 0.3 : SW.x1 - 0.02, SW.deep + 0.002, -0.25 - k * 0.22, SW.z - 0.6 + 0.004 * k, SW.z + 0.6 - 0.004 * k, TILE, 0.04));
 const poolFloorTex = canvasTex(16, 16, (x, w, h) => {
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
     const grout = i % 4 === 0 || j % 4 === 0;
@@ -2316,13 +2676,13 @@ const GLASS_D = [16, 20, 26], RUBBER = [14, 14, 15], RIM_C = [150, 152, 158], CA
 const carEnv = (() => {
   const face = (kind) => {
     const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d');
-    if (kind === 'top') { x.fillStyle = '#20232e'; x.fillRect(0, 0, 32, 32); x.fillStyle = '#4a4e5e'; x.fillRect(10, 10, 12, 12); }
+    if (kind === 'top') { x.fillStyle = '#0c0d12'; x.fillRect(0, 0, 32, 32); x.fillStyle = '#2a2c36'; x.fillRect(12, 12, 8, 8); }
     else if (kind === 'bottom') { x.fillStyle = '#050506'; x.fillRect(0, 0, 32, 32); }
     else {
-      const g = x.createLinearGradient(0, 0, 0, 32); g.addColorStop(0, '#1a1c26'); g.addColorStop(0.45, '#3a3a44'); g.addColorStop(0.55, '#141418'); g.addColorStop(1, '#060607');
+      const g = x.createLinearGradient(0, 0, 0, 32); g.addColorStop(0, '#0a0b10'); g.addColorStop(0.45, '#1c1c24'); g.addColorStop(0.55, '#09090c'); g.addColorStop(1, '#030304');
       x.fillStyle = g; x.fillRect(0, 0, 32, 32);
       for (let k = 0; k < 4; k++) { x.fillStyle = k % 2 ? '#ffd9a0' : '#f4b870'; x.fillRect(3 + k * 8 + (kind.length % 3), 12, 2, 3); }
-      x.fillStyle = '#5a5e70'; x.fillRect(0, 15, 32, 1);
+      x.fillStyle = '#2c2e3a'; x.fillRect(0, 15, 32, 1);
     }
     return c;
   };
@@ -2330,7 +2690,7 @@ const carEnv = (() => {
   tex.needsUpdate = true;
   return tex;
 })();
-const carPaintMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 70, specular: 0x505050, envMap: carEnv, combine: THREE.AddOperation, reflectivity: 0.16 }));
+const carPaintMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 60, specular: 0x3a3a40, envMap: carEnv, combine: THREE.AddOperation, reflectivity: 0.14 }));
 const carGlassMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 110, specular: 0x8a8a8a, envMap: carEnv, combine: THREE.AddOperation, reflectivity: 0.32 }));
 const carChromeMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 90, specular: 0xb0b0b0, envMap: carEnv, combine: THREE.MixOperation, reflectivity: 0.45 }));
 // paint shading: darker toward the sills, lighter on the upward faces, and a bright reflection line just under the shoulder
@@ -2340,8 +2700,10 @@ function paintShade(belt) {
     const k = 0.58 + 0.42 * Math.min(1, Math.max(0, (y - 0.15) / Math.max(0.1, belt - 0.15))) + 0.22 * Math.max(0, n[1]);
     const side = 1 - Math.abs(n[1]);
     const streak = Math.exp(-Math.pow((y - belt * 0.9) / 0.04, 2)) * side;
-    const add = 30 * streak + 22 * Math.pow(Math.max(0, n[1]), 4);
-    return [c[0] * k + add, c[1] * k + add, c[2] * k + add];
+    // the highlight scales with the paint: a bright line on light colours, a faint cold sheen on black
+    const lum = (c[0] + c[1] + c[2]) / 765, add = (30 * streak + 22 * Math.pow(Math.max(0, n[1]), 4)) * (0.22 + 0.78 * Math.min(1, lum * 2.5));
+    const flake = 1 + 0.06 * Math.sin(v[0] * 91 + v[1] * 57 + v[2] * 73);
+    return [c[0] * k * flake + add, c[1] * k * flake + add, c[2] * k * flake + add * 1.15];
   };
 }
 // a flat slab from a polygon in the x-y plane, between z0 and z1 (side windows, buttresses, panels)
@@ -2391,8 +2753,9 @@ function doorDetails(K, half, seams, y0, y1, handles, hy) {
     for (const x of handles) K.C.push(box(x - 0.09, x + 0.09, hy - 0.016, hy + 0.016, e * (half + 0.012) - 0.008, e * (half + 0.012) + 0.008, CHROME_GRILLE, 0.02));
   }
 }
-function plates(K, xf, xr, y, zf) {
-  for (const [x, d] of [[xf, 1], [xr, -1]]) {
+function plates(K, xf, xr, y, yr) {
+  for (const [x, d, yy] of [[xf, 1, y], [xr, -1, yr == null ? y : yr]]) {
+    const y = yy;
     K.P.push(box(x - 0.008, x + 0.008, y - 0.075, y + 0.075, -0.27, 0.27, [16, 16, 18], 0.02));
     K.P.push(box(x + d * 0.006 - 0.004, x + d * 0.006 + 0.004, y - 0.06, y + 0.06, -0.25, 0.25, [214, 212, 200], 0.02));
     for (let k = 0; k < 6; k++) { const z = -0.17 + k * 0.068; K.P.push(box(x + d * 0.012 - 0.002, x + d * 0.012 + 0.002, y - 0.03, y + 0.03, z - 0.018, z + 0.018, [30, 30, 40], 0)); }
@@ -2429,10 +2792,10 @@ function carParts(kind, color, opts) {
       P.push(box(-1.1, 1.05, 0.33, 0.4, e * 1.0 - 0.07, e * 1.0 + 0.07, CAR_BLK, 0.02));
       K.C.push(box(-1.1, 1.05, 0.395, 0.41, e * 1.06 - 0.012, e * 1.06 + 0.012, CHROME_GRILLE, 0.02));
       // headlights: dark housings with two projectors and a light strip; tail lights wrapping the corners
-      P.push(box(2.42, 2.53, 0.84, 0.98, e * 0.7 - 0.2, e * 0.7 + 0.2, [20, 22, 26], 0.02));
-      for (const dz of [-0.09, 0.09]) L.push(cyl(V(2.52, 0.9, e * 0.7 + dz), V(2.54, 0.9, e * 0.7 + dz), 0.045, 0.045, head, { n: 10, amt: 0 }));
-      L.push(box(2.52, 2.545, 0.955, 0.972, e * 0.7 - 0.19, e * 0.7 + 0.19, drl, 0));
-      L.push(box(2.47, 2.53, 0.5, 0.56, e * 0.72 - 0.08, e * 0.72 + 0.08, head, 0));
+      P.push(box(2.42, 2.548, 0.84, 0.98, e * 0.7 - 0.2, e * 0.7 + 0.2, [20, 22, 26], 0.02));
+      for (const dz of [-0.09, 0.09]) L.push(cyl(V(2.548, 0.9, e * 0.7 + dz), V(2.558, 0.9, e * 0.7 + dz), 0.045, 0.045, head, { n: 10, amt: 0 }));
+      L.push(box(2.548, 2.556, 0.955, 0.972, e * 0.7 - 0.19, e * 0.7 + 0.19, drl, 0));
+      L.push(box(2.47, 2.556, 0.5, 0.56, e * 0.72 - 0.08, e * 0.72 + 0.08, head, 0));
       L.push(box(-2.53, -2.47, 0.78, 1.04, e * 0.8 - 0.1, e * 0.8 + 0.1, tail, 0));
       L.push(box(-2.5, -2.3, 0.98, 1.04, e * 0.94 - 0.03, e * 0.94 + 0.03, tail, 0));
       L.push(box(-2.535, -2.525, 0.8, 1.02, e * 0.8 - 0.05, e * 0.8 + 0.05, tailD, 0));
@@ -2447,7 +2810,7 @@ function carParts(kind, color, opts) {
     L.push(box(-2.52, -2.5, 1.6, 1.64, -0.25, 0.25, tail, 0));
     doorDetails(K, 0.995, [1.36, 0.18, -1.1], 0.48, 1.06, [0.75, -0.6], 1.0);
     mirrors(K, 1.25, 1.2, 1.08, color);
-    plates(K, 2.57, -2.53, 0.62);
+    plates(K, 2.57, -2.53, 0.42, 0.62);
     carWheelSet(K, { xs: [-1.6, 1.6], track: 1.72, r: 0.42, w: 0.3, spokes: 6, split: true, rim: [168, 170, 176], caliper: [20, 20, 22], half: 0.99 });
     shadeAll(1.1);
   } else if (kind === 'super') {
@@ -2461,7 +2824,7 @@ function carParts(kind, color, opts) {
       P.push(box(-2.2, -2.1, 0.8, 1.02, e * 0.6 - 0.02, e * 0.6 + 0.02, CAR_BLK, 0.02));
       // a big side intake behind the door, and a carbon sill
       P.push(slabXY([[-0.95, 0.38], [-0.35, 0.62], [-0.35, 0.36], [-0.95, 0.32]], e * 0.99, e * 1.012, [8, 8, 9]));
-      for (let k = 0; k < 4; k++) P.push(box(-0.9 + k * 0.14, -0.88 + k * 0.14, 0.34, 0.56, e * 1.0 - 0.012, e * 1.0 + 0.012, [40, 40, 44], 0.02));
+      for (let k = 0; k < 4; k++) P.push(box(-0.9 + k * 0.14, -0.88 + k * 0.14, 0.34, 0.56, e * 1.006 - 0.012, e * 1.006 + 0.012, [40, 40, 44], 0.02));
       P.push(box(-1.3, 1.0, 0.2, 0.26, e * 0.99 - 0.03, e * 0.99 + 0.03, [18, 18, 20], 0.02));
       // slim headlights with three LED dots, a light blade at the back
       P.push(slabXY([[2.24, 0.45], [1.92, 0.52], [1.9, 0.48], [2.24, 0.41]], e * 0.48, e * 0.82, [16, 18, 22]));
@@ -2472,7 +2835,7 @@ function carParts(kind, color, opts) {
     L.push(box(-2.27, -2.22, 0.66, 0.7, -0.8, 0.8, tail, 0));
     L.push(box(-2.275, -2.265, 0.6, 0.66, -0.7, 0.7, tailD, 0));
     P.push(box(2.2, 2.42, 0.18, 0.22, -0.85, 0.85, CAR_BLK, 0.02));
-    P.push(box(2.28, 2.36, 0.24, 0.34, -0.6, 0.6, [8, 8, 9], 0.02));
+    P.push(box(2.28, 2.372, 0.24, 0.34, -0.6, 0.6, [8, 8, 9], 0.02));
     P.push(box(-2.32, -2.0, 0.17, 0.3, -0.75, 0.75, CAR_BLK, 0.02));
     for (const z of [-0.5, -0.25, 0, 0.25, 0.5]) P.push(box(-2.34, -2.02, 0.17, 0.31, z - 0.01, z + 0.01, [30, 30, 32], 0.02));
     // engine cover louvres
@@ -2509,7 +2872,7 @@ function carParts(kind, color, opts) {
     K.C.push(box(-2.68, -2.58, 0.4, 0.44, -0.88, 0.88, CHROME_GRILLE, 0.02));
     doorDetails(K, 0.975, [1.18, -0.38, -1.75], 0.44, 0.97, [0.55, -0.9], 0.88);
     mirrors(K, 1.05, 1.08, 1.0, color);
-    plates(K, 2.69, -2.66, 0.5);
+    plates(K, 2.71, -2.66, 0.3, 0.5);
     carWheelSet(K, { xs: [-1.65, 1.65], track: 1.74, r: 0.38, w: 0.27, spokes: 7, split: true, rim: [190, 192, 198], caliper: [30, 30, 34], half: 0.975 });
     shadeAll(0.98);
   } else if (kind === 'sedan') {
@@ -2696,19 +3059,21 @@ function facade(ax, az, bx, bz, nx, nz, gaps) {
   for (const [g0, g1] of gaps || []) { if (g0 > cur) piece(cur, g0, 0); piece(g0, g1, DOOR_H); cur = g1; }
   if (cur < len) piece(cur, len, 0);
 }
-facade(-17, 4.01, 14, 4.01, 0, 1, [[16.1, 17.9]]);   // front, entrance at x -0.9..0.9
+facade(-17, 4.01, 23, 4.01, 0, 1, [[16.1, 17.9]]);   // front, entrance at x -0.9..0.9
 facade(-17.01, -11, -17.01, 4, -1, 0);                // left side: security office and card room
-facade(14.01, -12, 14.01, 4, 1, 0);                   // right side
+facade(14.01, -12, 14.01, -4, 1, 0);                  // right side, behind the dance room
+facade(14, -4.01, 23, -4.01, 0, -1);                  // back of the dance room
+facade(23.01, -4, 23.01, 4, 1, 0);                    // the dance room's end wall
 facade(-17, -11.01, 5, -11.01, 0, -1, [[12.6, 13.8]]);  // back of billiards + VIP, back door at x -4.4..-3.2
 facade(5.01, -12, 5.01, -11, -1, 0);                  // the step out at the pool lounge
 facade(5, -12.01, 14, -12.01, 0, -1);                 // back of the pool lounge
 // a brass band and cornice along the front
-S.push(box(-17, 14, 3.3, 3.36, 4.01, 4.06, BRASS_D, 0.03));
-S.push(box(-17.1, 14.1, FAC_H - 0.1, FAC_H, 4.0, 4.25, [20, 20, 24], 0.03));
+S.push(box(-17, 23, 3.3, 3.36, 4.01, 4.06, BRASS_D, 0.03));
+S.push(box(-17.1, 23.1, FAC_H - 0.1, FAC_H, 4.0, 4.25, [20, 20, 24], 0.03));
 // tall front windows, warm light behind frosted glass
-for (const x of [-15, -11, -8, -5, 5, 8, 11]) {
+for (const x of [-15, -11, -8, -5, 5, 8, 11, 16, 19.5]) {
   S.push(box(x - 0.68, x + 0.68, 0.9, 0.98, 4.02, 4.14, BRASS_D, 0.03));
-  G.push(box(x - 0.6, x + 0.6, 0.98, 2.6, 4.02, 4.035, [92, 62, 34], 0));
+  G.push(box(x - 0.6, x + 0.6, 0.98, 2.6, 4.02, 4.035, x > 14 ? [46, 34, 104] : [92, 62, 34], 0));
   for (const dx of [-0.2, 0.2]) S.push(box(x + dx - 0.02, x + dx + 0.02, 0.98, 2.6, 4.035, 4.06, [18, 18, 22], 0.03));
   S.push(box(x - 0.62, x + 0.62, 2.6, 2.68, 4.02, 4.08, [18, 18, 22], 0.03));
 }
@@ -2762,7 +3127,7 @@ for (let x = ST.x0, k = 0; x < ST.x1; k++) {
 
 // black SUVs parked along the curb (the entrance stays clear)
 const PARKED = [-10.5, -5.0, 5.0, 10.5];
-PARKED.forEach((x, i) => parkCar('suv', [[13, 13, 15], [20, 20, 24], [13, 13, 15], [36, 38, 44]][i], x, ST.curb0 + 1.1, 0, ROAD_Y));
+PARKED.forEach((x, i) => parkCar('suv', [[9, 9, 11], [11, 11, 14], [9, 9, 11], [12, 12, 15]][i], x, ST.curb0 + 1.1, 0, ROAD_Y));
 
 // passing traffic in both lanes, looping from one end of the street to the other
 const TRAFFIC = [
@@ -2833,10 +3198,10 @@ function ringPlane(r0, r1, mat, tile, y) {
   const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.set(LOT.x, y, LOT.z); scene.add(m);
   return m;
 }
-ringPlane(LOT.ro, LOT.rb + 0.6, flatMat(graniteTex, -2), 1.6, 0.006);
-ringPlane(LOT.ri, LOT.ro, flatMat(settTex, -4), 1.1, 0.01);
-groundPlane(4.6, AL.x1 + 0.8, LOT.z - 1.6, LOT.z + 1.6, settTex, 1.1, 0.009);
-groundPlane(-5.2, -2.4, LOT.z + LOT.ro - 0.2, -11.6, stoneLTex, 1.0, 0.008);
+ringPlane(LOT.ro, LOT.rb + 0.6, flatMat(graniteTex, -2), 1.6, 0.02);
+ringPlane(LOT.ri, LOT.ro, flatMat(settTex, -4), 1.1, 0.04);
+groundPlane(4.6, AL.x1 + 0.8, LOT.z - 1.6, LOT.z + 1.6, settTex, 1.1, 0.032);
+groundPlane(-5.2, -2.4, LOT.z + LOT.ro + 0.05, -11.6, stoneLTex, 1.0, 0.028);
 // pieces of a ring (curbs, hedges, inlays), each its own small box so the faces point the right way
 const ang = (a) => [Math.sin(a), -Math.cos(a)];
 function arcBox(r0, r1, y0, y1, a0, a1, steps, col, amt) {
@@ -2854,7 +3219,7 @@ function arcBox(r0, r1, y0, y1, a0, a1, steps, col, amt) {
 const MARBLE_W = [198, 194, 186], HEDGE = [30, 62, 34], BRONZE = [70, 54, 34];
 const D2R = Math.PI / 180;
 S.push(...arcBox(LOT.ri - 0.12, LOT.ri + 0.1, 0, 0.2, 0, 2 * Math.PI, 48, MARBLE_W, 0.03));
-G.push(...arcBox(LOT.ro - 0.03, LOT.ro + 0.03, 0.012, 0.018, 0, 2 * Math.PI, 64, [190, 150, 80], 0));
+G.push(...arcBox(LOT.ro - 0.03, LOT.ro + 0.03, 0.03, 0.05, 0, 2 * Math.PI, 64, [190, 150, 80], 0));
 // the island: dark lawn, four clipped cypress cones, and a three-tier fountain lit from below
 ringPlane(0, LOT.ri - 0.1, ps1(new THREE.MeshLambertMaterial({ map: canvasTex(16, 16, (x, w, h) => noiseFill(x, w, h, [26, 52, 28], 10)) })), 1.2, 0.16);
 for (let k = 0; k < 4; k++) {
@@ -2870,8 +3235,8 @@ for (let k = 0; k < 4; k++) {
   S.push(cyl(V(fx, 1.36, fz), V(fx, 1.85, fz), 0.07, 0.05, MARBLE_W, { n: 10 }));
   S.push(loft([rring(1.82, 0.08, 0.08, fx, fz, 16, 2), rring(1.9, 0.56, 0.56, fx, fz, 16, 2), rring(1.96, 0.6, 0.6, fx, fz, 16, 2), rring(1.92, 0.08, 0.08, fx, fz, 16, 2)], MARBLE_W, { amt: 0.03, smooth: true }));
   S.push(loft([rring(1.96, 0.1, 0.1, fx, fz, 10, 2), rring(2.08, 0.14, 0.14, fx, fz, 10, 2), rring(2.22, 0.02, 0.02, fx, fz, 10, 2)], BRASS, { amt: 0.03, smooth: true }));
-  G.push(loft([rring(0.56, 2.28, 2.28, fx, fz, 28, 2), rring(0.56, 0.01, 0.01, fx, fz, 28, 2)], [52, 104, 132], { amt: 0.05 }));
-  G.push(loft([rring(1.38, 1.14, 1.14, fx, fz, 20, 2), rring(1.38, 0.01, 0.01, fx, fz, 20, 2)], [70, 130, 160], { amt: 0.05 }));
+  G.push(loft([rring(0.56, 2.28, 2.28, fx, fz, 28, 2), rring(0.56, 0.01, 0.01, fx, fz, 28, 2)], [52, 104, 132], { amt: 0.05, cap: false }));
+  G.push(loft([rring(1.38, 1.14, 1.14, fx, fz, 20, 2), rring(1.38, 0.01, 0.01, fx, fz, 20, 2)], [70, 130, 160], { amt: 0.05, cap: false }));
   for (let k = 0; k < 8; k++) { const [s, c] = ang(k * Math.PI / 4); G.push(cyl(V(fx + s * 1.18, 0.6, fz + c * 1.18), V(fx + s * 1.18, 0.62, fz + c * 1.18), 0.05, 0.05, [200, 230, 255], { n: 6, amt: 0 })); }
 }
 const fountainWater = new THREE.Group(); scene.add(fountainWater);
@@ -2899,7 +3264,7 @@ function groundStrip(ax, az, bx, bz, w, y, col, h) {
 }
 for (const a of BAY_A) for (const d of [-15, 15]) {
   const [s, c] = ang(a + d * D2R);
-  G.push(groundStrip(LOT.x + s * (LOT.ro + 0.25), LOT.z + c * (LOT.ro + 0.25), LOT.x + s * LOT.rb, LOT.z + c * LOT.rb, 0.07, 0.008, [170, 136, 70]));
+  G.push(groundStrip(LOT.x + s * (LOT.ro + 0.25), LOT.z + c * (LOT.ro + 0.25), LOT.x + s * LOT.rb, LOT.z + c * LOT.rb, 0.07, 0.025, [170, 136, 70]));
 }
 for (const a of BAY_A) {
   const [s, c] = ang(a), [ts, tc] = [c, -s];
@@ -2910,7 +3275,7 @@ for (const a of BAY_A) {
   S.push(cyl(V(px, 0.06, pz), V(px, 1.08, pz), 0.025, 0.025, BRASS, { n: 6 }));
 }
 // a low clipped hedge around the far side of the drive, lit bollards and twin-globe lamps behind it
-S.push(...arcBox(LOT.rb + 0.75, LOT.rb + 1.3, 0, 0.66, -100 * D2R, 66 * D2R, 30, HEDGE, 0.12));
+S.push(...arcBox(LOT.rb + 0.75, LOT.rb + 1.3, 0.12, 0.7, -100 * D2R, 66 * D2R, 30, HEDGE, 0.12));
 S.push(...arcBox(LOT.rb + 0.7, LOT.rb + 1.35, 0, 0.12, -100 * D2R, 66 * D2R, 30, [60, 58, 56], 0.04));
 for (const d of [-105, -75, -45, -15, 15, 45]) {
   const [s, c] = ang(d * D2R), x = LOT.x + s * (LOT.rb + 0.45), z = LOT.z + c * (LOT.rb + 0.45);
@@ -2941,7 +3306,7 @@ for (const zz of [LOT.z - 1.85, LOT.z + 1.85]) {
 }
 for (const zz of [LOT.z - 1.65, LOT.z + 1.65]) S.push(box(4.8, AL.x1 + 0.8, 0, 0.1, zz - 0.07, zz + 0.07, MARBLE_W, 0.03));
 // a red carpet from the VIP back door to the drive, with brass stanchions and velvet ropes
-S.push(box(-4.2, -3.4, 0.008, 0.024, LOT.z + LOT.ro - 0.3, -11.6, [120, 14, 24], 0.04));
+S.push(box(-4.2, -3.4, 0.03, 0.045, LOT.z + LOT.ro + 0.1, -11.6, [120, 14, 24], 0.04));
 for (const x of [-4.55, -3.05]) {
   const zs = [-12.4, -14.0, -15.6, -17.0];
   for (const z of zs) {
@@ -2983,14 +3348,14 @@ function setLotCars(list) {
     const col = CAR_COLORS[c.color] || CAR_COLORS[0];
     const g = carGroup(carParts(CAR_STYLES.includes(c.style) ? c.style : 'super', col[1]));
     const a = BAY_A[c.bay];
-    g.position.set(LOT_BAYS[c.bay][0], 0.006, LOT_BAYS[c.bay][1]); g.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); g.userData.key = c.style + c.color + c.bay;
+    g.position.set(LOT_BAYS[c.bay][0], 0.02, LOT_BAYS[c.bay][1]); g.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); g.userData.key = c.style + c.color + c.bay;
     scene.add(g); lotCars.set(c.uid, g);
   }
 }
 const CAR_STYLES = ['roadster', 'coupe', 'super', 'saloon', 'suv'];
 const CAR_STYLE_NAMES = { roadster: 'Hardtop roadster', coupe: 'Open-top coupe', super: 'Wedge supercar', saloon: 'Luxury saloon', suv: 'Armoured SUV' };
 const CAR_COLORS = [['Racing red', [176, 18, 24]], ['Black', [14, 14, 16]], ['Midnight blue', [18, 26, 60]], ['Gunmetal', [62, 64, 70]], ['Pearl white', [222, 220, 212]], ['Royal purple', [70, 20, 90]], ['Emerald', [16, 80, 52]], ['Gold', [176, 140, 60]],
-  ['Candy red', [150, 6, 22]], ['Liquid silver', [150, 154, 160]], ['Machine gray', [92, 94, 98]], ['Deep teal', [14, 66, 74]], ['Desert sand', [168, 150, 118]], ['Sky blue', [70, 120, 170]]];
+  ['Candy red', [150, 6, 22]], ['Liquid silver', [150, 154, 160]], ['Machine gray', [92, 94, 98]], ['Deep teal', [14, 66, 74]], ['Desert sand', [168, 150, 118]], ['Sky blue', [70, 120, 170]], ['Dark cherry metallic', [86, 8, 16]]];
 // ---- the valet booth by the archway: black lacquer and brass, glass all round, a desk, a key cabinet and a lamp
 const VB = { x0: 11.6, x1: 13.4, z0: -18.0, z1: -16.4 };
 {
@@ -3101,14 +3466,15 @@ function doorSign(text, x, z, rotY) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.24), decal({ map: s.tex, transparent: true }));
   m.position.set(x, 2.72, z); m.rotation.y = rotY; scene.add(m);
 }
-doorSign('DANCE', 4.97, 0, -Math.PI / 2); doorSign('BAR', 5.03, 0, Math.PI / 2);
+doorSign('LOUNGE', 4.97, 0, -Math.PI / 2); doorSign('BAR', 5.03, 0, Math.PI / 2);
+doorSign('DANCE', 13.97, 0, -Math.PI / 2); doorSign('LOUNGE', 14.03, 0, Math.PI / 2);
 doorSign('BILLIARDS', -4.97, 1.5, Math.PI / 2); doorSign('BAR', -5.03, 1.5, -Math.PI / 2);
 doorSign('CINEMA', -9.2, -3.97, 0); doorSign('BILLIARDS', -9.2, -4.03, Math.PI);
 doorSign('CARD ROOM', -11.77, 2.9, Math.PI / 2); doorSign('BILLIARDS', -11.83, 2.9, -Math.PI / 2);
 doorSign('RESTROOM', 13.97, -8.0, -Math.PI / 2); doorSign('POOL', 14.05, -8.0, Math.PI / 2);
 SIGNS.push(...CARD_SIGNS);
-doorSign('POOL', 9.5, -3.97, 0); doorSign('DANCE', 9.5, -4.03, Math.PI);
-doorSign('VIP', -5.03, -7.75, -Math.PI / 2); doorSign('CINEMA', -4.97, -7.75, Math.PI / 2);
+doorSign('POOL', 9.5, -3.97, 0); doorSign('LOUNGE', 9.5, -4.03, Math.PI);
+doorSign('VIP', -4.1, -3.97, 0); doorSign('BAR', -4.1, -4.03, Math.PI); doorSign('VIP', -4.1, -5.87, 0); doorSign('BAR', -4.1, -5.93, Math.PI);
 doorSign('BACKSTREET', -3.8, -10.97, 0); doorSign('POOL', 4.97, -6.4, -Math.PI / 2); doorSign('CHANGING', 5.03, -6.4, Math.PI / 2); doorSign('VIP', -3.8, -11.05, Math.PI);
 // the big sign over the street entrance
 const outSign = goldSign("SH1DEN'S", 320, 64, 46); SIGNS.push(outSign);
@@ -3347,9 +3713,14 @@ addSpot('change-locker-0', 8, 'lean', 2.75, -7.5, -Math.PI / 2, 'Lean on the loc
     addSpot('dance-' + i + '-' + j, 0, 'dance', cx + (r() - 0.5) * 0.16, cz + (r() - 0.5) * 0.16, -Math.PI / 2 + (r() - 0.5) * 1.8, 'Dance here', hitBox(cx, 0.03, cz, DF.s - 0.04, 0.08, DF.s - 0.04));
   }
 }
+// dance room: stools at the drinks ledge, the booth bench along the back
+DANCE_STOOLS.forEach((x, i) => addSpot('dance-stool-' + i, 0, 'sit', x, 3.2, 0, 'Sit at the ledge', hitBox(x, 0.45, 3.2, 0.5, 0.9, 0.5)));
+DANCE_BENCH.forEach((x, i) => addSpot('dance-bench-' + i, 0, 'sitlow', x, -3.62, 0, 'Sit on the bench', hitBox(x, 0.4, -3.62, 0.6, 0.8, 0.6)));
+// the lounge: wingbacks round the tables, the chesterfield by the fire
+LOUNGE_CLUB.forEach(([x, z, yaw, ti], i) => { addSpot('lounge-' + i, 11, 'club', x, z, yaw, ti === 4 ? 'Sit by the fire' : 'Sit in the lounge', hitBox(x, 0.5, z, 0.7, 1.0, 0.7), { table: ti }); LOUNGE_TABLES[ti].seats.push('lounge-' + i); });
 function overflowSpot(idx) {
   const a = idx * 2.4, rx = 3.0 + (idx % 3) * 0.4, rz = 2.9 + (idx % 2) * 0.4;
-  const x = Math.min(13.0, DF.x + Math.cos(a) * rx), z = Math.max(-3.6, Math.min(3.6, DF.z + Math.sin(a) * rz));
+  const x = Math.min(21.2, DF.x + Math.cos(a) * rx), z = Math.max(-3.6, Math.min(3.6, DF.z + Math.sin(a) * rz));
   return { id: 'overflow-' + idx, cat: 0, act: 'dance', x, z, yaw: yawTo(x, z, DF.x, DF.z) };
 }
 
@@ -3444,7 +3815,7 @@ function rebuild() {
   setGlass(bt, 'whiskey'); giveTowel(bt);
   bt.act = 'bartend'; bt.root.position.set(0.4, 0, -3.35); bt.root.rotation.y = 0;
   const dj = addChar(DJ_LOOK, '', { npc: true, seedName: 'dj' });
-  dj.act = 'dj'; dj.root.position.set(13.85, 0, 0); dj.root.rotation.y = -Math.PI / 2;
+  dj.act = 'dj'; dj.root.position.set(22.85, 0.16, 0); dj.root.rotation.y = -Math.PI / 2;
   rebuildHooks();
   // the host, in his armchair in the VIP lounge
   const hostEntry = roster.find((e) => e.name.toLowerCase() === HOST_NAME.toLowerCase());
@@ -3479,7 +3850,7 @@ function rebuild() {
     swapOutfit(ch, sp && (sp.cat === 5 || sp.cat === 8) ? 'swim' : tuxFor(ch));
     setGoldGlow(ch, (ch.outfit || '').startsWith('tux-') ? ch.outfit.slice(4) : '');
     dressExtras(ch);
-    setGlass(ch, ch.act === 'pool' ? null : ch.drink);
+    setGlass(ch, ch.act === 'pool' ? null : ch.drink || (ch.act === 'club' ? (ch.phase > 0.5 ? 'whiskey' : 'martini') : null));
     const pd = lastDrinks.get(key);
     if (ch.drink && pd !== undefined && pd !== ch.drink) bartenderSays(ch.drink, ch.name);
     lastDrinks.set(key, ch.drink || '');
@@ -3679,7 +4050,8 @@ function beatNow() {
 // one view per room; the camera stays inside the room it looks at (so walls never block it), except the map
 const VIEWS = {
   bar: { tx: 0, ty: 1.2, tz: -1.4, d: 7, yaw: 0.0, pitch: 0.42 },
-  dance: { tx: 9.6, ty: 1.0, tz: 0, d: 7, yaw: -1.25, pitch: 0.45 },
+  dance: { tx: 18.6, ty: 1.0, tz: 0, d: 7, yaw: -1.25, pitch: 0.45 },
+  lounge: { tx: 9.5, ty: 0.9, tz: 1.2, d: 6.5, yaw: Math.PI - 0.55, pitch: 0.42 },
   tv: { tx: -10.5, ty: 1.4, tz: -7.5, d: 6, yaw: Math.PI / 2, pitch: 0.16 },
   pool: { tx: -8.9, ty: 0.9, tz: 0.0, d: 7, yaw: 0.85, pitch: 0.6 },
   card: { tx: -14.4, ty: 0.9, tz: 0.0, d: 6, yaw: -1.25, pitch: 0.5 },
@@ -3788,7 +4160,7 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'Shift') keys.fast = false;
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-const BIRD = { pitch: 1.3, d: 14, x0: -20, x1: 22, z0: -33, z1: 15 };
+const BIRD = { pitch: 1.3, d: 14, x0: -20, x1: 26, z0: -33, z1: 15 };
 function keyboardPan(dt) {
   const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), mz = (keys.f ? 1 : 0) - (keys.b ? 1 : 0), rot = (keys.e ? 1 : 0) - (keys.q ? 1 : 0);
   if (!mx && !mz && !rot) return;
@@ -3873,7 +4245,7 @@ function updateCamera(dt, t) {
   scene.fog.near = camDist > 12 ? 30 : outside ? 12 : 7; scene.fog.far = camDist > 12 ? 70 : outside ? 42 : 17;
   // the outside walls only show from street level outside the building
   const cx = camera.position.x, cz = camera.position.z;
-  const inBuilding = cx > -17 && cx < 14 && cz < 4 && cz > (cx > 5 ? -12 : -11);
+  const inBuilding = (cx > -17 && cx < 14 && cz < 4 && cz > (cx > 5 ? -12 : -11)) || (cx >= 14 && cx < 23 && cz < 4 && cz > -4);
   const showFacade = camera.position.y < 7.5 && !inBuilding;
   if (FACADES[0].visible !== showFacade) for (const f of FACADES) f.visible = showFacade;
   camera.lookAt(cam.tx, cam.ty, cam.tz);
@@ -3933,12 +4305,14 @@ const OBJECTS = [
   { id: 'carddoor', label: 'Card room', hit: hitBox(-11.8, 1.2, 2.9, 0.3, 2.4, 1.4), cat: 3, floor: [-11.4, 2.9], size: 0.5 },
   { id: 'plaque', label: 'Coin leaderboard', hit: hitBox(-4.85, 1.7, -1.6, 0.3, 1.5, 1.2), cat: 1, floor: [-4.4, -1.6], size: 0.5 },
   { id: 'slots', label: 'Play the slot machines', hit: hitBox(-11.0, 0.9, -3.65, 1.7, 1.8, 0.7), cat: 3, floor: [-11.0, -3.05], size: 0.7 },
-  { id: 'beggar', label: 'The old man with a cup', hit: hitBox(-13.1, 0.5, -18.35, 0.9, 1.0, 0.9), cat: 7, floor: [-13.1, -17.7], size: 0.5 },
+  { id: 'beggar', label: 'The old man with a cup', hit: hitBox(-13.1, 0.5, -34.3, 0.9, 1.0, 0.9), cat: 7, floor: [-12.6, -33.8], size: 0.5 },
+  { id: 'bouncer-front', label: 'Talk to Cerberus', hit: hitBox(-1.2, 1.0, 5.15, 0.75, 2.0, 0.75), cat: 6, floor: [-1.0, 5.7], size: 0.45 },
+  { id: 'bouncer-back', label: 'Talk to Plutus', hit: hitBox(-2.6, 1.0, -11.8, 0.75, 2.0, 0.75), cat: 7, floor: [-2.5, -12.4], size: 0.45 },
   { id: 'coin', label: 'Pick up the gold coin', hit: hitBox(0, -50, 0, 0.6, 0.6, 0.6), cat: 1, floor: [0, -50], size: 0.35 },
   { id: 'dealer', label: 'The card table', hit: hitBox(DEALER.x, 1.0, DEALER.z, 0.7, 2.0, 0.7), cat: 10, floor: [DEALER.x, DEALER.z], size: 0.45 },
   { id: 'pooltable', label: 'Play pool', hit: hitBox(PT.x, 0.45, PT.z, PT.l, 0.9, PT.w), cat: 3, floor: [PT.x, PT.z], size: 1.2 }
 ];
-const CAT_ROOM = { 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley, 8: ROOMS.change, 9: ROOMS.wc, 10: ROOMS.card };
+const CAT_ROOM = { 11: ROOMS.lounge, 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley, 8: ROOMS.change, 9: ROOMS.wc, 10: ROOMS.card };
 const targets = SPOT_LIST.map((s) => ({ kind: 'spot', s, box: new THREE.Box3(new THREE.Vector3(s.hit.x - s.hit.sx / 2, s.hit.y - s.hit.sy / 2, s.hit.z - s.hit.sz / 2), new THREE.Vector3(s.hit.x + s.hit.sx / 2, s.hit.y + s.hit.sy / 2, s.hit.z + s.hit.sz / 2)) }))
   .concat(OBJECTS.map((o) => ({ kind: 'object', o, box: new THREE.Box3(new THREE.Vector3(o.hit.x - o.hit.sx / 2, o.hit.y - o.hit.sy / 2, o.hit.z - o.hit.sz / 2), new THREE.Vector3(o.hit.x + o.hit.sx / 2, o.hit.y + o.hit.sy / 2, o.hit.z + o.hit.sz / 2)) })));
 
@@ -4040,6 +4414,7 @@ function activate(tg, x, y) {
   if (id0 === 'dealer') { if (window.POKER) window.POKER.open(); showHover(null); return; }
   if (id0 === 'slots') { if (window.SOCIAL) window.SOCIAL.openSlots(); showHover(null); return; }
   if (id0 === 'beggar') { if (window.SOCIAL) window.SOCIAL.openBeggar(); showHover(null); return; }
+  if (id0 === 'bouncer-front' || id0 === 'bouncer-back') { bouncerTalk(id0.slice(8)); showHover(null); return; }
   const info = describe(tg);
   if (info.player) { if (window.SOCIAL) window.SOCIAL.openPlayerMenu({ uid: info.player.uid, name: info.player.name }, x, y); showHover(null); return; }
   if (info.needChar) { openCreator(); return; }
@@ -4146,6 +4521,14 @@ function toast(text) {
 const PRE_HOOKS = [], POST_HOOKS = [], REBUILD_HOOKS = [];
 POST_HOOKS.push(cinemaHook);
 PRE_HOOKS.push((dt, t) => fountainTick(dt, t));
+// who is sitting at which lounge table (they toast together when two or more share one)
+PRE_HOOKS.push(() => {
+  const cnt = {};
+  for (const ch of crowd) { const s = ch.act === 'club' && ch.spot && SPOT_BY_ID[ch.spot]; if (s) cnt[s.table] = (cnt[s.table] || 0) + 1; }
+  for (const ch of crowd) { const s = ch.act === 'club' && ch.spot && SPOT_BY_ID[ch.spot]; if (s) { ch.toastN = cnt[s.table]; ch.toastT = s.table; } }
+});
+POST_HOOKS.push((dt, t, beat) => danceFxTick(dt, t, beat));
+POST_HOOKS.push((dt, t) => loungeTick(dt, t));
 const hash32 = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 9); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return n >>> 0; };
 const camRoom = () => (camT.free ? null : roomAt(cam.tx, cam.tz));
 
@@ -4519,7 +4902,7 @@ REBUILD_HOOKS.push(() => {
 });
 PRE_HOOKS.push((dt, t) => { if (ben) { const T = (t + ben.phase * 40) % 40; benPhone.visible = T >= 16 && T < 22; } });
 const SEC_FEEDS = [
-  ['BAR', [4.6, 2.9, 3.6], [0, 1, -1.2]], ['DANCE', [13.6, 2.9, 3.6], [9, 0.6, 0]], ['POOL LOUNGE', [13.6, 2.9, -4.4], [9, 0.5, -8]],
+  ['BAR', [4.6, 2.9, 3.6], [0, 1, -1.2]], ['DANCE', [22.6, 2.9, 3.6], [18, 0.6, 0]], ['POOL LOUNGE', [13.6, 2.9, -4.4], [9, 0.5, -8]],
   ['CINEMA', [-5.4, 2.9, -4.4], [-10, 1, -8]], ['BILLIARDS', [-5.4, 2.9, 3.6], [-9.4, 0.5, -0.2]], ['CARD ROOM', [-12.2, 2.9, 3.6], [-14.6, 0.5, 0]],
   ['STREET', [6, 3.6, 4.6], [0, 0.6, 9]], ['BACKSTREET', [12.5, 4.2, -12.4], [0, 0.5, -23]], null
 ];
@@ -4596,8 +4979,8 @@ function tuxFor(ch) {
 // tuxedos catch the light: a shinier material on the whole body, extra glossy red for the ruby
 const tuxMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 70, specular: 0x6a6a6a }));
 const tuxOverMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 70, specular: 0x6a6a6a, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -6 }));
-const rubyMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 110, specular: 0xa02040, emissive: 0x200006 }));
-const rubyOverMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 110, specular: 0xa02040, emissive: 0x200006, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -6 }));
+const rubyMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 22, specular: 0x3a1410, emissive: 0x0c0203 }));
+const rubyOverMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 22, specular: 0x3a1410, emissive: 0x0c0203, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -6 }));
 const haloTex = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 10, 32, 32, 32);
@@ -4615,13 +4998,13 @@ function setGoldGlow(ch, kind) {
   // shiny suit
   ch.root.traverse((o) => { if (o.isMesh && o.userData.body) o.material = o.material === charOverMat ? (ruby ? rubyOverMat : tuxOverMat) : (ruby ? rubyMat : tuxMat); });
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: goldGlowTex, color: T.glow, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
-  sp.scale.set(ruby ? 1.05 : 0.85, ruby ? 2.0 : 1.75, 1); sp.position.set(0, 0.95, 0); ch.root.add(sp); ch.glow = sp; goldGlows.add(ch);
-  const n = ruby ? 28 : kind === 'diamond' ? 22 : 14, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: T.spark, size: ruby ? 0.035 : 0.03, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+  sp.scale.set(0.7, 1.5, 1); sp.position.set(0, 0.95, 0); ch.root.add(sp); ch.glow = sp; goldGlows.add(ch);
+  const n = ruby ? 12 : kind === 'diamond' ? 12 : 8, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: T.spark, size: 0.022, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
   pts.frustumCulled = false; ch.root.add(pts); ch.glints = pts;
   // the ruby suit also casts a dark red ring of light on the floor around its owner
   if (ruby) {
-    const h = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ map: haloTex, color: 0xa0081e, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    const h = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3), new THREE.MeshBasicMaterial({ map: haloTex, color: 0x5a1408, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
     h.rotation.x = -Math.PI / 2; h.position.y = 0.04; ch.root.add(h); ch.halo = h;
   }
 }
@@ -4629,7 +5012,7 @@ POST_HOOKS.push((dt, t) => {
   for (const ch of goldGlows) {
     if (!ch.glow || !crowd.includes(ch)) { goldGlows.delete(ch); continue; }
     const ruby = ch.glowKind === 'ruby';
-    ch.glow.material.opacity = (ruby ? 0.5 : 0.4) + 0.15 * Math.sin(t * (ruby ? 1.4 : 2.2) + ch.phase * 6);
+    ch.glow.material.opacity = (ruby ? 0.2 : 0.16) + 0.05 * Math.sin(t * (ruby ? 1.1 : 2.2) + ch.phase * 6);
     const a = ch.glints.geometry.attributes.position, n = a.count;
     for (let i = 0; i < n; i++) {
       const u = (t * (ruby ? 0.25 : 0.35) + i / n + ch.phase) % 1, ang = i * 2.39 + t * (ruby ? -0.8 : 0.6), r = ruby ? 0.38 + 0.1 * Math.sin(u * 6) : 0.32;
@@ -4637,7 +5020,7 @@ POST_HOOKS.push((dt, t) => {
     }
     a.needsUpdate = true;
     ch.glints.visible = ch.root.visible;
-    if (ch.halo) { ch.halo.material.opacity = 0.6 + 0.3 * Math.sin(t * 1.8); ch.halo.rotation.z = t * 0.3; }
+    if (ch.halo) { ch.halo.material.opacity = 0.18 + 0.06 * Math.sin(t * 1.3); ch.halo.rotation.z = t * 0.1; }
   }
 });
 
@@ -4764,26 +5147,47 @@ POST_HOOKS.push((dt, t) => {
 const BEGGAR_LOOK = { jacket: 3, pants: 0, skin: 2, head: 4, hair: 4, beard: 2, eyes: 0, smoke: 0, dance: 3, spot: 7, body: 0, top: 3, bottom: 0, shoes: 0 };
 REBUILD_HOOKS.push(() => {
   const b = addChar(BEGGAR_LOOK, 'Old Tobias', { npc: true, seedName: 'beggar' });
-  b.act = 'floorsit'; b.root.position.set(-13.1, 0, -18.35); b.root.rotation.y = 0.25;
+  b.act = 'floorsit'; b.root.position.set(-13.1, 0, -34.3); b.root.rotation.y = 0.8;
   const cup = new THREE.Mesh(toGeometry([cyl(V(0, -0.05, 0), V(0, 0.06, 0), 0.035, 0.04, [180, 170, 150], { n: 8 }), cyl(V(0, -0.04, 0), V(0, 0.05, 0), 0.03, 0.035, [40, 34, 30], { n: 8 })]), charMat);
   cup.position.set(0.04, -0.33, 0.1); b.bones.elR.add(cup);
   b.fxPts = makeAura(b, 0x7a9a30, 24, { size: 0.04, normal: true }); b.flies = makeAura(b, 0x101010, 6, { size: 0.025, normal: true }); b.fxKind = 'smell'; b.phase = 0.3; PET_ANIM.add(b);
 });
 // ragged details on the ground around him: cardboard, a bottle, a bundle
-scene.add(new THREE.Mesh(toGeometry([box(-13.7, -12.5, 0.03, 0.05, -18.9, -18.0, [120, 96, 64], 0.06), cyl(V(-12.55, 0, -18.6), V(-12.55, 0.24, -18.6), 0.035, 0.03, [40, 70, 40], { n: 6 }),
-  box(-13.85, -13.45, 0, 0.3, -18.95, -18.6, [70, 60, 50], 0.08)]), roomMat));
+scene.add(new THREE.Mesh(toGeometry([box(-13.7, -12.5, 0.03, 0.05, -34.85, -33.95, [120, 96, 64], 0.06), cyl(V(-12.55, 0, -34.55), V(-12.55, 0.24, -34.55), 0.035, 0.03, [40, 70, 40], { n: 6 }),
+  box(-13.85, -13.45, 0, 0.3, -34.9, -34.55, [70, 60, 50], 0.08)]), roomMat));
 
 // ---- trash bags piled next to Tobias
 scene.add(new THREE.Mesh(toGeometry([
-  loft([rring(0.0, 0.42, 0.38, -13.85, -17.7, 10), rring(0.2, 0.52, 0.46, -13.85, -17.7, 10), rring(0.42, 0.44, 0.4, -13.85, -17.7, 10), rring(0.52, 0.16, 0.14, -13.85, -17.72, 10)], [18, 18, 20], { smooth: true, amt: 0.06 }),
-  loft([rring(0.0, 0.36, 0.34, -13.55, -17.25, 10), rring(0.18, 0.44, 0.4, -13.55, -17.25, 10), rring(0.36, 0.36, 0.33, -13.55, -17.25, 10), rring(0.45, 0.12, 0.12, -13.56, -17.27, 10)], [24, 30, 22], { smooth: true, amt: 0.06 }),
-  loft([rring(0.42, 0.34, 0.3, -13.8, -17.55, 10), rring(0.58, 0.38, 0.34, -13.8, -17.55, 10), rring(0.72, 0.28, 0.25, -13.8, -17.55, 10), rring(0.78, 0.1, 0.1, -13.8, -17.57, 10)], [14, 14, 16], { smooth: true, amt: 0.06 }),
-  cyl(V(-13.86, 0.52, -17.72), V(-13.86, 0.6, -17.72), 0.03, 0.01, [220, 200, 60], { n: 5 })]), roomMat));
+  loft([rring(0.0, 0.42, 0.38, -13.85, -33.65, 10), rring(0.2, 0.52, 0.46, -13.85, -33.65, 10), rring(0.42, 0.44, 0.4, -13.85, -33.65, 10), rring(0.52, 0.16, 0.14, -13.85, -33.67, 10)], [18, 18, 20], { smooth: true, amt: 0.06 }),
+  loft([rring(0.0, 0.36, 0.34, -13.55, -33.2, 10), rring(0.18, 0.44, 0.4, -13.55, -33.2, 10), rring(0.36, 0.36, 0.33, -13.55, -33.2, 10), rring(0.45, 0.12, 0.12, -13.56, -33.22, 10)], [24, 30, 22], { smooth: true, amt: 0.06 }),
+  loft([rring(0.42, 0.34, 0.3, -13.8, -33.5, 10), rring(0.58, 0.38, 0.34, -13.8, -33.5, 10), rring(0.72, 0.28, 0.25, -13.8, -33.5, 10), rring(0.78, 0.1, 0.1, -13.8, -33.52, 10)], [14, 14, 16], { smooth: true, amt: 0.06 }),
+  cyl(V(-13.86, 0.52, -33.67), V(-13.86, 0.6, -33.67), 0.03, 0.01, [220, 200, 60], { n: 5 })]), roomMat));
 // ---- security on the doors: two big bald men in black suits and dark shades, with earpieces,
 // one at the front entrance and one at the VIP back door; and the valet in his booth by the drive
 const BOUNCER_LOOK = { jacket: 0, pants: 1, skin: 4, head: 7, hair: 1, beard: 1, eyes: 2, smoke: 0, dance: 3, spot: 6, body: 0, top: 2, bottom: 2, shoes: 2, buff: true };
 const VALET_LOOK = { jacket: 6, pants: 1, skin: 0, head: 3, hair: 1, beard: 0, eyes: 0, smoke: 0, dance: 3, spot: 7, body: 0, top: 1, bottom: 2, shoes: 2 };
-const NPC_PROPS = [];
+const NPC_PROPS = [], BOUNCERS = {};
+// talk to the door: the answer depends on who you are here
+const BOUNCER_LINES = {
+  front: {
+    boss: ["Evening, boss. Place is all yours.", "Boss. Quiet night so far, I'll keep it that way.", "Good to see you, boss. Your armchair's waiting.", "Boss. Nobody gets past me without your say-so."],
+    member: ["You're on the list. Go on in.", "Evening. Enjoy yourself, behave yourself.", "I know your face. Go ahead.", "In you go. The jazz is on.", "Coat check's inside. Have a good night."],
+    none: ["Sorry, members only. Can't let you in.", "You're not on the list, pal. Make yourself a character first.", "No name, no entry. Members only.", "Nice try. Come back when you're a member."]
+  },
+  back: {
+    boss: ["Boss. The VIP's clear, go right through.", "Evening, boss. Lounge is warmed up for you.", "Boss. Your car's in bay one, keys with Phlegyas."],
+    vip: ["VIP. Right this way.", "Go on through. Mind the carpet.", "You've earned it. In you go.", "Evening. Enjoy the lounge."],
+    member: ["Sorry, this door's VIP only.", "Not tonight. Spend a thousand sh1den coins and we'll talk.", "Front door's round the corner, friend.", "VIPs only back here. Nothing personal."],
+    none: ["Members only, and this is the VIP door. Can't let you in.", "Who are you? Turn around."]
+  }
+};
+function bouncerTalk(k) {
+  const b = BOUNCERS[k]; if (!b) return;
+  const me = myChar(), boss = isMod || !!(me && me.host);
+  const L = BOUNCER_LINES[k], pool = boss ? L.boss : !me ? L.none : k === 'back' ? (vipOk() ? L.vip : L.member) : L.member;
+  showBubbleOn(b, pool[Math.floor(Math.random() * pool.length)]);
+  b.nodUntil = performance.now() + 1600;
+}
 function npcProp(ch, bone, parts, x, y, z, show) {
   const m = new THREE.Mesh(toGeometry(parts), charMat); m.position.set(x, y, z); ch.bones[bone].add(m);
   NPC_PROPS.push({ ch, m, show });
@@ -4792,8 +5196,9 @@ function npcProp(ch, bone, parts, x, y, z, show) {
 const phoneParts = () => [box(-0.03, 0.03, -0.12, 0.0, -0.008, 0.008, [18, 18, 20], 0.02), box(-0.026, 0.026, -0.115, -0.005, 0.008, 0.01, [70, 110, 150], 0)];
 REBUILD_HOOKS.push(() => {
   NPC_PROPS.length = 0;
-  for (const [name, x, z, yaw] of [['Cerberus', -1.2, 5.15, 0.2], ['Plutus', -2.6, -11.8, Math.PI + 0.35]]) {
+  for (const [name, x, z, yaw, k] of [['Cerberus', -1.2, 5.15, 0.2, 'front'], ['Plutus', -2.6, -11.8, Math.PI + 0.35, 'back']]) {
     const b = addChar(BOUNCER_LOOK, name, { npc: true, seedName: name.toLowerCase(), staff: true });
+    BOUNCERS[k] = b;
     b.act = 'bouncer'; b.root.position.set(x, 0, z); b.root.rotation.y = yaw;
     // earpiece in the right ear with a coiled wire down into the collar
     const ear = new THREE.Mesh(toGeometry([box(-0.012, 0.012, -0.012, 0.012, -0.012, 0.012, [14, 14, 16], 0.02),
@@ -4802,7 +5207,7 @@ REBUILD_HOOKS.push(() => {
     npcProp(b, 'elR', phoneParts(), 0, -0.29, 0.05, (T) => T >= 23.4 && T < 30.6);
   }
   const v = addChar(VALET_LOOK, 'Phlegyas', { npc: true, seedName: 'valet', staff: true });
-  v.act = 'valet'; v.root.position.set(12.5, 0, -17.02); v.root.rotation.y = Math.PI;
+  v.act = 'valet'; v.root.position.set(12.5, 0, -32.97); v.root.rotation.y = Math.PI;
   npcProp(v, 'elR', phoneParts(), 0, -0.3, 0.06, (T) => T >= 18.3 && T < 25.7);
   npcProp(v, 'elR', [cyl(V(0, -0.05, 0), V(0, 0.05, 0), 0.035, 0.032, [236, 232, 222], { n: 10 }), cyl(V(0, 0.04, 0), V(0, 0.05, 0), 0.03, 0.03, [60, 36, 20], { n: 10 })], 0.0, -0.3, 0.06, (T) => T >= 26.3 && T < 30.7);
 });
@@ -5111,7 +5516,7 @@ $('enter').onclick = () => enterBar(true);
 $('enterQuiet').onclick = () => enterBar(false);
 $('mute').onclick = () => { setMuted(!muted); $('mute').setAttribute('aria-pressed', muted ? 'true' : 'false'); $('mute').textContent = muted ? 'Sound off' : 'Sound on'; };
 $('track').onclick = () => { if (hasCharacter() || !(window.NET && window.NET.online)) changeMusic(); else { toast('Create a character to change the music.'); } };
-for (const v of ['bar', 'dance', 'swim', 'tv', 'pool', 'card', 'sec', 'vip', 'change', 'street', 'alley', 'map']) $('v-' + v).onclick = () => setView(v);
+for (const v of ['bar', 'lounge', 'dance', 'swim', 'tv', 'pool', 'card', 'sec', 'vip', 'change', 'street', 'alley', 'map']) $('v-' + v).onclick = () => setView(v);
 // phones: one dropdown instead of a row of room buttons
 const roomSel = $('roomSelect');
 if (roomSel) roomSel.onchange = () => { const v = roomSel.value; if (v) setView(v); setTimeout(() => { roomSel.value = ''; }, 300); };
@@ -5139,7 +5544,7 @@ window.BAR = {
   meInVip() { const me = crowd.find((c) => c.mine); const sp = me && SPOT_BY_ID[me.spot]; return !!sp && sp.cat === 4; },
   viewRoom() { if (camT.free) return 'map'; const r = roomAt(cam.tx, cam.tz); for (const k in ROOMS) if (ROOMS[k] === r) return k; return ''; },
   getMyState() { return myState; },
-  _pose(look, act, t, ph) { const ch = { bones: {}, phase: ph || 0, look }; for (const k of ZERO) ch.bones[k] = { rotation: { x: 0, y: 0, z: 0, set(a, b, c) { this.x = a; this.y = b; this.z = c; } }, position: { x: 0, y: 0, z: 0, set(a, b, c) { this.x = a; this.y = b; this.z = c; } } }; pose(ch, act, 0, t); const o = {}; for (const k of ZERO) o[k] = [ch.bones[k].rotation.x, ch.bones[k].rotation.y, ch.bones[k].rotation.z, ch.bones[k].position.x, ch.bones[k].position.y, ch.bones[k].position.z]; return { o, PIV, PARENT }; },
+  _pose(look, act, t, ph, extra) { const ch = Object.assign({ bones: {}, phase: ph || 0, look }, extra || {}); for (const k of ZERO) ch.bones[k] = { rotation: { x: 0, y: 0, z: 0, set(a, b, c) { this.x = a; this.y = b; this.z = c; } }, position: { x: 0, y: 0, z: 0, set(a, b, c) { this.x = a; this.y = b; this.z = c; } } }; pose(ch, act, 0, t); const o = {}; for (const k of ZERO) o[k] = [ch.bones[k].rotation.x, ch.bones[k].rotation.y, ch.bones[k].rotation.z, ch.bones[k].position.x, ch.bones[k].position.y, ch.bones[k].position.z]; return { o, PIV, PARENT }; },
   _car(kind, color) { const K = carParts(kind, color || [176, 18, 24]); const out = []; for (const [k, arr] of Object.entries(K)) for (const part of arr) part.tris.forEach((t, i) => out.push([t.map((v) => v.slice()), part.shade ? part.shade(t[0], norm(cross(sub(t[1], t[0]), sub(t[2], t[0]))), part.cols[i]) : part.cols[i], k])); return out; },
   _parts(look) { const r = buildParts(Object.assign(randomLook(Math.random), look), 1); if (look.buff) buffUp(r.B, r.B2); return { B: r.B, B2: r.B2 }; },
   setJukebox(i, by, fresh) {

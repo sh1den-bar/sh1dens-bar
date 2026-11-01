@@ -64,7 +64,7 @@ function start() {
     if (fresh) BAR().runEvent('blackout', v.t, { v: v.v, vn: v.vn });
     if (v.v) BAR().setVictim({ uid: v.v, until: v.t + 5500 + LOCK_MS });
   });
-  db.ref('cars').on('value', (s) => { cars = s.val() || {}; updateLot(); renderCarPicker(); });
+  db.ref('cars').on('value', (s) => { cars = s.val() || {}; updateLot(); renderCarPicker(); ownerCar(); });
   setInterval(tick, 5000); tick();
   setInterval(hostTick, 60000);
   adminChanged();
@@ -319,6 +319,38 @@ function renderDonate() {
     if (keep) sel.value = keep;
   }
   charList = list;
+  const rs = $('remWho');
+  if (rs) {
+    const others = list.filter((c) => c.uid !== myUid() && c.name.toLowerCase() !== 'sh1denfps'), rk = others.map((c) => c.uid).join(',');
+    if (rs.dataset.key !== rk) { const keep = rs.value; rs.dataset.key = rk; rs.textContent = ''; for (const c of others) { const o = document.createElement('option'); o.value = c.uid; o.textContent = c.name + (NET().isOnline(c.uid) ? ' · here' : ''); rs.appendChild(o); } if (keep) rs.value = keep; }
+  }
+}
+// wipe someone from the bar: character, name, coins (so the leaderboard), shop items, perks, car; kick them out, optionally ban
+function wireRemove() {
+  const msg = $('remMsg');
+  const go = (ban) => async (e) => {
+    const b = e.currentTarget, who = $('remWho').value, c = charList.find((x) => x.uid === who);
+    if (!who || !c) return;
+    if (!b.dataset.armed) { b.dataset.armed = '1'; const t0 = b.textContent; b.textContent = 'Click again: ' + c.name; setTimeout(() => { delete b.dataset.armed; b.textContent = t0; }, 4000); return; }
+    delete b.dataset.armed; b.textContent = ban ? 'Remove & ban' : 'Remove';
+    const up = {};
+    for (const k of ['chars', 'coins', 'inv', 'perks', 'buffs', 'cars', 'mutes']) up[k + '/' + who] = null;
+    up['names/' + c.name.toLowerCase()] = null;
+    if (NET().isOnline(who)) up['kicks/' + who] = ts();
+    if (ban) up['bans/' + who] = true;
+    try { await db.ref().update(up); msg.textContent = c.name + (ban ? ' was removed and banned.' : ' was removed from the bar.'); renderDonate(); renderMods(); }
+    catch (err) { msg.textContent = "Couldn't remove them. The room's Firebase rules may need updating."; }
+  };
+  $('remGo').onclick = go(false); $('remBan').onclick = go(true);
+}
+// the owner's car: dark metallic red, set once
+function ownerCar() {
+  try {
+    if (!isAdmin() || (NET().myName() || '').toLowerCase() !== 'sh1denfps' || localStorage.getItem('sh1den-car-red') || !db) return;
+    const c = cars[myUid()] || {};
+    localStorage.setItem('sh1den-car-red', '1');
+    db.ref('cars/' + myUid()).set({ style: c.style || 'roadster', color: 14, name: NET().myName(), t: ts() }).catch(() => localStorage.removeItem('sh1den-car-red'));
+  } catch (e) { }
 }
 async function adjustCoins(target, f, label) {
   const ref = db.ref('coins/' + target), cur = (await ref.once('value')).val();
@@ -385,6 +417,7 @@ function wire() {
   setInterval(renderHud, 15000);
   wireCard();
   if ($('donGive')) wireDonate();
+  if ($('remGo')) wireRemove();
 }
 
 window.EXTRAS = {
@@ -393,7 +426,7 @@ window.EXTRAS = {
   hasCoinsRecord: () => !!mine,
   start, claimCoin, openCoins, adminChanged: () => { start(); adminChanged(); renderCard(); renderDonate(); renderMods(); },
   presenceChanged() { start(); updateLot(); renderCard(); renderDonate(); renderMods(); },
-  renderHost() { renderDonate(); renderMods(); },
+  renderHost() { renderDonate(); renderMods(); ownerCar(); },
   offline() {
     offlineMode = true;
     BAR().setSpooky(spooky); updateLot();

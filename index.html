@@ -361,6 +361,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     </div>
     <div class="group" role="group" aria-label="Camera">
       <button id="v-bar" type="button">Bar</button>
+      <button id="v-lounge" type="button">Lounge</button>
       <button id="v-dance" type="button">Dance</button>
       <button id="v-swim" type="button">Pool</button>
       <button id="v-change" type="button">Changing</button>
@@ -375,7 +376,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     </div>
     <select id="roomSelect" aria-label="Go to a room">
       <option value="">Rooms ▾</option>
-      <option value="bar">Bar</option><option value="dance">Dance</option><option value="swim">Pool lounge</option><option value="change">Changing</option>
+      <option value="bar">Bar</option><option value="lounge">Lounge</option><option value="dance">Dance</option><option value="swim">Pool lounge</option><option value="change">Changing</option>
       <option value="tv">Cinema</option><option value="pool">Billiards</option><option value="card">Card room</option><option value="sec">Security</option><option value="vip" hidden disabled>VIP</option>
       <option value="street">Street</option><option value="alley">Backstreet</option><option value="map">Map</option>
     </select>
@@ -469,6 +470,13 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
         <input id="donAmt" type="number" min="1" value="100" aria-label="Amount">
         <div class="row"><button type="button" id="donGive" class="primary">Give</button><button type="button" id="donTake">Take</button><button type="button" id="donSet">Set to</button><button type="button" id="donAll">Give everyone here</button></div>
         <div class="msg" id="donMsg" role="status"></div>
+      </div>
+      <h3>Remove someone</h3>
+      <p class="small">Wipes their character, coins and leaderboard spot, and sends them out of the bar (testers, trolls). "Remove &amp; ban" also stops them coming back.</p>
+      <div class="donate">
+        <select id="remWho" aria-label="Player to remove"></select>
+        <div class="row"><button type="button" id="remGo" class="danger">Remove</button><button type="button" id="remBan" class="danger">Remove &amp; ban</button></div>
+        <div class="msg" id="remMsg" role="status"></div>
       </div>
     </div>
   </section>
@@ -585,13 +593,13 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=58"></script>
-<script src="net.js?v=58"></script>
-<script src="bar.js?v=58"></script>
-<script src="pool.js?v=58"></script>
-<script src="extras.js?v=58"></script>
-<script src="poker.js?v=58"></script>
-<script src="social.js?v=58"></script>
+<script src="config.js?v=59"></script>
+<script src="net.js?v=59"></script>
+<script src="bar.js?v=59"></script>
+<script src="pool.js?v=59"></script>
+<script src="extras.js?v=59"></script>
+<script src="poker.js?v=59"></script>
+<script src="social.js?v=59"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
