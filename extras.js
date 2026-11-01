@@ -47,11 +47,11 @@ function start() {
     board = l.sort((a, b) => b.n - a.n); BAR().setLeaderboard(board); renderPanel();
   });
   db.ref('coins/' + myUid()).on('value', (s) => {
-    mine = s.val(); renderHud(); renderPanel();
+    mine = s.val(); renderHud(); renderPanel(); renderCard(); autoTux();
     const vipNow = spent() >= VIP_SPEND;
     NET().setVipMember(vipNow); BAR().setVipMember(vipNow);
   });
-  db.ref('perks').on('value', (s) => { perks = s.val() || {}; BAR().setPerks(perks); renderPanel(); renderGoldBtn(); });
+  db.ref('perks').on('value', (s) => { perks = s.val() || {}; BAR().setPerks(perks); renderPanel(); renderGoldBtn(); renderCard(); autoTux(); });
   db.ref('events/coin').on('value', (s) => { coinClaim = s.val(); updateCoin(); });
   db.ref('events/now').on('value', (s) => {
     const v = s.val(); if (!v || !v.k || !v.t) return;
@@ -80,11 +80,11 @@ async function passive() {
   const name = NET().myName();
   busy = true;
   try {
-    const keepS = (o) => (mine && mine.s !== undefined ? Object.assign(o, { s: mine.s }) : o);
+    const keepS = (o) => { if (mine && mine.s !== undefined) o.s = mine.s; if (mine && mine.m !== undefined) o.m = mine.m; return o; };
     if (!mine) { await db.ref('coins/' + myUid()).set({ n: 0, name, t: ts(), c: 0, s: 0 }); }
     else if (mine.s === undefined) { await db.ref('coins/' + myUid()).set({ n: mine.n, name: mine.name, t: mine.t, c: mine.c || 0, s: 0 }); }
     else if (mine.name !== name) { await db.ref('coins/' + myUid()).set(keepS({ n: mine.n, name, t: mine.t, c: mine.c || 0 })); }
-    else if (now() >= (mine.t || 0) + PASSIVE_MS) { await db.ref('coins/' + myUid()).set(keepS({ n: (mine.n || 0) + 1, name, t: ts(), c: mine.c || 0 })); }
+    else if (now() >= (mine.t || 0) + PASSIVE_MS) { const o = keepS({ n: (mine.n || 0) + 1, name, t: ts(), c: mine.c || 0 }); o.m = (mine.m || 0) + 5; await db.ref('coins/' + myUid()).set(o); }
   } catch (e) { /* the server clock may be a hair behind; try again next tick */ }
   busy = false;
 }
@@ -108,7 +108,7 @@ async function claimCoin() {
   catch (e) { BAR().toast('Too slow, someone got it.'); return; }
   try {
     const cur = (await db.ref('coins/' + myUid()).once('value')).val() || { n: 0, t: 0, c: 0 };
-    await db.ref('coins/' + myUid()).set(Object.assign({ n: (cur.n || 0) + 5, name: NET().myName(), t: cur.t, c: slot }, cur.s !== undefined ? { s: cur.s } : {}));
+    await db.ref('coins/' + myUid()).set(Object.assign({ n: (cur.n || 0) + 5, name: NET().myName(), t: cur.t, c: slot }, cur.s !== undefined ? { s: cur.s } : {}, cur.m !== undefined ? { m: cur.m } : {}));
     BAR().toast('A gold coin! +5');
     NET().say('picked up a gold coin 🪙');
   } catch (e) { BAR().toast("Couldn't bank the coin. The room's Firebase rules may need updating."); }
@@ -181,6 +181,57 @@ async function triggerEvent(k) {
 }
 
 // ---------------------------------------------------------------- UI
+// ---------------------------------------------------------------- membership: hours in the bar earn tuxedos, shown on your business card
+const TIERS = [[0, '', 'Regular'], [100, 'silver', 'Silver'], [250, 'gold', 'Gold'], [500, 'platinum', 'Platinum'], [750, 'emerald', 'Emerald'], [1000, 'diamond', 'Diamond']];
+const TUX_NAMES = { silver: 'Silver tuxedo', gold: 'Gold tuxedo', platinum: 'Platinum tuxedo', emerald: 'Emerald tuxedo', diamond: 'Diamond tuxedo', ruby: 'Ruby tuxedo' };
+const hours = () => ((mine && +mine.m) || 0) / 60;
+const isOwner = () => (NET().myName && (NET().myName() || '').toLowerCase() === 'sh1denfps') && isAdmin();
+function tierOf(h) { let t = TIERS[0]; for (const x of TIERS) if (h >= x[0]) t = x; return t; }
+function unlockedTux() {
+  if (isAdmin()) return Object.keys(TUX_NAMES).filter((k) => k !== 'ruby' || isOwner());
+  const h = hours(), out = TIERS.filter((x) => x[1] && h >= x[0]).map((x) => x[1]);
+  if (perks[myUid()] && perks[myUid()].gold && !out.includes('gold')) out.push('gold');
+  return out;
+}
+// when you reach a new level you're put in its suit, unless you'd picked something else
+let lastBest = null;
+function autoTux() {
+  if (!db || !mine || isAdmin()) return;
+  const best = tierOf(hours())[1];
+  if (lastBest === null) { lastBest = best; }
+  const p = perks[myUid()] || {};
+  if (best && best !== lastBest && (!p.wear || p.wear === lastBest)) db.ref('perks/' + myUid() + '/wear').set(best).catch(() => { });
+  else if (best && !p.wear && p.wear !== 'none' && !p.gold) db.ref('perks/' + myUid() + '/wear').set(best).catch(() => { });
+  lastBest = best;
+}
+function renderCard() {
+  const card = $('bizCard'); if (!card) return;
+  const named = NET().myName && NET().myName();
+  card.hidden = !named;
+  if (!named) return;
+  const h = hours(), tier = tierOf(h), next = TIERS.find((x) => x[0] > h);
+  const role = isOwner() ? 'Owner' : isAdmin() ? 'Co-owner' : tier[2] + ' member';
+  $('bizName').textContent = named;
+  $('bizRole').textContent = role;
+  $('bizRole').className = 'bizrole ' + (isOwner() ? 'ruby' : isAdmin() ? 'co' : tier[1] || 'reg');
+  $('bizHours').textContent = h >= 10 ? Math.floor(h).toLocaleString() + ' h' : h.toFixed(1) + ' h';
+  $('bizCoins').textContent = ((mine && mine.n) || 0).toLocaleString() + ' 🪙';
+  $('bizNext').textContent = isAdmin() ? 'Every tuxedo is yours to wear.' : next ? (next[0] - h).toFixed(1) + ' h to ' + next[2] : 'Top level reached.';
+  const sel = $('bizTux'), opts = unlockedTux(), cur = (perks[myUid()] && perks[myUid()].wear) || (perks[myUid()] && perks[myUid()].gold ? 'gold' : 'none');
+  const key = opts.join(',') + '|' + cur;
+  if (sel.dataset.key !== key) {
+    sel.dataset.key = key; sel.textContent = '';
+    for (const [v, t] of [['none', 'Normal clothes']].concat(opts.map((k) => [k, TUX_NAMES[k]]))) { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); }
+    sel.value = opts.includes(cur) ? cur : 'none';
+    sel.disabled = !opts.length;
+    $('bizTuxRow').title = opts.length ? '' : 'Spend 100 hours in the bar to earn your first tuxedo';
+  }
+}
+function wireCard() {
+  const sel = $('bizTux'); if (!sel) return;
+  sel.onchange = () => { if (!db) return; db.ref('perks/' + myUid() + '/wear').set(sel.value).catch(() => BAR().toast("Couldn't change your suit. The room's Firebase rules may need updating.")); };
+  setInterval(renderCard, 30000);
+}
 function renderHud() {
   const b = $('coinBtn'); if (!b) return;
   b.textContent = '🪙 ' + ((mine && mine.n) || 0);
@@ -253,7 +304,6 @@ function buildHostTools() {
   const box = $('adminBox'); if (!box || $('hostExtras')) { renderCarPicker(); return; }
   const wrap = document.createElement('div'); wrap.id = 'hostExtras'; wrap.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-top:12px';
   wrap.innerHTML = '<h3 style="margin:0">Events</h3><p>Everyone in the bar sees these. The power cut sends someone to the restroom stall for 5 minutes.</p><div class="row" id="eventBtns"></div>' +
-    '<div class="row"><button type="button" id="goldMe" class="mini">Wear the gold tuxedo</button></div>' +
     '<h3 style="margin:6px 0 0">My car</h3><p>Parked out back while you\'re here. sh1den always gets bay 1.</p>' +
     '<div class="inline"><select id="carStyle" aria-label="Car"></select><select id="carColor" aria-label="Color"></select></div>' +
     '<div class="row"><button type="button" id="carSave" class="mini">Park it</button><button type="button" id="carRemove" class="mini danger">Remove my car</button></div><div class="msg" id="carMsg"></div>';
@@ -266,7 +316,6 @@ function buildHostTools() {
     try { await db.ref('cars/' + myUid()).set({ style: $('carStyle').value, color: +$('carColor').value, name: NET().myName() || 'host', t: ts() }); $('carMsg').textContent = 'Parked.'; }
     catch (e) { $('carMsg').textContent = "Couldn't park it. The room's Firebase rules may need updating."; }
   };
-  $('goldMe').onclick = () => { const on = !!(perks[myUid()] && perks[myUid()].gold); db.ref('perks/' + myUid() + '/gold').set(on ? null : true).catch(() => BAR().toast("Couldn't change that. The room's Firebase rules may need updating.")); };
   $('carRemove').onclick = () => db.ref('cars/' + myUid()).remove().then(() => { $('carMsg').textContent = 'Car removed.'; }).catch(() => { });
   renderCarPicker();
 }
@@ -292,14 +341,15 @@ function wire() {
     if (NET().refreshPresence) NET().refreshPresence();
   };
   setInterval(renderHud, 15000);
+  wireCard();
 }
 
 window.EXTRAS = {
   myCoins: () => (mine && mine.n) || 0,
   mySpent: spent,
   hasCoinsRecord: () => !!mine,
-  start, claimCoin, openCoins, adminChanged: () => { start(); adminChanged(); },
-  presenceChanged() { start(); updateLot(); },
+  start, claimCoin, openCoins, adminChanged: () => { start(); adminChanged(); renderCard(); },
+  presenceChanged() { start(); updateLot(); renderCard(); },
   offline() {
     offlineMode = true;
     BAR().setSpooky(spooky); updateLot();

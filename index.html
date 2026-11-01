@@ -68,7 +68,7 @@ canvas { position: relative; z-index: 1; width: 100%; height: 100%; display: blo
 .hud { position: absolute; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; z-index: 2; }
 .hud > * { pointer-events: auto; }
-.top { top: 0; padding-top: calc(12px + env(safe-area-inset-top, 0px)); justify-content: space-between; }
+.top { top: 0; padding-top: calc(12px + env(safe-area-inset-top, 0px)); justify-content: space-between; align-items: flex-start; }
 .bottom { bottom: 0; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .brand h1 { margin: 0; font-family: var(--deco); font-weight: 400; font-size: 28px; line-height: 1; color: var(--neon);
@@ -100,8 +100,8 @@ button.danger { border-color: #6a2620; color: #ff8a7a; }
 .panel header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .x { padding: 4px 9px; }
 
-#creator { left: max(16px, env(safe-area-inset-left, 0px)); top: 70px; width: 340px; }
-#whoPanel { left: max(16px, env(safe-area-inset-left, 0px)); top: 70px; width: 240px; }
+#creator { left: max(16px, env(safe-area-inset-left, 0px)); top: 186px; width: 340px; max-height: calc(100% - 256px); }
+#whoPanel { left: max(16px, env(safe-area-inset-left, 0px)); top: 186px; width: 240px; max-height: calc(100% - 256px); }
 
 #room { right: max(16px, env(safe-area-inset-right, 0px)); top: 70px; bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   width: 330px; max-height: none; padding: 0; gap: 0; overflow-x: hidden; overflow-y: auto; }
@@ -166,6 +166,20 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 .poolwrap { width: 100%; display: flex; justify-content: center; }
 #poolCanvas { touch-action: none; border-radius: 8px; cursor: default; max-width: 100%; }
 #poolCanvas.myturn { cursor: crosshair; box-shadow: 0 0 0 2px var(--neon); }
+/* business card: who you are in the bar, how long you've spent here, and your suit */
+.brandcol { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+#bizCard { pointer-events: auto; width: 270px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+  background: linear-gradient(135deg, #15110b, #0b0907); border: 1px solid rgba(214,170,90,0.7); box-shadow: inset 0 0 0 3px #0b0907, inset 0 0 0 4px rgba(214,170,90,0.35), 0 8px 24px rgba(0,0,0,0.5); }
+#bizCard .bizrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#bizName { font-family: var(--deco); font-weight: 400; font-size: 20px; color: #f0deb0; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bizrole { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; padding: 2px 7px; border: 1px solid currentColor; white-space: nowrap; }
+.bizrole.reg { color: #b8a27a; } .bizrole.silver { color: #dfe4ee; } .bizrole.gold { color: #ffd27a; } .bizrole.platinum { color: #eef3ff; }
+.bizrole.emerald { color: #5fe0a0; } .bizrole.diamond { color: #9ae6ff; } .bizrole.co { color: #ffd27a; } .bizrole.ruby { color: #ff5a7a; text-shadow: 0 0 8px rgba(255,40,80,0.6); }
+.bizstats { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.bizstats b { color: var(--fg); font-weight: 500; text-transform: none; letter-spacing: 0; margin-left: 4px; }
+#bizTux { font-size: 11px; padding: 3px 6px; max-width: 150px; }
+#bizNext { font-size: 10px; color: var(--dim); text-align: right; }
+@media (max-width: 760px) { #bizCard { width: 210px; padding: 7px 9px; gap: 4px; } #bizName { font-size: 16px; } #bizNext { display: none; } }
 /* v42: gold staff tags, coins, poker, the restroom lock, lightning, and the phone layout */
 .nametag.staff { color: #ffd98a; border-color: rgba(214, 170, 90, 0.85); background: rgba(24, 16, 6, 0.85); letter-spacing: 0.08em; }
 #chatLog li.charon b { color: #e7c98a; }
@@ -177,7 +191,7 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 #lockOverlay span { color: #d8cfc0; }
 #lockOverlay[hidden] { display: none; }
 #coinBtn { color: #ffd98a; border-color: rgba(214,170,90,0.6); }
-#coinsPanel { left: max(16px, env(safe-area-inset-left, 0px)); top: 70px; width: 340px; background: #0c0b0d; }
+#coinsPanel { left: max(16px, env(safe-area-inset-left, 0px)); top: 186px; width: 340px; max-height: calc(100% - 256px); background: #0c0b0d; }
 #coinBal { font-family: var(--deco); font-size: 34px; color: #ffd98a; line-height: 1; }
 #rewardList { display: grid; gap: 6px; }
 .reward { display: flex; justify-content: space-between; gap: 10px; text-align: left; }
@@ -210,7 +224,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 }
 @media (max-height: 820px) {
   .keyhint { display: none; }
-  #room, #creator, #whoPanel, #coinsPanel { top: 60px; }
+  #room { top: 60px; }
   #room { bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
   .panel { max-height: calc(100% - 120px); }
   #room .tvsec { max-height: 34%; }
@@ -261,7 +275,14 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
   </div>
 
   <div class="hud top">
-    <div class="brand"><h1>SH1DEN'S</h1><span class="stat" id="count">0 regulars</span><span class="stat" id="roomStatus">Connecting…</span></div>
+    <div class="brandcol">
+      <div class="brand"><h1>SH1DEN'S</h1><span class="stat" id="count">0 regulars</span><span class="stat" id="roomStatus">Connecting…</span></div>
+      <div id="bizCard" hidden>
+        <div class="bizrow"><b id="bizName"></b><span id="bizRole" class="bizrole"></span></div>
+        <div class="bizrow bizstats"><span>Time here <b id="bizHours">0 h</b></span><span>Coins <b id="bizCoins">0</b></span></div>
+        <div class="bizrow" id="bizTuxRow"><select id="bizTux" aria-label="Your suit"></select><span id="bizNext"></span></div>
+      </div>
+    </div>
     <div class="group" role="group" aria-label="Camera">
       <button id="v-bar" type="button">Bar</button>
       <button id="v-dance" type="button">Dance</button>
@@ -453,12 +474,12 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=52"></script>
-<script src="net.js?v=52"></script>
-<script src="bar.js?v=52"></script>
-<script src="pool.js?v=52"></script>
-<script src="extras.js?v=52"></script>
-<script src="poker.js?v=52"></script>
+<script src="config.js?v=53"></script>
+<script src="net.js?v=53"></script>
+<script src="bar.js?v=53"></script>
+<script src="pool.js?v=53"></script>
+<script src="extras.js?v=53"></script>
+<script src="poker.js?v=53"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

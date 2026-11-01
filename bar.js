@@ -227,6 +227,15 @@ const PARENT = { spine: 'hips', head: 'spine', shL: 'spine', elL: 'shL', shR: 's
 PARENT.knR = 'thR';
 
 const geoCache = new Map();
+// the tuxedo collection: earned with hours in the bar (gold can also be bought), any of them for hosts, ruby for the owner
+const TUXES = {
+  silver: { jacket: [196, 200, 210], pants: [170, 174, 186], shirt: [20, 20, 24], tie: [12, 12, 14], lapel: [120, 124, 136], square: [236, 236, 240], glow: 0xdfe8ff, spark: 0xffffff },
+  gold: { jacket: [222, 178, 66], pants: [204, 160, 56], shirt: [22, 20, 18], tie: [10, 10, 12], lapel: [160, 120, 36], square: [250, 236, 190], glow: 0xffc860, spark: 0xffe6a0 },
+  platinum: { jacket: [226, 228, 234], pants: [204, 206, 214], shirt: [28, 30, 36], tie: [180, 186, 200], lapel: [150, 154, 166], square: [200, 220, 255], glow: 0xe6f0ff, spark: 0xf4f8ff },
+  emerald: { jacket: [22, 118, 70], pants: [16, 92, 54], shirt: [10, 14, 12], tie: [200, 170, 80], lapel: [10, 60, 36], square: [220, 196, 110], glow: 0x40ff9a, spark: 0xb0ffd8 },
+  diamond: { jacket: [206, 236, 250], pants: [172, 212, 234], shirt: [18, 24, 32], tie: [240, 250, 255], lapel: [130, 180, 210], square: [255, 255, 255], glow: 0x9ae6ff, spark: 0xffffff },
+  ruby: { jacket: [118, 10, 26], pants: [84, 6, 18], shirt: [10, 6, 8], tie: [150, 14, 34], lapel: [26, 4, 10], square: [200, 30, 56], glow: 0xb0102c, spark: 0xff4466 }
+};
 function buildParts(look, seed) {
   RNG = rngFrom(seed);
   const B = {}; for (const k in PIV) B[k] = [];
@@ -242,10 +251,11 @@ function buildParts(look, seed) {
   // swimwear in the pool lounge: bare top and feet, swim shorts in a colour picked from the jacket choice
   const SWIM = look.outfit === 'swim';
   const SHORTS = [[30, 110, 120], [170, 40, 50], [30, 50, 110], [24, 24, 28], [220, 214, 200], [190, 140, 40], [200, 60, 120], [40, 130, 80]][look.jacket] || [30, 110, 120];
-  const GOLDSUIT = look.outfit === 'gold';
-  const JACKET = look.outfit === 'barman' ? [222, 218, 208] : GOLDSUIT ? [222, 178, 66] : SWIM ? SKIN : LOOK.jacket[look.jacket][1];
+  const TUXK = typeof look.outfit === 'string' && look.outfit.startsWith('tux-') ? look.outfit.slice(4) : '';
+  const TUXC = TUXK ? TUXES[TUXK] : null, GOLDSUIT = !!TUXC;
+  const JACKET = look.outfit === 'barman' ? [222, 218, 208] : GOLDSUIT ? TUXC.jacket : SWIM ? SKIN : LOOK.jacket[look.jacket][1];
   const RIB = look.outfit === 'barman' ? [206, 202, 192] : JACKET.map((v) => v * 0.6);
-  const CARGO = GOLDSUIT ? [204, 160, 56] : LOOK.pants[look.pants][1];
+  const CARGO = GOLDSUIT ? TUXC.pants : LOOK.pants[look.pants][1];
   const CARGO_D = CARGO.map((v) => v * 0.74);
   const BOOT = [16, 14, 13], SOLE = [9, 8, 8], WEB = [20, 20, 19], GUN = [72, 74, 76], ZIP = [78, 78, 82];
   const RIM = [18, 18, 20], LENS = look.eyes === 2 ? [14, 14, 16] : [96, 108, 108], LENS_HI = look.eyes === 2 ? [70, 72, 80] : [170, 182, 180];
@@ -351,8 +361,8 @@ function buildParts(look, seed) {
   const TOPC = look.outfit === 'barman' || GOLDSUIT ? JACKET : LOOK.jacket[look.jacket][1];
   const BOTC = CARGO;
   const hW = F ? 1.06 : 1, lW = F ? 0.88 : 1, sX = F ? 0.9 : 1;
-  const SHIRT = TOP === 'suitdark' ? [22, 22, 26] : [226, 222, 212];
-  const TIE = TOP === 'suitdark' ? [10, 10, 12] : [110, 26, 32];
+  const SHIRT = GOLDSUIT ? TUXC.shirt : TOP === 'suitdark' ? [22, 22, 26] : [226, 222, 212];
+  const TIE = GOLDSUIT ? TUXC.tie : TOP === 'suitdark' ? [10, 10, 12] : [110, 26, 32];
 
   // pelvis and belt
   const pelvisCol = SWIM ? SHORTS : BOTC;
@@ -454,6 +464,23 @@ function buildParts(look, seed) {
     for (const y of [1.08, 1.15]) O('spine', cyl(V(0, y, fz - 0.002), V(0, y, fz + 0.006), 0.008, 0.008, [10, 10, 12], { n: 6, amt: 0.02 }));
     O('spine', loft([rring(1.445, 0.15, 0.135, 0, -0.004, 12), rring(1.5, 0.142, 0.128, 0, -0.006, 12)], SHIRT, { cap: false, smooth: true, amt: 0.02 }));
     if (TOP === 'suit') O('spine', box(0.1, 0.15, 1.33, 1.36, fz - 0.01, fz + 0.002, [235, 232, 222], 0.02));
+    if (GOLDSUIT) {
+      // peaked satin lapels in a deeper shade, and a pocket square
+      const LAP = TUXC.lapel;
+      for (const sd of [-1, 1]) {
+        O('spine', loft([[V(sd * 0.018, 1.18, fz + 0.004), V(sd * 0.12, 1.38, fz - 0.02), V(sd * 0.165, 1.42, 0.07), V(sd * 0.1, 1.45, 0.085)],
+          [V(sd * 0.018, 1.18, fz + 0.01), V(sd * 0.12, 1.38, fz - 0.014), V(sd * 0.165, 1.42, 0.076), V(sd * 0.1, 1.45, 0.091)]], LAP, { amt: 0.015 }));
+      }
+      O('spine', box(0.085, 0.14, 1.3, 1.34, fz - 0.012, fz + 0.004, TUXC.square, 0.02));
+      if (TUXK === 'ruby') {
+        // the owner's suit: a ruby brooch set in gold, a gold watch chain, satin piping and extra buttons
+        O('spine', cyl(V(-0.1, 1.36, fz - 0.006), V(-0.1, 1.36, fz + 0.012), 0.022, 0.02, [176, 136, 52], { n: 10, amt: 0.02 }));
+        O('spine', cyl(V(-0.1, 1.36, fz + 0.006), V(-0.1, 1.36, fz + 0.02), 0.015, 0.008, [235, 30, 62], { n: 10, amt: 0.02 }));
+        O('spine', tube([V(-0.1, 1.06, fz + 0.002), V(-0.05, 1.03, fz + 0.012), V(0, 1.05, fz + 0.012), V(0.06, 1.03, fz + 0.01), V(0.11, 1.06, fz + 0.002)], [0.004, 0.004, 0.004, 0.004, 0.004], [196, 154, 60], { n: 4, smooth: true }));
+        for (const y of [1.02, 1.08, 1.14, 1.2]) O('spine', cyl(V(0.05, y, fz - 0.002), V(0.05, y, fz + 0.007), 0.007, 0.007, [12, 2, 4], { n: 8, amt: 0.02 }));
+        for (const sd of [-1, 1]) O('spine', tube([V(sd * 0.2, 1.0, 0.12), V(sd * 0.23, 1.2, 0.09), V(sd * 0.21, 1.4, 0.06)], [0.004, 0.004, 0.004], TUXC.lapel, { n: 4, smooth: true }));
+      }
+    }
   } else if (TOP === 'hoodie') {
     P('spine', loft([rring(0.975, 0.35, 0.228, 0, 0, 14), rring(1.035, 0.356, 0.232, 0, 0, 14)], ribCol, { amt: 0.03, smooth: true }));
     P('spine', torso(TOPC, 0.014, 1.03));
@@ -493,6 +520,11 @@ function buildParts(look, seed) {
     P(shK, tube([V(ax(0.19), 1.445, -0.005), sh, V(ax(0.272), 1.26, -0.01), el], [0.068 * aw, 0.076 * aw, 0.07 * aw, 0.064 * aw], sleeveCol, { n: 10 }));
     P(elK, tube([add(el, V(0, 0.03, 0)), el, V(ax(0.33), 1.0, 0.01), cuffCol ? cuff0 : wr], [0.06 * aw, 0.064 * aw, 0.064 * aw, 0.062 * aw], sleeveCol, { n: 10 }));
     if (cuffCol) P(elK, cyl(cuff0, wr, 0.055 * (TOP === 'suit' || TOP === 'suitdark' ? 0.9 : 1) * lW, 0.05 * lW, cuffCol, { n: 10, smooth: true }));
+    if (GOLDSUIT) {
+      const cl = add(cuff0, V(s * 0.035, 0, 0.03));
+      P(elK, cyl(cl, add(cl, V(s * 0.012, 0, 0)), 0.011, 0.011, TUXK === 'ruby' ? [230, 28, 58] : [214, 176, 80], { n: 8, amt: 0.02 }));
+      for (let k = 0; k < (TUXK === 'ruby' ? 4 : 3); k++) { const b = add(cuff0, mul(sub(el, cuff0), 0.08 + k * 0.06)); P(elK, cyl(add(b, V(s * 0.055, 0, 0)), add(b, V(s * 0.064, 0, 0)), 0.007, 0.007, TUXC.lapel, { n: 6, amt: 0.02 })); }
+    }
     const hx = wr[0] + s * 0.004, hz = wr[2] + 0.008, hs = F ? 0.88 : 1;
     P(elK, loft([rring(0.895, 0.036 * hs, 0.074 * hs, hx, hz, 10), rring(0.845, 0.038 * hs, 0.086 * hs, hx, hz + 0.004, 10),
       rring(0.80, 0.034 * hs, 0.084 * hs, hx - s * 0.002, hz + 0.008, 10), rring(0.76, 0.026 * hs, 0.066 * hs, hx - s * 0.006, hz + 0.01, 10)], SKIN, { smooth: true }));
@@ -2782,8 +2814,8 @@ function rebuild() {
     if (prev && prev !== ch.spot) ch.pop = 0;
     lastSpots.set(key, ch.spot);
     const sp = SPOT_BY_ID[ch.spot];
-    swapOutfit(ch, sp && (sp.cat === 5 || sp.cat === 8) ? 'swim' : ch.uid && perks[ch.uid] && perks[ch.uid].gold ? 'gold' : '');
-    setGoldGlow(ch, ch.outfit === 'gold');
+    swapOutfit(ch, sp && (sp.cat === 5 || sp.cat === 8) ? 'swim' : tuxFor(ch));
+    setGoldGlow(ch, (ch.outfit || '').startsWith('tux-') ? ch.outfit.slice(4) : '');
     setGlass(ch, ch.act === 'pool' ? null : ch.drink);
     const pd = lastDrinks.get(key);
     if (ch.drink && pd !== undefined && pd !== ch.drink) bartenderSays(ch.drink, ch.name);
@@ -3823,27 +3855,59 @@ const goldGlowTex = (() => {
   return new THREE.CanvasTexture(c);
 })();
 const goldGlows = new Set();
-function setGoldGlow(ch, on) {
-  if (on && !ch.glow) {
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: goldGlowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
-    sp.scale.set(1.5, 2.4, 1); sp.position.set(0, 1.0, 0); ch.root.add(sp); ch.glow = sp; goldGlows.add(ch);
-    // little glints that drift up around the suit
-    const n = 14, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe6a0, size: 0.03, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
-    pts.frustumCulled = false; ch.root.add(pts); ch.glints = pts;
-  } else if (!on && ch.glow) { ch.root.remove(ch.glow); ch.root.remove(ch.glints); ch.glow = ch.glints = null; goldGlows.delete(ch); }
+// which tuxedo someone is wearing (what they picked in their card; bought gold falls back to gold)
+function tuxFor(ch) {
+  const p = ch.uid && perks[ch.uid];
+  if (!p) return '';
+  if (p.wear && TUXES[p.wear]) return 'tux-' + p.wear;
+  if (p.wear === 'none') return '';
+  return p.gold ? 'tux-gold' : '';
+}
+// tuxedos catch the light: a shinier material on the whole body, extra glossy red for the ruby
+const tuxMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 70, specular: 0x6a6a6a }));
+const tuxOverMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 70, specular: 0x6a6a6a, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -6 }));
+const rubyMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 110, specular: 0xa02040, emissive: 0x200006 }));
+const rubyOverMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 110, specular: 0xa02040, emissive: 0x200006, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -6 }));
+const haloTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 10, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.55, 'rgba(255,255,255,0.55)'); g.addColorStop(0.75, 'rgba(255,255,255,0.25)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+})();
+function setGoldGlow(ch, kind) {
+  if (ch.glowKind === kind) return;
+  if (ch.glow) { ch.root.remove(ch.glow); ch.root.remove(ch.glints); if (ch.halo) ch.root.remove(ch.halo); ch.glow = ch.glints = ch.halo = null; goldGlows.delete(ch); }
+  ch.glowKind = kind;
+  const T = kind && TUXES[kind];
+  if (!T) return;
+  const ruby = kind === 'ruby';
+  // shiny suit
+  ch.root.traverse((o) => { if (o.isMesh && o.userData.body) o.material = o.material === charOverMat ? (ruby ? rubyOverMat : tuxOverMat) : (ruby ? rubyMat : tuxMat); });
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: goldGlowTex, color: T.glow, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  sp.scale.set(ruby ? 2.0 : 1.5, ruby ? 2.9 : 2.4, 1); sp.position.set(0, 1.0, 0); ch.root.add(sp); ch.glow = sp; goldGlows.add(ch);
+  const n = ruby ? 28 : kind === 'diamond' ? 22 : 14, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: T.spark, size: ruby ? 0.035 : 0.03, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+  pts.frustumCulled = false; ch.root.add(pts); ch.glints = pts;
+  // the ruby suit also casts a dark red ring of light on the floor around its owner
+  if (ruby) {
+    const h = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ map: haloTex, color: 0xa0081e, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    h.rotation.x = -Math.PI / 2; h.position.y = 0.04; ch.root.add(h); ch.halo = h;
+  }
 }
 POST_HOOKS.push((dt, t) => {
   for (const ch of goldGlows) {
     if (!ch.glow || !crowd.includes(ch)) { goldGlows.delete(ch); continue; }
-    ch.glow.material.opacity = 0.75 + 0.25 * Math.sin(t * 2.2 + ch.phase * 6);
+    const ruby = ch.glowKind === 'ruby';
+    ch.glow.material.opacity = (ruby ? 0.85 : 0.75) + 0.25 * Math.sin(t * (ruby ? 1.4 : 2.2) + ch.phase * 6);
     const a = ch.glints.geometry.attributes.position, n = a.count;
     for (let i = 0; i < n; i++) {
-      const u = (t * 0.35 + i / n + ch.phase) % 1, ang = i * 2.39 + t * 0.6;
-      a.setXYZ(i, Math.cos(ang) * 0.32, 0.2 + u * 1.7, Math.sin(ang) * 0.32);
+      const u = (t * (ruby ? 0.25 : 0.35) + i / n + ch.phase) % 1, ang = i * 2.39 + t * (ruby ? -0.8 : 0.6), r = ruby ? 0.38 + 0.1 * Math.sin(u * 6) : 0.32;
+      a.setXYZ(i, Math.cos(ang) * r, 0.1 + u * (ruby ? 2.0 : 1.7), Math.sin(ang) * r);
     }
     a.needsUpdate = true;
     ch.glints.visible = ch.root.visible;
+    if (ch.halo) { ch.halo.material.opacity = 0.6 + 0.3 * Math.sin(t * 1.8); ch.halo.rotation.z = t * 0.3; }
   }
 });
 
