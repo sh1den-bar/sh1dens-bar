@@ -3571,8 +3571,10 @@ drawPlaque([]);
 
 // ---- random events: the same for everyone, roughly once an hour, plus a button for each in the host tools
 const SFX = { gain: null };
+// event sound effects are switched off: the only sounds in the bar are the two TVs and the jukebox
+const SFX_ON = false;
 function sfxOut() {
-  if (!actx || muted) return null;
+  if (!SFX_ON || !actx || muted) return null;
   if (!SFX.gain) { SFX.gain = actx.createGain(); SFX.gain.gain.value = 0.35; SFX.gain.connect(actx.destination); }
   return SFX.gain;
 }
