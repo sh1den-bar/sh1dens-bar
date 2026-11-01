@@ -1372,7 +1372,7 @@ for (const cx of [-10.0, -7.6]) for (const cz of [-1.6, 1.6]) couch(cx, TV.z + c
 S.push(box(-11.4, -10.8, 0, 0.4, TV.z - 1.0, TV.z + 1.0, LACQUER));
 S.push(box(-11.42, -10.78, 0.4, 0.43, TV.z - 1.02, TV.z + 1.02, MARBLE));
 martini(-11.1, 0.43, TV.z - 0.4); succulent(-11.1, 0.43, TV.z + 0.5, 1);
-sconce(-12.97, TV.z - 2.25, 1); sconce(-12.97, TV.z + 2.6, 1);
+sconce(-12.97, TV.z + 2.6, 1);
 
 // ===== POOL ROOM (next to the bar): the pool table, a poker table, cue rack and a corner bar =====
 const PT = { x: -9.4, z: -0.2, l: 2.6, w: 1.45 };
@@ -2846,7 +2846,6 @@ const STEPS = [
     if (s % 2 === 1) noise(t, 9500, 1.2, s % 4 === 3 ? 0.07 : 0.035, 0.03);
     if (s % 2 === 1 || s === 0) tone(t, ch[0] - 24, st * 0.95, 'sawtooth', 0.2, 260 + 400 * ((s % 8) / 8), 0);
     if (s % 2 === 1) tone(t, ch[0] - 12, st * 0.6, 'square', 0.05, 900, 0);
-    if (sec >= 1 && (s === 0 || s === 10)) for (const n of ch) tone(t, n + 12, st * 3, 'sawtooth', 0.03, 1600, -6);
     if (sec >= 2 && s % 4 === 2) tone(t, ch[(s / 2 + bar) % 3] + 24, st * 1.2, 'square', 0.03, 2600, 0);
   },
   // Last Round: noir lounge, brushed snare, ride cymbal, walking bass, soft electric piano
@@ -2863,13 +2862,12 @@ const STEPS = [
     if (s === 0 || s === 6) for (const n of ch.slice(1)) { tone(t, n + 12, SPB * 1.6, 'sine', 0.045, 2400, 0, 0.005); tone(t, n + 24, SPB * 0.5, 'triangle', 0.012, 3000, 3, 0.005); }
     if (sec >= 2 && (s === 3 || s === 9 || s === 14)) tone(t, ch[(s + bar) % ch.length] + 24, st * 3, 'sine', 0.035, 3500, 0);
   },
-  // Midnight Ledger: darkwave, gated snare, galloping bass, wide pads
+  // Midnight Ledger: darkwave, gated snare, galloping bass
   function (t, s, bar, ch, sec, st) {
     if (s % 4 === 0) kick(t, 0.85);
     if (s === 4 || s === 12) { noise(t, 1200, 0.7, 0.26, 0.22, 'bandpass'); noise(t, 6000, 0.5, 0.05, 0.18); }
     if (s % 4 === 2) noise(t, 8000, 0.8, 0.07, 0.04);
     if (s % 4 !== 1) tone(t, ch[0] - 12 + (s % 4 === 3 ? 7 : 0), st * 0.9, 'sawtooth', 0.15, 420 + 220 * Math.sin(bar * 0.7), 0);
-    if (s === 0) for (const n of ch) { tone(t, n + 12, SPB * 4.1, 'sawtooth', 0.026, 1100, -9, 0.3); tone(t, n + 12, SPB * 4.1, 'sawtooth', 0.026, 1100, 9, 0.3); }
     if (sec >= 1 && s % 2 === 0) tone(t, ch[ARP[(s / 2 + bar) % 8]] + 24, st * 1.6, 'square', 0.03, 2000, 0);
   },
   // Quiet Contract: industrial techno, rumbling kick, offbeat metal, one-note stab
