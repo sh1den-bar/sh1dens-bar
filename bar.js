@@ -3076,7 +3076,8 @@ function placeLabels() {
       if (labelV.z > 1 || labelV.z < -1 || Math.abs(labelV.x) > 1.1 || Math.abs(labelV.y) > 1.1 || dist > 40) show = false;
       x = Math.round((labelV.x + 1) / 2 * w); y = Math.round((1 - labelV.y) / 2 * h);
       const r = roomAt(ch.root.position.x, ch.root.position.z);
-      op = here && r !== here ? 0.45 : 1;
+      // tags only for people in the room you're looking at (walls don't hide HTML tags, so others would show through)
+      if (here && r !== here) show = false;
       if (hiddenInVip(ch)) show = false;
     }
     if (el) {
