@@ -264,8 +264,8 @@ function draw() {
   const w = (W + PAD * 2) * scale, h = (H + PAD * 2) * scale;
   ctx.clearRect(0, 0, w, h);
   // rail and cloth
-  ctx.fillStyle = '#3a2210'; roundRect(0, 0, w, h, 14 * scale / 60); ctx.fill();
-  ctx.fillStyle = '#1d6a40'; ctx.fillRect(PAD * scale, PAD * scale, W * scale, H * scale);
+  ctx.fillStyle = '#121012'; roundRect(0, 0, w, h, 14 * scale / 60); ctx.fill(); ctx.strokeStyle = '#ba8e46'; ctx.lineWidth = 2; roundRect(3, 3, w - 6, h - 6, 12 * scale / 60); ctx.stroke();
+  ctx.fillStyle = '#7a1626'; ctx.fillRect(PAD * scale, PAD * scale, W * scale, H * scale);
   ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 2; ctx.strokeRect(PAD * scale, PAD * scale, W * scale, H * scale);
   ctx.fillStyle = 'rgba(255,255,255,0.18)'; for (const fx of [0.25, 0.5, 0.75]) { const [px, py] = toPx(W * fx, -0.05); ctx.beginPath(); ctx.arc(px, py, 2.5, 0, 7); ctx.fill(); }
   ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); { const [a, b] = toPx(W * 0.25, 0); const [c, d] = toPx(W * 0.25, H); ctx.moveTo(a, b); ctx.lineTo(c, d); } ctx.stroke();
