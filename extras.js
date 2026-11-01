@@ -1,4 +1,4 @@
-/* SH1DEN'S — gold coins, rewards, the leaderboard plaque, random events, the restroom blackout and the private car lot. */
+/* SH1DEN'S — sh1den coins, rewards, the leaderboard plaque, random events, the restroom blackout and the private car lot. */
 (function () {
 'use strict';
 const cfg = window.BAR_CONFIG || {};
@@ -274,20 +274,7 @@ function renderAdmin() {
     back.onclick = async () => { const c = allCoins.find((x) => x.uid === r.uid); const upd = {}; upd['redeems/' + r.id] = null; if (c) upd['coins/' + r.uid + '/n'] = c.n + (r.cost || 0); await db.ref().update(upd).catch(() => { }); };
     li.append(done, back); rq.appendChild(li);
   }
-  const cl = $('coinMods'); cl.textContent = '';
-  for (const c of allCoins.slice(0, 40)) {
-    const li = document.createElement('li'); li.textContent = (c.name || '?') + ' · ' + c.n + ' ';
-    const gold = !!(perks[c.uid] && perks[c.uid].gold);
-    const gb = document.createElement('button'); gb.type = 'button'; gb.className = 'mini'; gb.textContent = gold ? 'Take gold tux' : 'Give gold tux';
-    gb.onclick = () => db.ref('perks/' + c.uid + '/gold').set(gold ? null : true).catch(() => msg("Couldn't change that."));
-    li.appendChild(gb);
-    for (const [lab, f] of [['+10', (n) => n + 10], ['−10', (n) => Math.max(0, n - 10)], ['Reset', () => 0]]) {
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'mini' + (lab === 'Reset' ? ' danger' : ''); b.textContent = lab;
-      b.onclick = () => db.ref('coins/' + c.uid + '/n').set(f(c.n)).catch(() => msg("Couldn't change that."));
-      li.appendChild(b);
-    }
-    cl.appendChild(li);
-  }
+  renderDonate();
 }
 let adminOn = false;
 function adminChanged() {
@@ -303,11 +290,12 @@ function adminChanged() {
 function buildHostTools() {
   const box = $('adminBox'); if (!box || $('hostExtras')) { renderCarPicker(); return; }
   const wrap = document.createElement('div'); wrap.id = 'hostExtras'; wrap.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-top:12px';
-  wrap.innerHTML = '<h3 style="margin:0">Events</h3><p>Everyone in the bar sees these. The power cut sends someone to the restroom stall for 5 minutes.</p><div class="row" id="eventBtns"></div>' +
-    '<h3 style="margin:6px 0 0">My car</h3><p>Parked out back while you\'re here. sh1den always gets bay 1.</p>' +
+  wrap.innerHTML = '<h3 style="margin:0">Events</h3><p>Everyone in the bar sees these. The power cut sends someone to the restroom stall for 5 minutes.</p><div class="row" id="eventBtns"></div>';
+  box.appendChild(wrap);
+  const cb = $('carBox');
+  if (cb) cb.innerHTML = '<h3 style="margin:6px 0 0">My car</h3><p class="small">Parked out back while you\'re here. sh1den always gets bay 1.</p>' +
     '<div class="inline"><select id="carStyle" aria-label="Car"></select><select id="carColor" aria-label="Color"></select></div>' +
     '<div class="row"><button type="button" id="carSave" class="mini">Park it</button><button type="button" id="carRemove" class="mini danger">Remove my car</button></div><div class="msg" id="carMsg"></div>';
-  box.appendChild(wrap);
   const eb = $('eventBtns');
   for (const [k, name] of EVENTS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'mini' + (k === 'blackout' ? ' danger' : ''); b.textContent = name; b.onclick = () => triggerEvent(k); eb.appendChild(b); }
   for (const [k, n] of BAR().carStyles()) { const o = document.createElement('option'); o.value = k; o.textContent = n; $('carStyle').appendChild(o); }
@@ -318,6 +306,60 @@ function buildHostTools() {
   };
   $('carRemove').onclick = () => db.ref('cars/' + myUid()).remove().then(() => { $('carMsg').textContent = 'Car removed.'; }).catch(() => { });
   renderCarPicker();
+}
+// ---------------------------------------------------------------- host window: give or take coins for anyone, kick and mute
+let charList = [];
+function renderDonate() {
+  const sel = $('donWho'); if (!sel || !isAdmin()) return;
+  const list = (NET().allChars ? NET().allChars() : []).slice().sort((a, b) => a.name.localeCompare(b.name));
+  const key = list.map((c) => c.uid).join(',');
+  if (sel.dataset.key !== key) {
+    const keep = sel.value; sel.dataset.key = key; sel.textContent = '';
+    for (const c of list) { const o = document.createElement('option'); o.value = c.uid; o.textContent = c.name + (NET().isOnline(c.uid) ? ' · here' : ''); sel.appendChild(o); }
+    if (keep) sel.value = keep;
+  }
+  charList = list;
+}
+async function adjustCoins(target, f, label) {
+  const ref = db.ref('coins/' + target), cur = (await ref.once('value')).val();
+  const c = charList.find((x) => x.uid === target);
+  const base = cur || { n: 0, name: c ? c.name : 'player', t: ts(), c: 0, s: 0, m: 0 };
+  const n = Math.max(0, Math.floor(f(+base.n || 0)));
+  if (cur) await db.ref('coins/' + target + '/n').set(n); else await ref.set(Object.assign({}, base, { n }));
+  return { name: base.name, n };
+}
+function wireDonate() {
+  const amt = () => Math.max(0, Math.floor(+$('donAmt').value || 0)), msgEl = $('donMsg');
+  const run = async (f, verb) => {
+    const who = $('donWho').value; if (!who) return;
+    try { const r = await adjustCoins(who, f); msgEl.textContent = r.name + ' now has ' + r.n.toLocaleString() + ' sh1den coins.'; if (verb) NET().say('🪙 ' + verb.replace('{n}', r.name)); }
+    catch (e) { msgEl.textContent = "Couldn't change that."; }
+  };
+  $('donGive').onclick = () => run((n) => n + amt(), 'gave {n} ' + amt().toLocaleString() + ' sh1den coins');
+  $('donTake').onclick = () => run((n) => n - amt());
+  $('donSet').onclick = () => run(() => amt());
+  $('donAll').onclick = async () => {
+    const here = charList.filter((c) => NET().isOnline(c.uid));
+    for (const c of here) { try { await adjustCoins(c.uid, (n) => n + amt()); } catch (e) { } }
+    msgEl.textContent = 'Gave ' + here.length + ' people ' + amt().toLocaleString() + ' each.';
+    NET().say('🪙 the house just gave everyone here ' + amt().toLocaleString() + ' sh1den coins!');
+  };
+}
+function renderMods() {
+  const ul = $('modList'); if (!ul || !isAdmin()) return;
+  const here = (NET().onlineList ? NET().onlineList() : []).map((p) => ({ p, c: NET().charOf(p.uid) })).filter((x) => x.c && x.p.uid !== myUid());
+  ul.textContent = '';
+  if (!here.length) { const li = document.createElement('li'); li.textContent = 'Nobody else is here right now.'; ul.appendChild(li); return; }
+  for (const { c } of here) {
+    const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = c.name; li.appendChild(b);
+    const muted = NET().mutedUntil && NET().mutedUntil(c.uid) > now();
+    for (const [lab, fn, cls] of [[muted ? 'Unmute' : 'Mute 10 min', () => db.ref('mutes/' + c.uid).set(muted ? null : now() + 600000), ''], ['Kick', () => db.ref('kicks/' + c.uid).set(ts()), 'danger']]) {
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'mini ' + cls; x.textContent = lab;
+      x.onclick = () => fn().then(() => { BAR().toast(lab.split(' ')[0] + ': ' + c.name); renderMods(); }).catch(() => BAR().toast("Couldn't do that. The room's Firebase rules may need updating."));
+      li.appendChild(x);
+    }
+    ul.appendChild(li);
+  }
 }
 function renderGoldBtn() { const b = $('goldMe'); if (b) b.textContent = perks[myUid()] && perks[myUid()].gold ? 'Take off the gold tuxedo' : 'Wear the gold tuxedo'; }
 function renderCarPicker() {
@@ -342,14 +384,16 @@ function wire() {
   };
   setInterval(renderHud, 15000);
   wireCard();
+  if ($('donGive')) wireDonate();
 }
 
 window.EXTRAS = {
   myCoins: () => (mine && mine.n) || 0,
   mySpent: spent,
   hasCoinsRecord: () => !!mine,
-  start, claimCoin, openCoins, adminChanged: () => { start(); adminChanged(); renderCard(); },
-  presenceChanged() { start(); updateLot(); renderCard(); },
+  start, claimCoin, openCoins, adminChanged: () => { start(); adminChanged(); renderCard(); renderDonate(); renderMods(); },
+  presenceChanged() { start(); updateLot(); renderCard(); renderDonate(); renderMods(); },
+  renderHost() { renderDonate(); renderMods(); },
   offline() {
     offlineMode = true;
     BAR().setSpooky(spooky); updateLot();

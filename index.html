@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SH1DEN'S Bar</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><rect width='16' height='16' fill='%230b0907'/><rect x='2' y='2' width='12' height='1' fill='%23e8e2d6'/><rect x='3' y='3' width='10' height='1' fill='%23ff5ab4'/><rect x='4' y='4' width='8' height='1' fill='%23ff5ab4'/><rect x='5' y='5' width='6' height='1' fill='%23ff3a9a'/><rect x='6' y='6' width='4' height='1' fill='%23ff3a9a'/><rect x='2' y='3' width='1' height='1' fill='%23e8e2d6'/><rect x='13' y='3' width='1' height='1' fill='%23e8e2d6'/><rect x='3' y='4' width='1' height='1' fill='%23e8e2d6'/><rect x='12' y='4' width='1' height='1' fill='%23e8e2d6'/><rect x='4' y='5' width='1' height='1' fill='%23e8e2d6'/><rect x='11' y='5' width='1' height='1' fill='%23e8e2d6'/><rect x='5' y='6' width='1' height='1' fill='%23e8e2d6'/><rect x='10' y='6' width='1' height='1' fill='%23e8e2d6'/><rect x='6' y='7' width='4' height='1' fill='%23e8e2d6'/><rect x='7' y='8' width='2' height='5' fill='%23e8e2d6'/><rect x='5' y='13' width='6' height='1' fill='%23e8e2d6'/><rect x='10' y='1' width='1' height='4' fill='%23c8a040'/><rect x='9' y='4' width='3' height='2' fill='%2350a040'/></svg>">
 <meta name="description" content="A PS1-style bar for the sh1denfps community. Make your own character, chat and watch videos together.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=VT323&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -230,6 +231,31 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 #pokerStatus, #pkTimer { color: var(--dim); min-height: 1.2em; }
 #pkAmt { width: 90px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+#room { left: max(16px, env(safe-area-inset-left, 0px)) !important; right: auto !important; }
+#coinsPanel, #shopPanel { left: auto !important; right: max(16px, env(safe-area-inset-right, 0px)) !important; top: 70px !important; transform: none !important; }
+#shopPanel { width: 400px; max-height: calc(100% - 140px); }
+#bizCard .bizmore { display: flex !important; }
+#bizCard { cursor: default; }
+#creator { max-height: calc(100% - 200px) !important; top: 130px !important; }
+#previewWin { left: calc(max(16px, env(safe-area-inset-left, 0px)) + 352px); top: 130px; width: 290px; padding: 10px; gap: 6px; background: #0c0b0d; }
+#previewWin canvas, #shopCanvas { width: 100%; height: auto; image-rendering: pixelated; border: 1px solid rgba(214,170,90,0.35); background: #0a0809; }
+#shopCanvas { max-width: 220px; align-self: center; }
+.mystuff { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.opt2 { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; }
+.opt2 select { flex: 0 1 62%; min-width: 0; max-width: 62%; }
+.small { font-size: 11px; color: var(--dim); }
+.modlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12px; max-height: 220px; overflow-y: auto; }
+.modlist li { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.modlist li b { flex: 1 1 auto; font-weight: 500; }
+.donate { display: flex; flex-direction: column; gap: 6px; }
+.shoprow.sel { outline: 1px solid rgba(214,170,90,0.6); }
+@media (max-width: 760px) {
+  #previewWin { left: 6px !important; right: 6px !important; top: 52px !important; width: auto !important; height: auto; max-height: 30% !important; flex-direction: row; }
+  #previewWin header { display: none; }
+  #previewWin canvas { width: auto; height: 100%; max-height: 26vh; margin: 0 auto; }
+  #creator { top: auto !important; max-height: 58% !important; }
+  #shopCanvas { max-width: 140px; }
+}
 /* ===== layout: logo + card top left, rooms menu top right, a slim bottom bar of drop-up menus ===== */
 .top .group { display: none !important; }
 #roomSelect { display: block; max-width: 46vw; font-size: 12px; padding: 7px 10px; background: var(--panel); }
@@ -356,8 +382,6 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
       <button type="button" class="primary" data-drop="meMenu">☰ <span class="lbl">Me</span><span class="caret">▲</span></button>
       <div class="menu" id="meMenu" hidden>
         <button id="createBtn" type="button">Create your character</button>
-        <div class="mlabel" id="bizTuxRow">Suit</div>
-        <select id="bizTux" aria-label="Your suit"></select>
         <button id="findMe" type="button">Find me</button>
         <button id="whoBtn" type="button">Who's here</button>
         <div class="idrow">Room ID <span id="myId">not connected</span><button type="button" id="copyId" class="mini">Copy</button></div>
@@ -368,7 +392,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     <div class="dropup right" id="coinDrop">
       <button type="button" data-drop="coinMenu">🪙 <span id="coinBtnN">0</span><span class="caret">▲</span></button>
       <div class="menu" id="coinMenu" hidden>
-        <button id="coinBtn" type="button">Gold coins &amp; rewards</button>
+        <button id="coinBtn" type="button">Sh1den coins &amp; rewards</button>
         <button id="shopBtn" type="button">Shop</button>
         <button id="track" type="button" title="Next track">Jukebox</button>
       </div>
@@ -411,15 +435,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
       <h3 style="font-size:18px;color:var(--dim)">Up next</h3>
       <p id="tvQueueEmpty">Queue is empty.</p>
       <ol id="tvQueue"></ol>
-    </section>
-  </aside>
-
-  <section class="panel" id="hostPanel" hidden aria-label="Host tools">
-    <header><h2>Host tools</h2><button class="x" type="button" id="hostClose" aria-label="Close">✕</button></header>
-    <div id="adminBox" hidden>
-      <p>You're a host here: you can delete messages, ban people, skip and remove videos.</p>
-      <div class="row"><button type="button" id="clearChat" class="danger">Clear chat</button></div>
-      <div id="vipBox" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+      <div id="vipBox" hidden style="border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <h3 style="margin:0;display:flex;justify-content:space-between;align-items:center">VIP TV <button type="button" id="vipWatch" class="mini">Watch</button></h3>
         <div id="vipNow">Nothing playing</div>
         <form id="vipForm" class="inline" novalidate>
@@ -431,6 +447,24 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
         <p id="vipQueueEmpty">Queue is empty.</p>
         <ol id="vipQueue" style="list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:12px"></ol>
         <div class="msg" id="vipMsg" role="status"></div>
+      </div>
+    </section>
+  </aside>
+
+  <section class="panel" id="hostPanel" hidden aria-label="Host tools">
+    <header><h2>Host tools</h2><button class="x" type="button" id="hostClose" aria-label="Close">✕</button></header>
+    <div id="adminBox" hidden>
+      <p>You're a host here: you can delete messages, ban people, skip and remove videos.</p>
+      <div class="row"><button type="button" id="clearChat" class="danger">Clear chat</button></div>
+      <h3>Players</h3>
+      <p class="small">Kick sends someone out of the bar; mute stops them chatting or posting videos.</p>
+      <ul id="modList" class="modlist"></ul>
+      <h3>Give or take coins</h3>
+      <div class="donate">
+        <select id="donWho" aria-label="Player"></select>
+        <input id="donAmt" type="number" min="1" value="100" aria-label="Amount">
+        <div class="row"><button type="button" id="donGive" class="primary">Give</button><button type="button" id="donTake">Take</button><button type="button" id="donSet">Set to</button><button type="button" id="donAll">Give everyone here</button></div>
+        <div class="msg" id="donMsg" role="status"></div>
       </div>
     </div>
   </section>
@@ -447,8 +481,8 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     </div>
   </section>
 
-  <section class="panel" id="coinsPanel" hidden aria-label="Gold coins">
-    <header><h2>Gold coins</h2><button class="x" type="button" id="coinsClose" aria-label="Close">✕</button></header>
+  <section class="panel" id="coinsPanel" hidden aria-label="Sh1den coins">
+    <header><h2>Sh1den coins</h2><button class="x" type="button" id="coinsClose" aria-label="Close">✕</button></header>
     <div id="coinBal">0 coins</div>
     <p>You earn a coin every 5 minutes you're in the bar, AFK counts. A gold coin also turns up somewhere every 10 minutes: click it first for +5.</p>
     <div class="msg" id="coinNext"></div>
@@ -463,8 +497,6 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     <div id="coinAdmin" hidden style="display:flex;flex-direction:column;gap:8px">
       <h3>Redeems waiting</h3>
       <ul id="redeemList"></ul>
-      <h3>Adjust coins</h3>
-      <ul id="coinMods"></ul>
     </div>
   </section>
 
@@ -493,7 +525,12 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
       <button type="button" id="pokerLeave" hidden>Leave the table</button>
       <button type="button" id="pokerEngine" class="mini" hidden>Open the table</button>
     </div>
-    <p>No-limit Texas Hold'em, blinds 10/20. Buy in with gold coins (1 coin = 10 chips); when you leave the table your chips turn back into coins. Minos deals, and your two cards are only ever sent to you.</p>
+    <p>No-limit Texas Hold'em, blinds 10/20. Buy in with sh1den coins (1 coin = 10 chips); when you leave the table your chips turn back into coins. Minos deals, and your two cards are only ever sent to you.</p>
+  </section>
+
+  <section class="panel" id="previewWin" hidden aria-label="Preview">
+    <header><h2>Preview</h2></header>
+    <canvas id="previewCanvas" width="260" height="380" aria-label="Your character, turning"></canvas>
   </section>
 
   <section class="panel" id="creator" hidden aria-label="Create your character">
@@ -505,6 +542,15 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
         </label>
         <span class="err" id="nmErr" hidden></span>
         <div id="opts"></div>
+        <div class="mystuff">
+          <h3>Your stuff</h3>
+          <label class="opt2" id="bizTuxRow">Suit <select id="bizTux" aria-label="Your suit"></select></label>
+          <label class="opt2">Outfit <select id="eqOutfit" aria-label="Outfit"></select></label>
+          <label class="opt2">Pet <select id="eqPet" aria-label="Pet"></select></label>
+          <label class="opt2">Effect <select id="eqFx" aria-label="Effect"></select></label>
+          <p class="small" id="stuffNote">Buy outfits, pets and effects in the Shop; they show up here.</p>
+          <div id="carBox"></div>
+        </div>
         <div class="row">
           <button type="button" id="rand">Randomize</button>
           <button type="submit" class="primary" id="walkIn">Walk in</button>
@@ -535,13 +581,13 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=56"></script>
-<script src="net.js?v=56"></script>
-<script src="bar.js?v=56"></script>
-<script src="pool.js?v=56"></script>
-<script src="extras.js?v=56"></script>
-<script src="poker.js?v=56"></script>
-<script src="social.js?v=56"></script>
+<script src="config.js?v=57"></script>
+<script src="net.js?v=57"></script>
+<script src="bar.js?v=57"></script>
+<script src="pool.js?v=57"></script>
+<script src="extras.js?v=57"></script>
+<script src="poker.js?v=57"></script>
+<script src="social.js?v=57"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -575,7 +621,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
     openTv() { openRoom(true); setWin('tv'); }
   };
   // host tools window
-  $('hostBtn').onclick = () => { const p = $('hostPanel'); p.hidden = !p.hidden; };
+  $('hostBtn').onclick = () => { const p = $('hostPanel'); p.hidden = !p.hidden; if (!p.hidden && window.EXTRAS && window.EXTRAS.renderHost) window.EXTRAS.renderHost(); };
   $('hostClose').onclick = () => { $('hostPanel').hidden = true; };
   new MutationObserver(() => { $('hostBtn').hidden = $('adminBox').hidden; }).observe($('adminBox'), { attributes: true, attributeFilter: ['hidden'] });
   // the business card opens and closes on a tap

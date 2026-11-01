@@ -42,6 +42,10 @@ NET.hostOnline = () => (!!hostUid && online.has(hostUid)) || [...online.values()
 NET.onlineList = () => [...online.entries()].map(([uid, p]) => Object.assign({ uid }, p));
 NET.charOf = (uid) => allChars.find((e) => e.uid === uid) || null;
 NET.isBanned = () => banned;
+NET.allChars = () => allChars.slice();
+// hosts can mute someone for a while, or kick them out of the bar
+let mutes = {}, mutedTil = 0;
+NET.mutedUntil = (uid) => +mutes[uid] || 0;
 NET.setVipMember = (on) => { if (!!on === !!NET.vipMember) return; NET.vipMember = !!on; syncVip(true); };
 // a paid priority video: it goes straight onto the cinema TV, cutting off whatever was on
 NET.playPriority = async function (link, rid) {
@@ -133,9 +137,18 @@ function joined() {
   $('myId').textContent = NET.uid;
   window.BAR.setMyUid(NET.uid);
   db.ref('.info/serverTimeOffset').on('value', (s) => { offset = s.val() || 0; });
-  db.ref('admins/' + NET.uid).on('value', (s) => { NET.isAdmin = s.exists(); listenVipChat(); $('adminBox').hidden = !NET.isAdmin; window.BAR.setMod(NET.isAdmin); refreshName(); renderChat(); renderQueue(); renderNow(); syncVip(true); if (window.EXTRAS) window.EXTRAS.adminChanged(); if (window.POKER) window.POKER.adminChanged(); });
+  db.ref('admins/' + NET.uid).on('value', (s) => { NET.isAdmin = s.exists(); listenVipChat(); $('adminBox').hidden = !NET.isAdmin; $('vipBox').hidden = !NET.isAdmin; window.BAR.setMod(NET.isAdmin); refreshName(); renderChat(); renderQueue(); renderNow(); syncVip(true); if (window.EXTRAS) window.EXTRAS.adminChanged(); if (window.POKER) window.POKER.adminChanged(); });
   db.ref('names/sh1denfps').on('value', (s) => { hostUid = s.val(); window.BAR.setCardOpen(NET.hostOnline()); });
   db.ref('bans/' + NET.uid).on('value', (s) => { banned = s.exists(); updateComposer(); });
+  db.ref('mutes').on('value', (s) => { mutes = s.val() || {}; mutedTil = +mutes[NET.uid] || 0; updateComposer(); });
+  db.ref('kicks/' + NET.uid).on('value', (s) => {
+    const t = s.val(); if (!t || now() - t > 60000) return;
+    try { db.ref('presence/' + NET.uid).remove(); } catch (e) { }
+    const o = document.createElement('div'); o.className = 'cover'; o.style.zIndex = 9;
+    o.innerHTML = '<div class="gatebox"><h1>SH1DEN\'S</h1><p>A host has asked you to leave the bar for now.</p><button class="primary" type="button" onclick="location.reload()">Come back in</button></div>';
+    document.getElementById('stage').appendChild(o);
+    setTimeout(() => { try { firebase.database().goOffline(); } catch (e) { } }, 500);
+  });
 
   const pres = presRef = db.ref('presence/' + NET.uid);
   db.ref('.info/connected').on('value', (s) => {
@@ -184,6 +197,7 @@ function joined() {
     const list = [];
     s.forEach((c) => { const v = c.val() || {}; list.push({ uid: c.key, name: v.name, code: v.code, t: v.t || 0 }); });
     allChars = list.sort((a, b) => a.t - b.t);
+    if (window.EXTRAS && window.EXTRAS.renderHost) window.EXTRAS.renderHost();
     pushCrowd();
     const mine = allChars.find((e) => e.uid === NET.uid);
     myChar = mine || null; refreshName();
@@ -276,6 +290,7 @@ function canPost(target) {
   if (!NET.online) { say('The room is offline right now.'); return false; }
   if (banned) { say("You're banned from this room."); return false; }
   if (!myName) { say('Create your character first, then you can post.'); window.BAR.openCreator(); return false; }
+  if (mutedTil > now()) { say('A host muted you for ' + Math.ceil((mutedTil - now()) / 60000) + ' more min.'); return false; }
   const wait = lastSend + SLOW_MS - Date.now();
   if (wait > 0 && !NET.isAdmin) { say('Slow mode: wait ' + Math.ceil(wait / 1000) + 's.'); return false; }
   return true;
@@ -495,6 +510,7 @@ function syncTv(force) {
   }
   showIdle(false);
   window.BAR.setTvOn(true);
+  if (window.BAR.setTvVideo) window.BAR.setTvVideo(current.v);
   updateDuck();
   if (!playerReady) return;
   if (loadedId !== current.id) {

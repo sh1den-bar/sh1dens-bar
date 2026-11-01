@@ -52,7 +52,7 @@
       ".write": "auth != null && root.child('admins').child(auth.uid).exists() && !newData.exists()",
       "$id": {
         ".write": "auth != null && ((!data.exists() && !root.child('bans').child(auth.uid).exists()) || root.child('admins').child(auth.uid).exists())",
-        ".validate": "newData.hasChildren(['uid', 'name', 'text', 't']) && newData.child('uid').val() == auth.uid && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 200 && newData.child('t').val() == now && newData.parent().parent().child('last').child(auth.uid).val() == now && (root.child('names').child(newData.child('name').val().toLowerCase()).val() == auth.uid || root.child('admins').child(auth.uid).exists())",
+        ".validate": "newData.hasChildren(['uid', 'name', 'text', 't']) && newData.child('uid').val() == auth.uid && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 200 && newData.child('t').val() == now && newData.parent().parent().child('last').child(auth.uid).val() == now && (root.child('names').child(newData.child('name').val().toLowerCase()).val() == auth.uid || root.child('admins').child(auth.uid).exists()) && (!root.child('mutes').child(auth.uid).exists() || root.child('mutes').child(auth.uid).val() < now)",
         "$other": {
           ".validate": "$other == 'uid' || $other == 'name' || $other == 'text' || $other == 't'"
         }
@@ -63,7 +63,7 @@
       "queue": {
         "$id": {
           ".write": "auth != null && ((!data.exists() && !root.child('bans').child(auth.uid).exists()) || (!newData.exists() && (data.child('uid').val() == auth.uid || root.child('admins').child(auth.uid).exists() || newData.parent().parent().child('current').child('id').val() == $id)))",
-          ".validate": "newData.hasChildren(['v', 'uid', 'name', 't']) && newData.child('v').isString() && newData.child('v').val().matches(/^[A-Za-z0-9_-]{11}$/) && newData.child('uid').val() == auth.uid && newData.child('t').val() == now && newData.parent().parent().parent().child('last').child(auth.uid).val() == now && (root.child('names').child(newData.child('name').val().toLowerCase()).val() == auth.uid || root.child('admins').child(auth.uid).exists())",
+          ".validate": "newData.hasChildren(['v', 'uid', 'name', 't']) && newData.child('v').isString() && newData.child('v').val().matches(/^[A-Za-z0-9_-]{11}$/) && newData.child('uid').val() == auth.uid && newData.child('t').val() == now && newData.parent().parent().parent().child('last').child(auth.uid).val() == now && (root.child('names').child(newData.child('name').val().toLowerCase()).val() == auth.uid || root.child('admins').child(auth.uid).exists()) && (!root.child('mutes').child(auth.uid).exists() || root.child('mutes').child(auth.uid).val() < now)",
           "title": {
             ".validate": "newData.isString() && newData.val().length <= 150"
           },
@@ -321,6 +321,21 @@
         },
         "$other": {
           ".validate": false
+        },
+        "king": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 900)"
+        },
+        "ninja": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 450)"
+        },
+        "chef": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 250)"
+        },
+        "skeleton": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 400)"
+        },
+        "astronaut": {
+          ".validate": "newData.val() == true && (root.child('admins').child(auth.uid).exists() || data.exists() || root.child('coins').child(auth.uid).child('n').val() - newData.parent().parent().parent().child('coins').child(auth.uid).child('n').val() >= 700)"
         }
       }
     },
@@ -337,6 +352,20 @@
         "$other": {
           ".validate": false
         }
+      }
+    },
+    "mutes": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+        ".validate": "newData.isNumber()"
+      }
+    },
+    "kicks": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+        ".validate": "newData.val() == now"
       }
     }
   }

@@ -20,6 +20,7 @@ const SHOP = {
   clothes: [
     ['trench', 'Long black trench coat & shades', 400], ['vampire', 'Vampire set: cape, collar, fangs', 600], ['hillbilly', 'Hillbilly set: overalls & straw hat', 250],
     ['pirate', 'Pirate set: tricorn & eyepatch', 350], ['cowboy', 'Cowboy set: wide-brim hat & bandana', 300],
+    ['king', 'King: crown & royal robe', 900], ['ninja', 'Ninja', 450], ['chef', 'Chef', 250], ['skeleton', 'Skeleton suit', 400], ['astronaut', 'Astronaut', 700],
     ['bear', 'Bear costume', 500], ['frog', 'Frog costume', 450], ['chicken', 'Chicken costume', 300]
   ],
   pets: [['parrot', 'Parrot (sits on your shoulder)', 300], ['dog', 'Dog (sits by your feet, wags)', 500], ['cat', 'Black cat with glowing eyes', 400],
@@ -44,7 +45,7 @@ function build() {
   const sh = el('section', 'panel'); sh.id = 'shopPanel'; sh.hidden = true; stage.appendChild(sh);
   sh.innerHTML = '<header><h2>Shop</h2><button class="x" type="button" id="shopClose" aria-label="Close">✕</button></header>' +
     '<div class="chattabs" role="tablist"><button type="button" class="on" data-tab="clothes">Clothes</button><button type="button" data-tab="pets">Pets</button><button type="button" data-tab="misc">Misc</button></div>' +
-    '<div id="shopBal" style="color:#ffd98a"></div><div id="shopList" class="shoplist"></div><div class="msg" id="shopMsg" role="status"></div>';
+    '<canvas id="shopCanvas" width="220" height="260" aria-label="Item preview"></canvas><div id="shopBal" style="color:#ffd98a"></div><div id="shopList" class="shoplist"></div><div class="msg" id="shopMsg" role="status"></div>';
   const bg = el('section', 'panel'); bg.id = 'beggarPanel'; bg.hidden = true; stage.appendChild(bg);
   $('slotsClose').onclick = () => { sl.hidden = true; };
   $('shopClose').onclick = () => { sh.hidden = true; };
@@ -187,29 +188,41 @@ async function spin() {
 function openSlots() { const p = $('slotsPanel'); p.hidden = false; renderBal(); }
 
 // ---------------------------------------------------------------- the shop
-let shopTab = 'clothes';
+let shopTab = 'clothes', shopSel = null, shopPrev = null;
 function openShop() { $('shopPanel').hidden = false; renderShop(); }
+function previewItem(id) {
+  shopSel = id;
+  if (!shopPrev) shopPrev = BAR().makePreview($('shopCanvas'));
+  const look = BAR().myLook(), spec = { look, outfit: '', pet: '', fx: '' };
+  if (shopTab === 'clothes') spec.outfit = 'cos-' + id; else if (shopTab === 'pets') spec.pet = id; else spec.fx = id;
+  shopPrev.show(spec);
+  for (const r of document.querySelectorAll('#shopList .shoprow')) r.classList.toggle('sel', r.dataset.id === id);
+}
 function renderShop() {
   const list = $('shopList'); if (!list || $('shopPanel').hidden) return;
   list.textContent = '';
   const mine = inv[uid()] || {}, eq = mine.eq || {}, slot = SLOT_OF[shopTab];
   for (const [id, name, price] of SHOP[shopTab]) {
-    const row = el('div', 'shoprow');
-    row.append(el('span', '', name));
+    const row = el('div', 'shoprow'); row.dataset.id = id;
+    const nm = el('span', '', name); nm.style.cursor = 'pointer'; nm.onclick = () => previewItem(id);
+    row.append(nm);
     const owned = !!mine[id];
     const b = el('button', owned ? '' : 'primary', owned ? (eq[slot] === id ? 'Take off' : 'Use') : fmt(price) + ' 🪙'); b.type = 'button';
     b.onclick = () => (owned ? equip(slot, eq[slot] === id ? 'none' : id) : buy(id, price, slot));
     if (!owned && ((myCoins && myCoins.n) || 0) < price) b.disabled = true;
+    if (NET().isAdmin && !owned) { b.textContent = 'Free (host)'; b.disabled = false; }
     row.appendChild(b); list.appendChild(row);
   }
+  const ids = SHOP[shopTab].map((x) => x[0]);
+  previewItem(ids.includes(shopSel) ? shopSel : ids[0]);
   renderBal();
 }
 async function buy(id, price, slot) {
   if (!db || !hasChar()) { $('shopMsg').textContent = 'Make a character first.'; return; }
-  const have = (myCoins && myCoins.n) || 0;
-  if (have < price) { $('shopMsg').textContent = 'Not enough coins.'; return; }
+  const have = (myCoins && myCoins.n) || 0, host = !!NET().isAdmin;
+  if (!host && have < price) { $('shopMsg').textContent = 'Not enough coins.'; return; }
   const upd = {};
-  upd['coins/' + uid() + '/n'] = have - price; upd['coins/' + uid() + '/s'] = ((myCoins && +myCoins.s) || 0) + price;
+  if (!host) { upd['coins/' + uid() + '/n'] = have - price; upd['coins/' + uid() + '/s'] = ((myCoins && +myCoins.s) || 0) + price; }
   upd['inv/' + uid() + '/' + id] = true;
   upd['inv/' + uid() + '/eq/' + slot] = id;
   try { await db.ref().update(upd); $('shopMsg').textContent = 'Bought and put on.'; }
@@ -217,7 +230,7 @@ async function buy(id, price, slot) {
 }
 function equip(slot, id) { db.ref('inv/' + uid() + '/eq/' + slot).set(id).catch(() => { $('shopMsg').textContent = "Couldn't change that."; }); }
 function renderBal() {
-  const t = 'Your coins: ' + fmt(myCoins && myCoins.n);
+  const t = 'Your sh1den coins: ' + fmt(myCoins && myCoins.n) + (NET().isAdmin ? ' · hosts get shop items free' : '');
   if ($('shopBal')) $('shopBal').textContent = t;
   if ($('slotBal')) $('slotBal').textContent = fmt(myCoins && myCoins.n) + ' 🪙';
 }
@@ -269,18 +282,38 @@ setInterval(async () => {
   try { await db.ref().update(upd); toast('+' + amt + ' coins: ' + watching + (watching === 1 ? ' person is' : ' people are') + ' watching your video'); } catch (e) { }
 }, 60000);
 
+// ---------------------------------------------------------------- the character window: a preview beside it, and your bought items
+function creatorOpened() {
+  const pw = $('previewWin'); if (pw) pw.hidden = false;
+  fillStuff();
+  BAR().previewDraft();
+}
+function fillStuff() {
+  const mine = inv[uid()] || {}, eq = mine.eq || {};
+  const fill = (selId, tab, slot, none) => {
+    const sel = $(selId); if (!sel) return;
+    sel.textContent = '';
+    const o0 = el('option', '', none); o0.value = 'none'; sel.appendChild(o0);
+    for (const [id, name] of SHOP[tab]) if (mine[id]) { const o = el('option', '', name); o.value = id; sel.appendChild(o); }
+    sel.value = eq[slot] && mine[eq[slot]] ? eq[slot] : 'none';
+    sel.disabled = sel.options.length < 2;
+    sel.onchange = () => { if (db) db.ref('inv/' + uid() + '/eq/' + slot).set(sel.value).catch(() => toast("Couldn't change that.")); };
+  };
+  fill('eqOutfit', 'clothes', 'outfit', 'My own clothes'); fill('eqPet', 'pets', 'pet', 'No pet'); fill('eqFx', 'misc', 'fx', 'No effect');
+}
+
 // ---------------------------------------------------------------- start
 function start() {
   if (db || !NET().online || !NET().db || !NET().db()) return;
   db = NET().db();
   db.ref('coins/' + uid()).on('value', (s) => { myCoins = s.val(); renderBal(); renderShop(); });
   db.ref('perks').on('value', (s) => { perks = s.val() || {}; });
-  db.ref('inv').on('value', (s) => { inv = s.val() || {}; BAR().setInv(inv); renderShop(); });
+  db.ref('inv').on('value', (s) => { inv = s.val() || {}; BAR().setInv(inv); renderShop(); fillStuff(); });
   db.ref('buffs').on('value', (s) => { buffs = s.val() || {}; BAR().setBuffs(buffs); });
   setInterval(() => BAR().setBuffs(buffs), 60000);   // effects wear off
   listenRequests();
 }
 build();
 const boot = setInterval(() => { if (NET().online && NET().db && NET().db()) { clearInterval(boot); start(); } }, 1000);
-window.SOCIAL = { openPlayerMenu, openSlots, openShop, openBeggar, showCard };
+window.SOCIAL = { openPlayerMenu, openSlots, openShop, openBeggar, showCard, creatorOpened };
 })();

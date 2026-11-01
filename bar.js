@@ -242,7 +242,12 @@ function costumeParts(k, C, P, O, F) {
   const mask = (col) => P('head', loft([rring(1.53, 0.18, 0.18, 0, 0, 14), rring(1.6, 0.27, 0.26, 0, 0.004, 14), rring(1.7, 0.29, 0.28, 0, 0.006, 14), rring(1.8, 0.26, 0.25, 0, 0, 14), rring(1.87, 0.17, 0.16, 0, -0.006, 14), rring(1.9, 0.06, 0.06, 0, -0.008, 14)], col, { smooth: true, amt: 0.03 }));
   if (k === 'trench') {
     // a long coat down to the shins, split at the back, with a turned-up collar
-    P('hips', loft([rring(1.0, 0.39, 0.27, 0, 0, 14), rring(0.75, 0.44, 0.31, 0, 0, 14), rring(0.5, 0.5, 0.35, 0, 0, 14), rring(0.32, 0.54, 0.37, 0, 0, 14)], C.topc, { smooth: true, cap: false }));
+    P('hips', loft([rring(1.02, 0.39, 0.27, 0, 0, 14), rring(0.88, 0.41, 0.29, 0, 0, 14)], C.topc, { smooth: true, cap: false }));
+    for (const sd of [-1, 1]) {
+      const th = sd > 0 ? 'thL' : 'thR', kn = sd > 0 ? 'knL' : 'knR';
+      P(th, loft([rring(0.92, 0.22, 0.29, sd * 0.11, 0, 12), rring(0.7, 0.24, 0.3, sd * 0.12, 0, 12), rring(0.5, 0.25, 0.31, sd * 0.125, 0, 12)], C.topc, { smooth: true, cap: false }));
+      P(kn, loft([rring(0.52, 0.25, 0.31, sd * 0.125, 0.004, 12), rring(0.32, 0.26, 0.32, sd * 0.13, 0.004, 12)], C.topc, { smooth: true, cap: false }));
+    }
     P('spine', loft([rring(1.42, 0.24, 0.2, 0, -0.01, 14), rring(1.56, 0.25, 0.21, 0, -0.02, 14)], C.topc.map((v) => v * 1.4), { smooth: true, cap: false }));
   } else if (k === 'hillbilly') {
     // denim overalls bib and straps, a frayed straw hat
@@ -282,6 +287,45 @@ function costumeParts(k, C, P, O, F) {
     for (const s of [-1, 1]) { P('head', cyl(V(s * 0.09, 1.86, 0.03), V(s * 0.09, 1.95, 0.05), 0.065, 0.055, C.topc, { n: 10 })); P('head', cyl(V(s * 0.09, 1.92, 0.08), V(s * 0.09, 1.92, 0.1), 0.045, 0.04, [240, 240, 230], { n: 10 })); P('head', cyl(V(s * 0.09, 1.92, 0.1), V(s * 0.09, 1.92, 0.106), 0.02, 0.02, [10, 10, 10], { n: 8 })); }
     O('head', tube([V(-0.11, 1.62, 0.1), V(0, 1.6, 0.142), V(0.11, 1.62, 0.1)], [0.008, 0.008, 0.008], [40, 80, 30], { n: 4 }));
     P('spine', box(-0.12, 0.12, 1.02, 1.3, 0.13, 0.145, [200, 220, 140], 0.03));
+  } else if (k === 'ninja') {
+    // a black hood with an eye slit and a red headband with tails
+    mask(C.topc);
+    O('head', box(-0.085, 0.085, 1.672, 1.712, 0.128, 0.142, [196, 150, 120], 0.02));
+    for (const sd of [-1, 1]) O('head', box(sd * 0.045 - 0.012, sd * 0.045 + 0.012, 1.685, 1.697, 0.142, 0.146, [10, 8, 8], 0));
+    P('head', loft([rring(1.75, 0.3, 0.29, 0, 0.004, 14), rring(1.79, 0.29, 0.28, 0, 0.004, 14)], [170, 20, 28], { amt: 0.03 }));
+    P('head', tube([V(0.03, 1.77, -0.14), V(0.08, 1.7, -0.22), V(0.12, 1.6, -0.25)], [0.02, 0.016, 0.01], [170, 20, 28], { n: 4 }));
+    P('spine', loft([rring(0.97, 0.37, 0.25, 0, 0, 14), rring(1.03, 0.37, 0.25, 0, 0, 14)], [40, 40, 46], { amt: 0.04 }));
+  } else if (k === 'chef') {
+    // a tall white toque, a red neckerchief and a double row of buttons
+    P('head', cyl(V(0, 1.8, -0.005), V(0, 1.86, -0.005), 0.12, 0.13, [240, 240, 236], { n: 12 }));
+    P('head', loft([rring(1.86, 0.27, 0.27, 0, -0.005, 12), rring(1.98, 0.32, 0.32, 0, -0.005, 12), rring(2.06, 0.3, 0.3, 0, -0.005, 12), rring(2.09, 0.2, 0.2, 0, -0.005, 12)], [244, 244, 240], { smooth: true, amt: 0.03 }));
+    P('spine', loft([rring(1.4, 0.17, 0.16, 0, 0.0, 12), rring(1.46, 0.165, 0.155, 0, 0, 12)], [200, 30, 34], { amt: 0.04 }));
+    for (const y of [1.05, 1.15, 1.25, 1.35]) for (const sd of [-1, 1]) O('spine', cyl(V(sd * 0.05, y, 0.128), V(sd * 0.05, y, 0.138), 0.011, 0.011, [210, 210, 214], { n: 6 }));
+  } else if (k === 'king') {
+    // a gold crown with red stones, and a long red robe with a white fur collar
+    P('head', cyl(V(0, 1.8, -0.005), V(0, 1.86, -0.005), 0.125, 0.125, [214, 170, 60], { n: 12 }));
+    for (let a = 0; a < 6.28; a += 1.047) P('head', cyl(V(Math.cos(a) * 0.11, 1.86, Math.sin(a) * 0.11 - 0.005), V(Math.cos(a) * 0.105, 1.93, Math.sin(a) * 0.105 - 0.005), 0.025, 0.004, [214, 170, 60], { n: 4 }));
+    O('head', box(-0.015, 0.015, 1.815, 1.845, 0.117, 0.13, [200, 20, 40], 0));
+    P('spine', loft([[V(-0.26, 1.46, -0.1), V(0.26, 1.46, -0.1)], [V(-0.4, 0.9, -0.2), V(0.4, 0.9, -0.2)], [V(-0.5, 0.15, -0.3), V(0.5, 0.15, -0.3)]], [150, 16, 30], { amt: 0.03 }));
+    P('spine', loft([rring(1.4, 0.44, 0.3, 0, -0.02, 14), rring(1.5, 0.44, 0.3, 0, -0.03, 14)], [236, 232, 224], { smooth: true, amt: 0.05 }));
+  } else if (k === 'skeleton') {
+    // white bones painted on black: a skull face, ribs, and bones down the arms and legs
+    mask([226, 222, 210]);
+    for (const sd of [-1, 1]) O('head', box(sd * 0.05 - 0.028, sd * 0.05 + 0.028, 1.67, 1.72, 0.128, 0.142, [10, 8, 8], 0));
+    O('head', box(-0.012, 0.012, 1.63, 1.655, 0.136, 0.146, [10, 8, 8], 0));
+    for (let i = -3; i <= 3; i++) O('head', box(i * 0.016 - 0.005, i * 0.016 + 0.005, 1.585, 1.61, 0.12, 0.132, [10, 8, 8], 0));
+    O('spine', box(-0.012, 0.012, 1.0, 1.42, 0.128, 0.136, [226, 222, 210], 0));
+    for (let k2 = 0; k2 < 5; k2++) { const y = 1.36 - k2 * 0.07, w = 0.14 - k2 * 0.012; O('spine', box(-w, w, y, y + 0.022, 0.126, 0.134, [226, 222, 210], 0)); }
+    for (const sd of [-1, 1]) {
+      O(sd > 0 ? 'thL' : 'thR', box(sd * 0.106 - 0.012, sd * 0.106 + 0.012, 0.56, 0.9, 0.06, 0.07, [226, 222, 210], 0));
+      O(sd > 0 ? 'knL' : 'knR', box(sd * 0.108 - 0.012, sd * 0.108 + 0.012, 0.14, 0.46, 0.05, 0.06, [226, 222, 210], 0));
+    }
+  } else if (k === 'astronaut') {
+    // a round helmet with a dark gold visor, a backpack and mission patches
+    P('head', loft([rring(1.5, 0.22, 0.22, 0, 0, 14), rring(1.58, 0.32, 0.32, 0, 0, 14), rring(1.7, 0.36, 0.36, 0, 0, 14), rring(1.83, 0.32, 0.32, 0, 0, 14), rring(1.92, 0.2, 0.2, 0, 0, 14), rring(1.95, 0.06, 0.06, 0, 0, 14)], [236, 236, 232], { smooth: true, amt: 0.02 }));
+    O('head', loft([[V(-0.12, 1.78, 0.15), V(0.12, 1.78, 0.15), V(0.13, 1.6, 0.15), V(-0.13, 1.6, 0.15)], [V(-0.12, 1.78, 0.172), V(0.12, 1.78, 0.172), V(0.13, 1.6, 0.172), V(-0.13, 1.6, 0.172)]], [60, 44, 14], { amt: 0.02 }));
+    P('spine', box(-0.17, 0.17, 1.0, 1.42, -0.25, -0.13, [210, 210, 206], 0.04));
+    O('spine', box(0.07, 0.13, 1.28, 1.34, 0.128, 0.138, [40, 80, 200], 0)); O('spine', box(-0.13, -0.07, 1.28, 1.34, 0.128, 0.138, [200, 40, 40], 0));
   } else if (k === 'chicken') {
     mask(C.topc);
     P('head', cyl(V(0, 1.68, 0.12), V(0, 1.66, 0.25), 0.05, 0.004, [240, 160, 40], { n: 8 }));
@@ -300,7 +344,12 @@ const COSTUMES = {
   cowboy: { name: 'Cowboy set', top: 'bomber', topc: [120, 78, 44], pants: [52, 70, 104], bottom: 'jeans', shoe: 'boots', look: { eyes: 0 } },
   bear: { name: 'Bear costume', top: 'hoodie', topc: [96, 64, 40], pants: [96, 64, 40], bottom: 'trousers', shoe: 'boots', fur: true, look: { head: 7, beard: 0, eyes: 0 } },
   frog: { name: 'Frog costume', top: 'hoodie', topc: [70, 140, 60], pants: [70, 140, 60], bottom: 'trousers', shoe: 'sneakers', fur: true, look: { head: 7, beard: 0, eyes: 0 } },
-  chicken: { name: 'Chicken costume', top: 'hoodie', topc: [232, 228, 216], pants: [232, 228, 216], bottom: 'trousers', shoe: 'sneakers', fur: true, look: { head: 7, beard: 0, eyes: 0 } }
+  chicken: { name: 'Chicken costume', top: 'hoodie', topc: [232, 228, 216], pants: [232, 228, 216], bottom: 'trousers', shoe: 'sneakers', fur: true, look: { head: 7, beard: 0, eyes: 0 } },
+  ninja: { name: 'Ninja', top: 'turtle', topc: [16, 16, 20], pants: [16, 16, 20], bottom: 'trousers', shoe: 'sneakers', look: { head: 7, beard: 0, eyes: 0 } },
+  chef: { name: 'Chef', top: 'turtle', topc: [236, 234, 226], pants: [40, 40, 44], bottom: 'trousers', shoe: 'sneakers', look: { eyes: 0 } },
+  king: { name: 'King', top: 'suitdark', topc: [72, 20, 92], pants: [40, 12, 52], bottom: 'trousers', shoe: 'dress', look: { beard: 2 } },
+  skeleton: { name: 'Skeleton suit', top: 'turtle', topc: [14, 14, 16], pants: [14, 14, 16], bottom: 'trousers', shoe: 'sneakers', look: { head: 7, beard: 0, eyes: 0 } },
+  astronaut: { name: 'Astronaut', top: 'hoodie', topc: [226, 226, 222], pants: [226, 226, 222], bottom: 'trousers', shoe: 'boots', look: { head: 7, beard: 0, eyes: 0 } }
 };
 function buildParts(look, seed) {
   const COSK = typeof look.outfit === 'string' && look.outfit.startsWith('cos-') ? look.outfit.slice(4) : '';
@@ -327,7 +376,7 @@ function buildParts(look, seed) {
   const CARGO = COS ? COS.pants : GOLDSUIT ? TUXC.pants : LOOK.pants[look.pants][1];
   const CARGO_D = CARGO.map((v) => v * 0.74);
   const BOOT = [16, 14, 13], SOLE = [9, 8, 8], WEB = [20, 20, 19], GUN = [72, 74, 76], ZIP = [78, 78, 82];
-  const RIM = [18, 18, 20], LENS = look.eyes === 2 ? [14, 14, 16] : [96, 108, 108], LENS_HI = look.eyes === 2 ? [70, 72, 80] : [170, 182, 180];
+  const RIM = [18, 18, 20], LENS = look.eyes === 2 ? [6, 6, 8] : [96, 108, 108], LENS_HI = look.eyes === 2 ? [60, 62, 70] : [170, 182, 180];
   const hc = [0, 1.69, 0];
 
   // head: a softer, narrower jaw for the female body
@@ -587,6 +636,7 @@ function buildParts(look, seed) {
     const cuff0 = add(wr, mul(sub(el, wr), 0.16));
     const cuffCol = TOP === 'barman' ? RIB : TOP === 'bomber' || TOP === 'hoodie' ? ribCol : TOP === 'suit' || TOP === 'suitdark' ? SHIRT : null;
     P(shK, tube([V(ax(0.19), 1.445, -0.005), sh, V(ax(0.272), 1.26, -0.01), el], [0.068 * aw, 0.076 * aw, 0.07 * aw, 0.064 * aw], sleeveCol, { n: 10 }));
+    P(shK, loft([rring(1.35, 0.17 * aw, 0.16 * aw, ax(0.225), -0.005, 10), rring(1.42, 0.175 * aw, 0.165 * aw, ax(0.222), -0.005, 10), rring(1.47, 0.14 * aw, 0.14 * aw, ax(0.215), -0.005, 10), rring(1.5, 0.07 * aw, 0.08 * aw, ax(0.205), -0.005, 10)], sleeveCol, { smooth: true, amt: 0.03 }));
     P(elK, tube([add(el, V(0, 0.03, 0)), el, V(ax(0.33), 1.0, 0.01), cuffCol ? cuff0 : wr], [0.06 * aw, 0.064 * aw, 0.064 * aw, 0.062 * aw], sleeveCol, { n: 10 }));
     if (cuffCol) P(elK, cyl(cuff0, wr, 0.055 * (TOP === 'suit' || TOP === 'suitdark' ? 0.9 : 1) * lW, 0.05 * lW, cuffCol, { n: 10, smooth: true }));
     if (GOLDSUIT) {
@@ -988,7 +1038,7 @@ const pokerLamp = pLight(0xffe2c0, 1.3, 4.5, -13.9, 2.1, -0.3);
 const fireLight = pLight(0xff2a8a, 1.4, 5, -1.1, 1.6, -10.2);
 // pool lounge: hot magenta and red, plus a cool glow coming off the water
 const swimLights = [pLight(0xff2a8a, 1.5, 8, 7.0, 2.7, -6.0), pLight(0xff3040, 1.2, 7, 12.0, 2.7, -10.5)];
-const waterLight = pLight(0x7ad8ff, 1.0, 4.5, 9.5, 0.9, -8.0);
+const waterLight = pLight(0x7ad8ff, 1.0, 4.5, 9.5, 0.2, -8.0);
 const candleLight = pLight(0xffa860, 0.7, 4, 9.5, 0.9, -11.3);
 pLight(0xff3c96, 0.9, 4.2, -1.5, 2.9, -7.8);
 
@@ -1144,7 +1194,17 @@ floorFor(ROOMS.card, cardFloorTex, 1.2);
 const wcFloor = floorFor(ROOMS.wc, wcFloorTex, 0.8);
 floorFor(ROOMS.vip, vipTex, 0.8);
 swimFloorTex.wrapS = swimFloorTex.wrapT = THREE.RepeatWrapping;
-floorFor(ROOMS.swim, swimFloorTex, 1.5);
+// the pool lounge floor is laid around the pool so the pool can sit below floor level
+{
+  const r = ROOMS.swim, X0 = 7.4, X1 = 11.6, Z0 = -9.6, Z1 = -6.4;
+  for (const [x0, x1, z0, z1] of [[r.x0, r.x1, r.z0, Z0], [r.x0, r.x1, Z1, r.z1], [r.x0, X0, Z0, Z1], [X1, r.x1, Z0, Z1]]) {
+    const w = x1 - x0, d = z1 - z0, g = new THREE.PlaneGeometry(w, d, Math.ceil(w * 2), Math.ceil(d * 2));
+    scaleUV(g, w / 1.5, d / 1.5);
+    const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) { uv.setX(i, uv.getX(i) + (x0 - r.x0) / 1.5); uv.setY(i, uv.getY(i) + (z0 - r.z0) / 1.5); }
+    const m = new THREE.Mesh(g, ps1(new THREE.MeshLambertMaterial({ map: swimFloorTex })));
+    m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 0, (z0 + z1) / 2); scene.add(m);
+  }
+}
 
 // walls: each room gets its own inward-facing walls (seen from inside, invisible from behind),
 // with doorway gaps given as [from, to] distances along the wall
@@ -1752,6 +1812,15 @@ const benPlate = goldSign('BEN', 96, 32, 22); CARD_SIGNS.push(benPlate);
 const secLight = pLight(0x4a7cff, 1.6, 6.5, -15.2, 2.7, -7.6);
 const secLight2 = pLight(0x6a4aff, 1.0, 5.5, -14.0, 2.5, -9.6);
 const SEC_NEON = [];
+// two spotlights hanging from the ceiling, like the dance floor's, but fixed in place: a cone of blue and of violet light
+const SEC_BEAMS = [];
+for (const [x, z, col, tz] of [[-15.6, -8.3, 0x4a7cff, 0.12], [-14.4, -6.9, 0x6a4aff, -0.1]]) {
+  S.push(box(x - 0.09, x + 0.09, 3.0, 3.2, z - 0.09, z + 0.09, [26, 26, 30], 0.03), cyl(V(x, 2.92, z), V(x, 3.0, z), 0.07, 0.09, [40, 40, 46], { n: 8 }));
+  G.push(cyl(V(x, 2.905, z), V(x, 2.92, z), 0.06, 0.06, [200, 220, 255], { n: 8, amt: 0 }));
+  const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.75, 2.9, 10, 1, true), mat); cone.position.y = -1.45;
+  const pivot = new THREE.Group(); pivot.position.set(x, 2.92, z); pivot.rotation.z = tz; pivot.add(cone); scene.add(pivot); SEC_BEAMS.push(mat);
+}
 for (const [ax, az, bx, bz] of [[-16.97, -10.97, -16.97, -4.03], [-16.97, -10.97, -13.03, -10.97], [-16.97, -4.03, -13.03, -4.03]]) {
   const m = new THREE.Mesh(toGeometry([box(Math.min(ax, bx) - (ax === bx ? 0.01 : 0), Math.max(ax, bx) + (ax === bx ? 0.01 : 0), 3.02, 3.06, Math.min(az, bz) - (az === bz ? 0.01 : 0), Math.max(az, bz) + (az === bz ? 0.01 : 0), [74, 124, 255], 0)]), new THREE.MeshBasicMaterial({ vertexColors: true, fog: false }));
   scene.add(m); SEC_NEON.push(m);
@@ -2094,16 +2163,19 @@ TOWELS.forEach((c, i) => { const x = 2.85 + i * 0.45; S.push(box(x - 0.17, x + 0
 const changeLight = pLight(0xffe8d0, 0.9, 6, 3.5, 2.8, -7.6);
 
 // ===== POOL LOUNGE (behind the dance room): magenta light, dark brick, candles, a glowing shallow pool =====
-const SW = { x: 9.5, z: -8.0, x0: 7.4, x1: 11.6, z0: -9.6, z1: -6.4, water: 0.42 };
-// basin: a low tiled rim, a glowing tiled floor and a rippling water surface
+const SW = { x: 9.5, z: -8.0, x0: 7.4, x1: 11.6, z0: -9.6, z1: -6.4, water: -0.14, deep: -1.0 };
+// basin: sunk into the floor, tiled walls going down, a thin stone coping flush with the floor
 const TILE = [168, 196, 206], TILE_D = [120, 150, 164];
-for (const [x0, x1, z0, z1] of [[SW.x0 - 0.25, SW.x1 + 0.25, SW.z0 - 0.25, SW.z0], [SW.x0 - 0.25, SW.x1 + 0.25, SW.z1, SW.z1 + 0.25],
-  [SW.x0 - 0.25, SW.x0, SW.z0, SW.z1], [SW.x1, SW.x1 + 0.25, SW.z0, SW.z1]]) {
-  const endCap = z1 - z0 < 3.3 && x1 - x0 < 0.3;
-  S.push(box(x0, x1, 0, 0.5, z0, z1, TILE_D, 0.05));
-  const e = endCap ? 0.005 : 0.01;
-  S.push(box(x0 - e, x1 + e, 0.5, endCap ? 0.535 : 0.54, z0 - 0.01, z1 + 0.01, TILE, 0.04));
+for (const [x0, x1, z0, z1, nx, nz] of [[SW.x0, SW.x1, SW.z0, SW.z0, 0, 1], [SW.x0, SW.x1, SW.z1, SW.z1, 0, -1], [SW.x0, SW.x0, SW.z0, SW.z1, 1, 0], [SW.x1, SW.x1, SW.z0, SW.z1, -1, 0]]) {
+  const len = Math.hypot(x1 - x0, z1 - z0), g = new THREE.PlaneGeometry(len, -SW.deep, Math.ceil(len * 3), 3);
+  const m = new THREE.Mesh(g, ps1(new THREE.MeshLambertMaterial({ map: canvasTex(16, 8, (x, w, h) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { x.fillStyle = i % 4 === 0 || j % 4 === 0 ? 'rgb(80,120,140)' : `rgb(${150 + rr() * 20},${190 + rr() * 16},${205 + rr() * 16})`; x.fillRect(i, j, 1, 1); } }), side: THREE.FrontSide })));
+  m.material.map.wrapS = m.material.map.wrapT = THREE.RepeatWrapping; scaleUV(g, len / 1.2, 1);
+  m.position.set((x0 + x1) / 2 + nx * 0.002, SW.deep / 2, (z0 + z1) / 2 + nz * 0.002); m.rotation.y = Math.atan2(nx, nz); scene.add(m);
 }
+for (const [x0, x1, z0, z1] of [[SW.x0 - 0.22, SW.x1 + 0.22, SW.z0 - 0.22, SW.z0], [SW.x0 - 0.22, SW.x1 + 0.22, SW.z1, SW.z1 + 0.22], [SW.x0 - 0.22, SW.x0, SW.z0, SW.z1], [SW.x1, SW.x1 + 0.22, SW.z0, SW.z1]])
+  S.push(box(x0, x1, 0, 0.035, z0, z1, [214, 206, 196], 0.03));
+// steps down into the water at one end
+for (let k = 0; k < 3; k++) S.push(box(SW.x1 - 0.35 - k * 0.3, SW.x1 - 0.02, SW.deep, -0.25 - k * 0.22, SW.z - 0.6, SW.z + 0.6, TILE, 0.04));
 const poolFloorTex = canvasTex(16, 16, (x, w, h) => {
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
     const grout = i % 4 === 0 || j % 4 === 0;
@@ -2111,7 +2183,7 @@ const poolFloorTex = canvasTex(16, 16, (x, w, h) => {
   }
 }, [8, 6]);
 const poolFloor = new THREE.Mesh(new THREE.PlaneGeometry(SW.x1 - SW.x0, SW.z1 - SW.z0), decal({ map: poolFloorTex, fog: false }));
-poolFloor.rotation.x = -Math.PI / 2; poolFloor.position.set(SW.x, 0.03, SW.z); scene.add(poolFloor);
+poolFloor.rotation.x = -Math.PI / 2; poolFloor.position.set(SW.x, SW.deep, SW.z); scene.add(poolFloor);
 const waterTex = canvasTex(64, 64, (x, w, h) => {
   x.fillStyle = 'rgb(90,170,210)'; x.fillRect(0, 0, w, h);
   x.strokeStyle = 'rgba(230,250,255,0.75)'; x.lineWidth = 1;
@@ -2122,7 +2194,7 @@ const waterTex = canvasTex(64, 64, (x, w, h) => {
   }
 }, [3, 2]);
 const waterMat = new THREE.MeshBasicMaterial({ map: waterTex, transparent: true, opacity: 0.62, depthWrite: false, fog: false, side: THREE.DoubleSide });
-const water = new THREE.Mesh(new THREE.PlaneGeometry(SW.x1 - SW.x0, SW.z1 - SW.z0, 8, 6), waterMat);
+const water = new THREE.Mesh(new THREE.PlaneGeometry(SW.x1 - SW.x0 - 0.004, SW.z1 - SW.z0 - 0.004, 8, 6), waterMat);
 water.rotation.x = -Math.PI / 2; water.position.set(SW.x, SW.water, SW.z); water.renderOrder = 3; scene.add(water);
 // columns with gold bands at the corners of the room
 for (const [x, z] of [[6.2, -5.0], [12.8, -5.0], [6.2, -11.2], [12.8, -11.2]]) {
@@ -2147,11 +2219,15 @@ for (const [x, z] of CANDLES) {
     G.push(cyl(V(x + dx, 0.62 + hh, z + dz), V(x + dx, 0.62 + hh + 0.03, z + dz), 0.012, 0.004, [255, 200, 120], { n: 4, amt: 0 }));
   });
 }
-// a mirrored row of small candles along the pool rim
+// a row of small candles along the coping
 for (let x = SW.x0 - 0.1; x <= SW.x1 + 0.1; x += 0.6) for (const z of [SW.z0 - 0.12, SW.z1 + 0.12]) {
-  S.push(cyl(V(x, 0.54, z), V(x, 0.62, z), 0.02, 0.02, [230, 220, 196], { n: 5, amt: 0.03 }));
-  G.push(cyl(V(x, 0.62, z), V(x, 0.645, z), 0.01, 0.003, [255, 200, 120], { n: 4, amt: 0 }));
+  S.push(cyl(V(x, 0.035, z), V(x, 0.11, z), 0.02, 0.02, [230, 220, 196], { n: 5, amt: 0.03 }));
+  G.push(cyl(V(x, 0.11, z), V(x, 0.135, z), 0.01, 0.003, [255, 200, 120], { n: 4, amt: 0 }));
 }
+// pink and violet neon along the top of the walls, plus a soft pink haze hanging in the air
+for (const [x0, x1, z0, z1, c] of [[5.05, 13.95, -11.95, -11.9, [255, 60, 170]], [5.05, 13.95, -4.1, -4.05, [170, 70, 255]], [5.05, 5.1, -11.95, -4.05, [255, 60, 170]], [13.9, 13.95, -11.95, -4.05, [170, 70, 255]]])
+  G.push(box(x0, x1, 2.98, 3.03, z0, z1, c, 0));
+for (const [x, y, z] of [[6.0, 2.85, -11.85], [13.0, 2.85, -4.15]]) pLight(0xd040ff, 1.0, 6.5, x, y, z);
 
 // ===== OUTSIDE: the street in front of the entrance and the backstreet behind the VIP =====
 // generic low-poly vehicles, built facing +x, then turned and placed (y offset for the road surface)
@@ -2670,8 +2746,32 @@ function drawPokerHud() {
 }
 const vipGlass = new THREE.Mesh(new THREE.PlaneGeometry(VTV.w, VTV.h), decal({ color: 0x000000, opacity: 0, blending: THREE.NoBlending, fog: false }));
 vipGlass.position.set(VTV.x, VTV.y, VTV.z); vipGlass.rotation.y = Math.PI; scene.add(vipGlass);
-const tvLight = new THREE.PointLight(0x9aa6ff, 0, 6, 1.5); tvLight.position.set(-11.6, TV.y, TV.z); scene.add(tvLight);
+const tvLight = new THREE.PointLight(0x9aa6ff, 0, 9, 1.4); tvLight.position.set(-11.4, TV.y, TV.z); scene.add(tvLight);
 let tvOn = false, cssRenderer = null, cssScene = null;
+// the TV's glow follows the colours of what's playing (sampled from the video's thumbnail when the browser allows it)
+let tvPalette = [new THREE.Color(0x9aa6ff), new THREE.Color(0xb0c0ff), new THREE.Color(0x8090e0), new THREE.Color(0xc0b0ff)], tvVid = '';
+function setTvVideo(id) {
+  if (!id || id === tvVid) return; tvVid = id;
+  const img = new Image(); img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    try {
+      const c = document.createElement('canvas'); c.width = 4; c.height = 2; const x = c.getContext('2d'); x.drawImage(img, 0, 0, 4, 2);
+      const d = x.getImageData(0, 0, 4, 2).data, pal = [];
+      for (let i = 0; i < 8; i++) { const col = new THREE.Color(d[i * 4] / 255, d[i * 4 + 1] / 255, d[i * 4 + 2] / 255); const hsl = {}; col.getHSL(hsl); col.setHSL(hsl.h, Math.min(1, hsl.s * 1.2 + 0.1), Math.max(0.45, hsl.l)); pal.push(col); }
+      tvPalette = pal;
+    } catch (e) { /* the thumbnail can't be read here; keep the default glow */ }
+  };
+  img.src = 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg';
+}
+// while the cinema TV is playing, the room's own lights go down so the screen lights the room
+const cinemaLights = [];
+const cinemaHook = () => {
+  if (!cinemaLights.length) scene.traverse((o) => { if (o.isPointLight && o !== tvLight && inRoomXZ(o.position, ROOMS.tv)) { cinemaLights.push(o); o.userData.base = o.intensity; } });
+  if (blackout) return;
+  const k = tvOn && !pokerOn ? 0.2 : 1;
+  for (const L of cinemaLights) L.intensity = L.userData.base * k;
+};
+const inRoomXZ = (p, r) => p.x >= r.x0 && p.x <= r.x1 && p.z >= r.z0 && p.z <= r.z1;
 if (THREE.CSS3DRenderer && document.getElementById('tvScreen')) {
   cssScene = new THREE.Scene();
   cssRenderer = new THREE.CSS3DRenderer();
@@ -2719,7 +2819,7 @@ const smoke = new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0x8c8780,
 smoke.frustumCulled = false; scene.add(smoke);
 
 // ---------------------------------------------------------------- crowd
-const HOST_LOOK = { jacket: 0, pants: 1, skin: 2, head: 7, hair: 1, beard: 4, eyes: 1, smoke: 2, dance: 3, spot: 1, body: 0, top: 2, bottom: 2, shoes: 2 };
+const HOST_LOOK = { jacket: 0, pants: 1, skin: 2, head: 7, hair: 1, beard: 4, eyes: 2, smoke: 2, dance: 3, spot: 1, body: 0, top: 2, bottom: 2, shoes: 2 };
 const BARTENDER_LOOK = { jacket: 2, pants: 1, skin: 4, head: 1, hair: 1, beard: 1, eyes: 0, smoke: 0, dance: 3, spot: 1, outfit: 'barman' };
 const DJ_LOOK = { jacket: 4, pants: 1, skin: 3, head: 3, hair: 1, beard: 1, eyes: 2, smoke: 0, dance: 3, spot: 0 };
 const crowd = [];
@@ -2773,8 +2873,8 @@ VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'l
 // pool lounge: wading in the water, daybeds, and standing room around the edge
 // seats in the water: backs against the long sides of the pool, facing the middle
 for (const [i, x] of [8.0, 9.0, 10.0, 11.0].entries()) {
-  addSpot('swim-water-' + i + '0', 5, 'soak', x, SW.z0 + 0.24, 0, 'Get in the pool', hitBox(x, 0.3, SW.z0 + 0.45, 0.9, 0.6, 0.9));
-  addSpot('swim-water-' + i + '1', 5, 'soak', x, SW.z1 - 0.24, Math.PI, 'Get in the pool', hitBox(x, 0.3, SW.z1 - 0.45, 0.9, 0.6, 0.9));
+  addSpot('swim-water-' + i + '0', 5, 'soak', x, SW.z0 + 0.24, 0, 'Get in the pool', hitBox(x, 0.1, SW.z0 + 0.45, 0.9, 0.4, 0.9), { y: -0.62 });
+  addSpot('swim-water-' + i + '1', 5, 'soak', x, SW.z1 - 0.24, Math.PI, 'Get in the pool', hitBox(x, 0.1, SW.z1 - 0.45, 0.9, 0.4, 0.9), { y: -0.62 });
 }
 DAYBEDS.forEach(([x, z], i) => addSpot('swim-bed-' + i, 5, 'sitlow', x, z + 0.15, 0, 'Lie back on a daybed', hitBox(x, 0.45, z, 0.85, 0.9, 1.7)));
 [[6.4, -8.0, Math.PI / 2], [12.6, -9.4, -Math.PI / 2], [6.6, -6.2, 2.2], [12.4, -6.2, -2.2], [8.0, -5.0, Math.PI], [11.0, -5.0, Math.PI]].forEach(([x, z, yaw], i) =>
@@ -2903,7 +3003,8 @@ function rebuild() {
   dj.act = 'dj'; dj.root.position.set(13.85, 0, 0); dj.root.rotation.y = -Math.PI / 2;
   rebuildHooks();
   // the host, in his armchair in the VIP lounge
-  const host = addChar(HOST_LOOK, HOST_NAME, { host: true });
+  const hostEntry = roster.find((e) => e.name.toLowerCase() === HOST_NAME.toLowerCase());
+  const host = addChar(hostLookFrom(hostEntry && hostEntry.code), HOST_NAME, { host: true });
   const seen = new Set([HOST_NAME.toLowerCase()]);
   let haveMine = false;
   for (const e of roster.slice(-80)) {
@@ -3550,6 +3651,7 @@ function toast(text) {
 
 // ================================================================ v42: restroom, VIP glass, Charon, card room, coins, lot, events
 const PRE_HOOKS = [], POST_HOOKS = [], REBUILD_HOOKS = [];
+POST_HOOKS.push(cinemaHook);
 const hash32 = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 9); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return n >>> 0; };
 const camRoom = () => (camT.free ? null : roomAt(cam.tx, cam.tz));
 
@@ -3961,6 +4063,7 @@ POST_HOOKS.push((dt, t) => {
   const k = on ? 1 : 0.15;
   secLight.intensity = 1.6 * k; secLight2.intensity = 1.0 * k;
   for (const m of SEC_NEON) m.visible = on;
+  for (const m of SEC_BEAMS) m.opacity = on ? 0.13 : 0.02;
 });
 const secCenter = new THREE.Vector3(-15, 1, -7.5);
 POST_HOOKS.push((dt, t) => {
@@ -4178,6 +4281,70 @@ REBUILD_HOOKS.push(() => {
 scene.add(new THREE.Mesh(toGeometry([box(-13.7, -12.5, 0.03, 0.05, -18.9, -18.0, [120, 96, 64], 0.06), cyl(V(-12.55, 0, -18.6), V(-12.55, 0.24, -18.6), 0.035, 0.03, [40, 70, 40], { n: 6 }),
   box(-13.85, -13.45, 0, 0.3, -18.95, -18.6, [70, 60, 50], 0.08)]), roomMat));
 
+// ---- trash bags piled next to Tobias
+scene.add(new THREE.Mesh(toGeometry([
+  loft([rring(0.0, 0.42, 0.38, -13.85, -17.7, 10), rring(0.2, 0.52, 0.46, -13.85, -17.7, 10), rring(0.42, 0.44, 0.4, -13.85, -17.7, 10), rring(0.52, 0.16, 0.14, -13.85, -17.72, 10)], [18, 18, 20], { smooth: true, amt: 0.06 }),
+  loft([rring(0.0, 0.36, 0.34, -13.55, -17.25, 10), rring(0.18, 0.44, 0.4, -13.55, -17.25, 10), rring(0.36, 0.36, 0.33, -13.55, -17.25, 10), rring(0.45, 0.12, 0.12, -13.56, -17.27, 10)], [24, 30, 22], { smooth: true, amt: 0.06 }),
+  loft([rring(0.42, 0.34, 0.3, -13.8, -17.55, 10), rring(0.58, 0.38, 0.34, -13.8, -17.55, 10), rring(0.72, 0.28, 0.25, -13.8, -17.55, 10), rring(0.78, 0.1, 0.1, -13.8, -17.57, 10)], [14, 14, 16], { smooth: true, amt: 0.06 }),
+  cyl(V(-13.86, 0.52, -17.72), V(-13.86, 0.6, -17.72), 0.03, 0.01, [220, 200, 60], { n: 5 })]), roomMat));
+// ---- a soft pink haze drifting through the pool lounge
+const hazeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 4, 32, 32, 32); g.addColorStop(0, 'rgba(255,120,220,0.5)'); g.addColorStop(1, 'rgba(255,90,200,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+const HAZE = [];
+for (let i = 0; i < 9; i++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: hazeTex, color: i % 3 ? 0xff6ad0 : 0xb070ff, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  sp.scale.set(3.4, 1.6, 1); sp.position.set(5.8 + (i % 3) * 3.4, 1.2 + (i % 2) * 0.9, -11 + Math.floor(i / 3) * 3.2); scene.add(sp); HAZE.push({ sp, x: sp.position.x, z: sp.position.z, k: i });
+}
+POST_HOOKS.push((dt, t) => { for (const h of HAZE) { h.sp.position.x = h.x + 0.6 * Math.sin(t * 0.07 + h.k); h.sp.position.z = h.z + 0.4 * Math.cos(t * 0.05 + h.k * 2); h.sp.material.opacity = 0.16 + 0.07 * Math.sin(t * 0.3 + h.k); } });
+
+// ---- small 3D previews (the shop and the character window): a spinning figure in its own little renderer
+const PREVIEWS = [];
+function makePreview(cv) {
+  let r = null;
+  try { r = new THREE.WebGLRenderer({ canvas: cv, antialias: false, alpha: true }); } catch (e) { return { show() { } }; }
+  r.outputEncoding = THREE.sRGBEncoding; r.setPixelRatio(1); r.setSize(cv.width, cv.height, false); r.setClearColor(0x0a0809, 1);
+  const sc = new THREE.Scene();
+  sc.add(new THREE.HemisphereLight(0xfff4e8, 0x302838, 0.9));
+  const key = new THREE.DirectionalLight(0xffe0c0, 0.9); key.position.set(1.5, 2.5, 2.5); sc.add(key);
+  const rim = new THREE.PointLight(0xff60c0, 0.8, 6); rim.position.set(-1.5, 1.8, -1.5); sc.add(rim);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(0.75, 24), new THREE.MeshBasicMaterial({ color: 0x1c1416 })); floor.rotation.x = -Math.PI / 2; sc.add(floor);
+  const cam = new THREE.PerspectiveCamera(28, cv.width / cv.height, 0.1, 30); cam.position.set(0, 1.15, 4.6); cam.lookAt(0, 0.95, 0);
+  let ch = null;
+  const P = {
+    cv,
+    show(spec) {
+      if (ch) { sc.remove(ch.root); ch = null; }
+      if (!spec || !spec.look) return;
+      const I = (spec.uid && inv[spec.uid]) || {}, eq = I.eq || {};
+      let outfit = spec.outfit;
+      if (outfit === undefined && spec.uid) outfit = tuxFor({ uid: spec.uid }) || '';
+      const look = Object.assign({}, spec.look, { outfit: outfit || undefined });
+      ch = makeCharacter(look, '', 7); ch.phase = 0.2; ch.look = look;
+      const tux = (outfit || '').startsWith('tux-') ? outfit.slice(4) : '';
+      if (tux) setGoldGlow(ch, tux);
+      const pet = spec.pet !== undefined ? spec.pet : eq.pet && I[eq.pet] ? eq.pet : '';
+      if (pet && petGeo[pet]) ch.pet = makePet(ch, pet);
+      const fx = spec.fx !== undefined ? spec.fx : eq.fx && I[eq.fx] ? eq.fx : '';
+      if (FX_COLORS[fx]) { const g = new THREE.Sprite(new THREE.SpriteMaterial({ map: goldGlowTex, color: FX_COLORS[fx], transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending })); g.scale.set(0.85, 1.75, 1); g.position.y = 0.95; ch.root.add(g); }
+      if (fx === 'smelly' || FX_COLORS[fx] || fx === 'haze') {
+        const a = makeAura(ch, fx === 'smelly' ? 0x7a9a30 : fx === 'haze' ? 0xb8b8b0 : FX_COLORS[fx], 20, { size: 0.05, normal: fx !== 'glow' });
+        const at = a.geometry.attributes.position; for (let i = 0; i < at.count; i++) at.setXYZ(i, (Math.random() - 0.5) * 0.7, 0.2 + Math.random() * 1.8, (Math.random() - 0.5) * 0.7);
+      }
+      sc.add(ch.root);
+    },
+    render(t, beat) {
+      if (!cv.isConnected || cv.offsetParent === null) return;
+      if (ch) { pose(ch, 'dance', beat, t); ch.root.rotation.y = t * 0.8; if (ch.glow) ch.glow.material.opacity = 0.45; }
+      r.render(sc, cam);
+    }
+  };
+  PREVIEWS.push(P);
+  return P;
+}
+POST_HOOKS.push((dt, t, beat) => { for (const p of PREVIEWS) p.render(t, beat); });
+let creatorPreview = null;
+{ const cv = document.getElementById('previewCanvas'); if (cv) creatorPreview = makePreview(cv); }
+const myLook = () => { const me = crowd.find((c) => c.mine && c !== draftChar); return me ? Object.assign({}, me.look, { outfit: undefined }) : myEntry ? codeToLook(myEntry.code) : HOST_LOOK; };
+
 // keep the card room, Charon's tag and the VIP rules in step with each rebuild
 function rebuildHooks() { for (const f of REBUILD_HOOKS) f(); }
 
@@ -4240,7 +4407,8 @@ function tick() {
   candleLight.intensity = 0.6 + 0.12 * Math.sin(t * 9.1) * Math.sin(t * 3.7);
   swimLights[0].intensity = 1.3 + 0.35 * pulse;
   for (const l of barLights) l.intensity = 1.1 + 0.05 * Math.sin(t * 2 + l.position.x);
-  tvLight.intensity = tvOn ? 0.55 + 0.2 * Math.sin(t * 9) * Math.sin(t * 2.3) : 0;
+  tvLight.intensity = tvOn && !pokerOn ? 1.5 + 0.35 * Math.sin(t * 7) * Math.sin(t * 2.3) + 0.25 * Math.sin(t * 1.3) : pokerOn ? 0.8 : 0;
+  if (tvOn) { const n = tvPalette.length, u = (t * 0.25) % n, i0 = Math.floor(u), f = u - i0; tvLight.color.copy(tvPalette[i0]).lerp(tvPalette[(i0 + 1) % n], f); }
   expireBubbles();
 
   // smoke
@@ -4351,16 +4519,24 @@ function refreshDraft() {
   renderOptions();
   removeDraft();
   const nm = $('nm').value.trim() || 'you';
-  draftChar = makeCharacter(draft, nm, hashStr(nm.toLowerCase()));
+  const me = crowd.find((c) => c.mine && c !== draftChar);
+  const dressed = Object.assign({}, draft, { outfit: me ? tuxFor(me) || undefined : undefined });
+  draftChar = makeCharacter(dressed, nm, hashStr(nm.toLowerCase()));
+  if (me) { draftChar.uid = me.uid; setGoldGlow(draftChar, (dressed.outfit || '').startsWith('tux-') ? dressed.outfit.slice(4) : ''); }
+  if (creatorPreview) creatorPreview.show({ look: draft, uid: me && me.uid });
   draftChar.phase = 0.3; draftChar.act = 'dance';
   draftChar.root.position.set(0, 0, 1.2); draftChar.root.rotation.y = 0.2;
   scene.add(draftChar.root); crowd.push(draftChar);
   focusChar(draftChar);
 }
+const hostCustom = (code) => typeof code === 'string' && code.length >= 15 && code[14] === '9';
+function hostLookFrom(code) { return hostCustom(code) ? Object.assign(codeToLook(code), { smoke: 2 }) : HOST_LOOK; }
+const isHostEntry = () => !!(myEntry && myEntry.name.toLowerCase() === HOST_NAME.toLowerCase());
 function openCreator() {
   // new characters start without a cigarette; they can pick one in the Smoke option
   // smokes come from the bartender and the humidor now, so the preview never has one
-  draft = Object.assign(myEntry ? codeToLook(myEntry.code) : randomLook(Math.random), { smoke: 0 });
+  draft = Object.assign(isHostEntry() ? Object.assign({}, hostLookFrom(myEntry.code)) : myEntry ? codeToLook(myEntry.code) : randomLook(Math.random), { smoke: 0 });
+  if (window.SOCIAL && window.SOCIAL.creatorOpened) window.SOCIAL.creatorOpened();
   if (draft.spot === 4 && !isMod) draft.spot = 1;
   $('nm').value = myEntry ? myEntry.name : '';
   $('nmErr').hidden = true;
@@ -4369,6 +4545,7 @@ function openCreator() {
 }
 function closeCreator() {
   removeDraft();
+  const pw = document.getElementById('previewWin'); if (pw) pw.hidden = true;
   $('creator').hidden = true; setView('room');
 }
 $('nm').addEventListener('input', () => { if (draftChar) refreshDraft(); });
@@ -4381,7 +4558,7 @@ $('form').addEventListener('submit', async (e) => {
   const err = $('nmErr');
   if (!NAME_RE.test(name)) { err.textContent = 'Use your Twitch name: 3–25 letters, numbers or underscores.'; err.hidden = false; $('nm').focus(); return; }
   if (name.toLowerCase() === HOST_NAME.toLowerCase() && !(window.NET && window.NET.isAdmin)) { err.textContent = 'That name belongs to the host.'; err.hidden = false; return; }
-  const code = lookToCode(draft);
+  const code = lookToCode(draft) + (name.toLowerCase() === HOST_NAME.toLowerCase() ? '9' : '');
   saving = true; $('walkIn').disabled = true; $('walkIn').textContent = 'Walking in…';
   let res = { ok: true, local: true };
   if (window.NET && window.NET.online) res = await window.NET.saveChar(name, code, myEntry && myEntry.name);
@@ -4429,6 +4606,7 @@ window.BAR = {
   bubble: showBubble,
   setDucked,
   setTvOn(on) { tvOn = !!on; },
+  setTvVideo(id) { setTvVideo(id); },
   setPokerCam(on) { setPokerCam(on); },
   pokerCount() { return pokerPlayers().length; },
   poolTable: () => POOL_TABLE,
@@ -4461,7 +4639,10 @@ window.BAR = {
   openCreator,
   // v42
   setVipMember(on) { vipMember = !!on; applyVipAccess(); rebuild(); },
-  setInv(v) { inv = v || {}; rebuild(); },
+  setInv(v) { inv = v || {}; rebuild(); if (draft && creatorPreview) creatorPreview.show({ look: draft, uid: myUid }); },
+  makePreview(cv) { return makePreview(cv); },
+  myLook() { return myLook(); },
+  previewDraft() { if (draft && creatorPreview) creatorPreview.show({ look: draft, uid: myUid }); if (draft) refreshDraft(); },
   setBuffs(v) { buffs = v || {}; rebuild(); },
   costumes: () => Object.fromEntries(Object.entries(COSTUMES).map(([k, c]) => [k, c.name])),
   setPerks(p) { perks = p || {}; rebuild(); },
