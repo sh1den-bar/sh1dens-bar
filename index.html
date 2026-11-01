@@ -104,11 +104,11 @@ button.danger { border-color: #6a2620; color: #ff8a7a; }
 #whoPanel { left: max(16px, env(safe-area-inset-left, 0px)); top: 70px; width: 240px; }
 
 #room { right: max(16px, env(safe-area-inset-right, 0px)); top: 70px; bottom: calc(64px + env(safe-area-inset-bottom, 0px));
-  width: 330px; max-height: none; padding: 0; gap: 0; overflow: hidden; }
+  width: 330px; max-height: none; padding: 0; gap: 0; overflow-x: hidden; overflow-y: auto; }
 #room > section { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; min-height: 0; }
-#room .tvsec { flex: 0 0 auto; max-height: 45%; overflow-y: auto; }
-#room .chatsec { flex: 1 1 auto; }
-#room .foot { flex: 0 0 auto; border-bottom: 0; max-height: 50%; overflow-y: auto; }
+#room .tvsec { flex: 0 0 auto; max-height: 40%; overflow-y: auto; }
+#room .chatsec { flex: 1 0 260px; overflow: hidden; }
+#room .foot { flex: 0 0 auto; border-bottom: 0; }
 #tvNow { font-size: 14px; color: var(--fg); overflow-wrap: anywhere; }
 #tvBy { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; }
 #tvQueue { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
@@ -117,7 +117,7 @@ button.danger { border-color: #6a2620; color: #ff8a7a; }
 #tvQueue .qb { color: var(--dim); font-size: 11px; }
 .inline { display: flex; gap: 6px; }
 .inline input { flex: 1; min-width: 0; }
-.vol { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.vol { display: flex; flex-direction: row; align-items: center; gap: 8px; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
 .vol input { flex: 1; accent-color: var(--amber); padding: 0; }
 .msg { color: var(--amber); font-size: 12px; min-height: 1em; }
 #chatLog { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; min-height: 80px; display: flex; flex-direction: column; gap: 5px; }
@@ -203,9 +203,20 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 #pokerStatus, #pkTimer { color: var(--dim); min-height: 1.2em; }
 #pkAmt { width: 90px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-@media (max-width: 760px) {
+/* medium and short screens: rooms go into the dropdown so the button row never wraps over the panels */
+@media (max-width: 1180px) {
   .top .group { display: none; }
   #roomSelect { display: block; max-width: 46vw; }
+}
+@media (max-height: 820px) {
+  .keyhint { display: none; }
+  #room, #creator, #whoPanel, #coinsPanel { top: 60px; }
+  #room { bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+  .panel { max-height: calc(100% - 120px); }
+  #room .tvsec { max-height: 34%; }
+  #room > section { padding: 10px 14px; }
+}
+@media (max-width: 760px) {
   .brand h1 { font-size: 22px; }
   .brand .stat { font-size: 10px; }
   .bottom { gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
@@ -217,7 +228,7 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
   #pix, #track { display: none; }
   #coinsPanel, #pokerPanel { left: 8px !important; right: 8px; top: auto; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); width: auto; transform: none; max-height: 70%; }
   #poolPanel { width: calc(100vw - 16px); }
-  #creator, #whoPanel, #room { left: 8px; right: 8px; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); max-height: 64%; }
+  #creator, #whoPanel, #room { left: 8px; right: 8px; top: auto; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); max-height: 64%; }
   #room { height: 64%; }
   #creator { max-height: 72%; }
   .opt { grid-template-columns: 80px 34px 1fr 34px; }
