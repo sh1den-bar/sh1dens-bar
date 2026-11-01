@@ -202,12 +202,14 @@ function renderShop() {
   const list = $('shopList'); if (!list || $('shopPanel').hidden) return;
   list.textContent = '';
   const mine = inv[uid()] || {}, eq = mine.eq || {}, slot = SLOT_OF[shopTab];
-  for (const [id, name, price] of SHOP[shopTab]) {
+  const guest = !!(window.HOTEL && window.HOTEL.isGuest(uid()));
+  for (const [id, name, base] of SHOP[shopTab]) {
+    const price = guest ? Math.ceil(base * 0.8) : base;
     const row = el('div', 'shoprow'); row.dataset.id = id;
     const nm = el('span', '', name); nm.style.cursor = 'pointer'; nm.onclick = () => previewItem(id);
     row.append(nm);
     const owned = !!mine[id];
-    const b = el('button', owned ? '' : 'primary', owned ? (eq[slot] === id ? 'Take off' : 'Use') : fmt(price) + ' 🪙'); b.type = 'button';
+    const b = el('button', owned ? '' : 'primary', owned ? (eq[slot] === id ? 'Take off' : 'Use') : fmt(price) + ' 🪙' + (guest ? ' (guest)' : '')); b.type = 'button';
     b.onclick = () => (owned ? equip(slot, eq[slot] === id ? 'none' : id) : buy(id, price, slot));
     if (!owned && ((myCoins && myCoins.n) || 0) < price) b.disabled = true;
     if (NET().isAdmin && !owned) { b.textContent = 'Free (host)'; b.disabled = false; }
@@ -230,7 +232,7 @@ async function buy(id, price, slot) {
 }
 function equip(slot, id) { db.ref('inv/' + uid() + '/eq/' + slot).set(id).catch(() => { $('shopMsg').textContent = "Couldn't change that."; }); }
 function renderBal() {
-  const t = 'Your sh1den coins: ' + fmt(myCoins && myCoins.n) + (NET().isAdmin ? ' · hosts get shop items free' : '');
+  const t = 'Your sh1den coins: ' + ((NET().myName && (NET().myName() || '').toLowerCase() === 'sh1denfps') ? '∞' : fmt(myCoins && myCoins.n)) + (NET().isAdmin ? ' · hosts get shop items free' : window.HOTEL && window.HOTEL.isGuest(uid()) ? ' · hotel guest: 20% off' : '');
   if ($('shopBal')) $('shopBal').textContent = t;
   if ($('slotBal')) $('slotBal').textContent = fmt(myCoins && myCoins.n) + ' 🪙';
 }

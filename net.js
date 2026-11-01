@@ -464,7 +464,8 @@ function advance(endedId) {
   if (!db || advancing) return;
   if (endedId !== (current ? current.id : null)) return;
   advancing = true; setTimeout(() => { advancing = false; }, 3000);
-  const q = queue[0], upd = {};
+  // hotel guests' videos jump the line
+  const q = queue.find((x) => window.HOTEL && window.HOTEL.isGuest(x.uid)) || queue[0], upd = {};
   upd['tv/current'] = q ? { v: q.v, id: q.key, uid: q.uid, name: q.name || 'someone', title: (q.title || '').slice(0, 150), at: TS } : null;
   if (q) upd['tv/queue/' + q.key] = null;
   // other visitors may advance at the same moment; the database rules let only the first one through

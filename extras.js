@@ -42,9 +42,9 @@ function start() {
   db = NET().db(); if (!db) return;
   started = true; joinedAt = Date.now();
   BAR().setSpooky(spooky);
-  db.ref('coins').orderByChild('n').limitToLast(10).on('value', (s) => {
+  db.ref('coins').orderByChild('n').limitToLast(11).on('value', (s) => {
     const l = []; s.forEach((c) => { const v = c.val() || {}; l.push({ uid: c.key, name: v.name, n: +v.n || 0 }); });
-    board = l.sort((a, b) => b.n - a.n); BAR().setLeaderboard(board); renderPanel();
+    board = l.filter((c) => (c.name || '').toLowerCase() !== 'sh1denfps').sort((a, b) => b.n - a.n); BAR().setLeaderboard(board); renderPanel();
   });
   db.ref('coins/' + myUid()).on('value', (s) => {
     mine = s.val(); renderHud(); renderPanel(); renderCard(); autoTux();
@@ -234,13 +234,13 @@ function wireCard() {
 }
 function renderHud() {
   const b = $('coinBtnN'); if (!b) return;
-  b.textContent = ((mine && mine.n) || 0).toLocaleString();
+  b.textContent = actingHost() ? '∞' : ((mine && mine.n) || 0).toLocaleString();
   const left = mine ? Math.max(0, (mine.t || 0) + PASSIVE_MS - now()) : PASSIVE_MS;
   const nx = $('coinNext'); if (nx) nx.textContent = hasChar() ? 'Next coin for hanging out in ' + Math.ceil(left / 60000) + ' min' : 'Make a character to start earning';
 }
 function renderPanel() {
   const p = $('coinsPanel'); if (!p || p.hidden) return;
-  $('coinBal').textContent = ((mine && mine.n) || 0).toLocaleString() + ' coins';
+  $('coinBal').textContent = actingHost() ? '∞ coins (the house)' : ((mine && mine.n) || 0).toLocaleString() + ' coins';
   const vp = $('vipProgress');
   if (vp) vp.textContent = spent() >= VIP_SPEND ? '★ VIP: you can go in the VIP lounge.' : 'Spend ' + VIP_SPEND.toLocaleString() + ' coins in total to get into the VIP lounge (' + spent().toLocaleString() + ' spent so far).';
   const rl = $('rewardList'); rl.textContent = '';

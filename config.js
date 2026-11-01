@@ -19,5 +19,9 @@ window.BAR_CONFIG = {
   blockedWords: [],
 
   // Coins spent in total before someone can use the VIP lounge.
-  vipAfterSpending: 1000
+  vipAfterSpending: 1000,
+
+  // The hotel floor upstairs. While false, only sh1denfps can go up (everyone else sees "under construction").
+  // Set to true when it's ready to open to everyone.
+  hotelOpen: false
 };

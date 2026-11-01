@@ -40,7 +40,7 @@ canvas { position: relative; z-index: 1; width: 100%; height: 100%; display: blo
   padding: 6px 9px; border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.45); white-space: normal; overflow-wrap: anywhere; will-change: transform, opacity; }
 .bubble::after { content: ""; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #efe7d8; }
 .nametag.mine { color: #ffd28a; border-color: rgba(255, 210, 138, 0.6); }
-.nametag.host { color: var(--neon); border-color: rgba(226, 180, 103, 0.7); }
+.nametag.host { color: #ffd6de; border: 1px solid #c8143c; background: rgba(40, 4, 12, 0.85); box-shadow: 0 0 0 1px rgba(120, 6, 30, 0.9), 0 0 8px rgba(220, 20, 60, 0.6); }
 #hint { position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none; font: 500 12px/1.2 var(--mono); color: #1a1206;
   background: var(--neon); padding: 5px 9px; border-radius: 3px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.5); }
 #hint.off { background: #2a2b30; color: #b9b4aa; }
@@ -57,14 +57,14 @@ canvas { position: relative; z-index: 1; width: 100%; height: 100%; display: blo
 
 /* the TV screen that sits on the bar wall */
 #tvHold { position: absolute; left: -9999px; top: 0; }
-#tvScreen, #vipScreen { width: 960px; height: 540px; background: #050506; overflow: hidden; backface-visibility: hidden; position: relative; }
-#tvScreen iframe, #vipScreen iframe { width: 960px; height: 540px; border: 0; display: block; filter: contrast(1.08) saturate(0.88); }
-#tvScreen::after, #vipScreen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+#tvScreen, #vipScreen, #roomScreen { width: 960px; height: 540px; background: #050506; overflow: hidden; backface-visibility: hidden; position: relative; }
+#tvScreen iframe, #vipScreen iframe, #roomScreen iframe { width: 960px; height: 540px; border: 0; display: block; filter: contrast(1.08) saturate(0.88); }
+#tvScreen::after, #vipScreen::after, #roomScreen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
   background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(0,0,0,0.22) 3px 5px); }
-#tvIdle, #vipIdle { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; background: #0b0a0a;
+#tvIdle, #vipIdle, #roomIdle { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; background: #0b0a0a;
   font-family: var(--display); color: #6f6a64; font-size: 46px; line-height: 1.1; padding: 40px; }
 #vipIdle b { color: #ff4fa8; text-shadow: 0 0 14px rgba(255,60,160,0.6); }
-#tvIdle b, #vipIdle b { display: block; color: var(--neon); font-weight: 400; font-size: 76px; font-family: var(--deco); text-shadow: 0 0 12px rgba(226,180,103,0.5); }
+#tvIdle b, #vipIdle b, #roomIdle b { display: block; color: var(--neon); font-weight: 400; font-size: 76px; font-family: var(--deco); text-shadow: 0 0 12px rgba(226,180,103,0.5); }
 
 .hud { position: absolute; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; z-index: 2; }
@@ -325,6 +325,25 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
   padding: 8px 10px 8px 14px; background: var(--panel); border: 1px solid var(--neon); color: var(--fg); font: 13px var(--mono); box-shadow: 0 0 18px rgba(226,180,103,0.35); }
 #updBar button { font: inherit; background: none; border: 1px solid var(--line); color: var(--fg); padding: 3px 10px; cursor: pointer; }
 #updBar #updGo { border-color: var(--neon); color: var(--neon); }
+/* the hotel, the DJ, room TVs */
+#audioHold { position: fixed; left: -600px; top: 0; width: 240px; height: 240px; opacity: 0; pointer-events: none; overflow: hidden; }
+#hotelPanel, #djPanel, #roomTvPanel { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 32px)); max-height: calc(100% - 140px); overflow: auto; z-index: 6;
+  background: #0c0b0d; border-color: rgba(214,170,90,0.45); box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
+#hotelPanel h2, #djPanel h2, #roomTvPanel h2 { font-family: var(--deco); color: #e7c98a; }
+#hotelPanel .hbody, #djPanel .hbody, #roomTvPanel .hbody { display: flex; flex-direction: column; gap: 8px; }
+#hotelPanel .note { color: #ffcf8a; border: 1px dashed rgba(255,207,138,0.5); padding: 6px 8px; margin: 0; }
+.hotelList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.hotelList li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.hotelList li b { font-family: var(--deco); color: #e7c98a; min-width: 38px; }
+.hotelList .hst { flex: 1; color: var(--dim); font-size: 12px; }
+.djq { margin: 0; padding-left: 18px; font-size: 12px; } .djq li { margin: 3px 0; } .djq button { margin-left: 6px; }
+#djPanel .inline input, #roomTvPanel .inline input, #jazzBox input { flex: 1; min-width: 0; }
+#npcMenu { position: absolute; z-index: 5; min-width: 220px; display: flex; flex-direction: column; gap: 4px; padding: 10px;
+  background: var(--panel); border: 1px solid rgba(226, 180, 103, 0.45); box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+#npcMenu .dmTitle { font-family: var(--deco); color: var(--neon); font-size: 18px; margin: 0 0 4px; }
+#npcMenu button { text-align: left; }
+#floorBtn, #exitBase { pointer-events: auto; }
+#exitBase { background: #2a0a0e; border-color: #c8143c; color: #ffd6de; }
 </style>
 </head>
 <body>
@@ -342,12 +361,17 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
       <div id="ytPlayer"></div>
       <div id="tvIdle"><div><b>SH1DEN TV</b><span id="tvIdleText">Post a YouTube link in the room chat</span></div></div>
     </div>
+    <div id="roomScreen">
+      <div id="roomPlayer"></div>
+      <div id="roomIdle"><div><b>ROOM TV</b><span>Click the TV to put a video on</span></div></div>
+    </div>
     <div id="vipScreen">
       <div id="vipPlayer"></div>
       <div id="vipIdle"><div><b>VIP</b><span>Hosts only</span></div></div>
     </div>
   </div>
 
+  <div id="audioHold" aria-hidden="true"><div id="djPlayer"></div><div id="jazzPlayer"></div></div>
   <div class="hud top">
     <div class="brandcol">
       <div class="brand"><h1>SH1DEN'S</h1><span class="stat" id="count">0 regulars</span><span class="stat" id="roomStatus">Connecting…</span></div>
@@ -380,6 +404,8 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
       <option value="tv">Cinema</option><option value="pool">Billiards</option><option value="card">Card room</option><option value="sec">Security</option><option value="vip" hidden disabled>VIP</option>
       <option value="street">Street</option><option value="alley">Backstreet</option><option value="map">Map</option>
     </select>
+    <button id="floorBtn" type="button">⇡ Upstairs</button>
+    <button id="exitBase" type="button" hidden>Exit basement</button>
   </div>
 
   <div class="hud bottom">
@@ -593,13 +619,14 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=59"></script>
-<script src="net.js?v=59"></script>
-<script src="bar.js?v=59"></script>
-<script src="pool.js?v=59"></script>
-<script src="extras.js?v=59"></script>
-<script src="poker.js?v=59"></script>
-<script src="social.js?v=59"></script>
+<script src="config.js?v=60"></script>
+<script src="net.js?v=60"></script>
+<script src="bar.js?v=60"></script>
+<script src="pool.js?v=60"></script>
+<script src="extras.js?v=60"></script>
+<script src="poker.js?v=60"></script>
+<script src="social.js?v=60"></script>
+<script src="hotel.js?v=60"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
