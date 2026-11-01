@@ -710,6 +710,8 @@ function renderVipQueue() {
 }
 const masterVol = () => (typeof window.SH_VOL === 'number' ? window.SH_VOL : 1);
 window.addEventListener('shvol', () => { applyVolume(); vipVolume(); });
+// and keep re-applying it: a player that loads or unmutes later still picks up the knob
+setInterval(() => { try { applyVolume(); vipVolume(); } catch (e) { } }, 1500);
 function applyVolume() {
   if (!playerReady) return;
   player.setVolume(Math.round(tvVolume * masterVol()));

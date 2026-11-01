@@ -45,7 +45,7 @@ function build() {
     '<div class="row" style="align-items:center"><label class="check" style="gap:6px">Bet <input id="slotBet" type="number" min="5" step="1" inputmode="numeric" value="10" style="width:7em"></label><span class="betq" id="betQuick"></span><button type="button" class="primary" id="slotSpin">Spin</button><span id="slotBal" style="margin-left:auto;color:#ffd98a"></span></div>' +
     '<details><summary>Paytable</summary><div class="paytable" id="payTable"></div></details>';
   const sh = el('section', 'panel'); sh.id = 'shopPanel'; sh.hidden = true; stage.appendChild(sh);
-  sh.innerHTML = '<header><h2>Shop</h2><button class="x" type="button" id="shopClose" aria-label="Close">✕</button></header>' +
+  sh.innerHTML = '<header><h2>Game shop</h2><button class="x" type="button" id="shopClose" aria-label="Close">✕</button></header>' +
     '<div class="chattabs" role="tablist"><button type="button" class="on" data-tab="clothes">Clothes</button><button type="button" data-tab="pets">Pets</button><button type="button" data-tab="misc">Misc</button><button type="button" data-tab="cursors">Cursors</button></div>' +
     '<canvas id="shopCanvas" width="220" height="260" aria-label="Item preview"></canvas><div id="shopBal" style="color:#ffd98a"></div><div id="shopList" class="shoplist"></div><div class="msg" id="shopMsg" role="status"></div>';
   const bg = el('section', 'panel'); bg.id = 'beggarPanel'; bg.hidden = true; stage.appendChild(bg);

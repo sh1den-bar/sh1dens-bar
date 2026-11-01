@@ -433,11 +433,17 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
     </div>
     <div class="navgroup">
     <div id="volWrap" title="Volume"><span class="vicon" aria-hidden="true">♪</span><input id="masterVol" type="range" min="0" max="100" value="100" aria-label="Volume"><span class="vnum" id="volNum">100</span></div>
-    <select id="roomSelect" aria-label="Go to a room">
-      <option value="">Rooms ▾</option>
-      <option value="bar">Bar</option><option value="lounge">Lounge</option><option value="dance">Dance</option><option value="swim">Pool lounge</option><option value="change">Changing</option>
-      <option value="tv">Cinema</option><option value="pool">Billiards</option><option value="card">Casino Royale</option><option value="sec">Security</option><option value="vip" hidden disabled>VIP</option>
-      <option value="street">Street</option><option value="alley">Backstreet</option><option value="map">Map</option>
+    <select id="roomSelect" aria-label="Go somewhere">
+      <option value="">Places ▾</option>
+      <optgroup label="City">
+        <option value="map">City map</option><option value="downtown">Main Street</option><option value="carshop">Car dealership</option><option value="clothes">Clothes store</option>
+        <option value="bank">Bank</option><option value="court">Courthouse</option><option value="homes">Residential area</option><option value="mansions">Mansion row</option>
+      </optgroup>
+      <optgroup label="Sh1den's bar">
+        <option value="bar">Bar</option><option value="lounge">Lounge</option><option value="dance">Dance</option><option value="swim">Pool lounge</option><option value="change">Changing</option>
+        <option value="tv">Cinema</option><option value="pool">Billiards</option><option value="card">Casino Royale</option><option value="sec">Security</option><option value="vip" hidden disabled>VIP</option>
+        <option value="street">Front door</option><option value="alley">Backstreet</option>
+      </optgroup>
     </select>
     <button id="floorBtn" type="button">⇡ Upstairs</button>
     <button id="exitBase" type="button" hidden>Exit basement</button>
@@ -459,8 +465,7 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
     <div class="dropup right" id="coinDrop">
       <button type="button" data-drop="coinMenu">🪙 <span id="coinBtnN">0</span><span class="caret">▲</span></button>
       <div class="menu" id="coinMenu" hidden>
-        <button id="coinBtn" type="button">Sh1den coins &amp; rewards</button>
-        <button id="shopBtn" type="button">Shop</button>
+        <button id="shopBtn" type="button">Game shop</button>
         <button id="track" type="button" title="Next track">Jukebox</button>
       </div>
     </div>
@@ -555,24 +560,6 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
     </div>
   </section>
 
-  <section class="panel" id="coinsPanel" hidden aria-label="Sh1den coins">
-    <header><h2>Sh1den coins</h2><button class="x" type="button" id="coinsClose" aria-label="Close">✕</button></header>
-    <div id="coinBal">0 coins</div>
-    <p>You earn a coin every 5 minutes you're in the bar, AFK counts. A gold coin also turns up somewhere every 10 minutes: click it first for +5.</p>
-    <div class="msg" id="coinNext"></div>
-    <h3>Rewards</h3>
-    <div class="msg" id="vipProgress"></div>
-    <input id="redeemNote" maxlength="80" placeholder="YouTube link (for a priority video)" autocomplete="off" aria-label="YouTube link for a priority video">
-    <div id="rewardList"></div>
-    <div class="msg" id="coinsMsg" role="status"></div>
-    <h3>High rollers</h3>
-    <ol id="coinBoard"></ol>
-    <label class="check"><input type="checkbox" id="spookyChk" checked> Spooky events (power cuts, glowing eyes)</label>
-    <div id="coinAdmin" hidden style="display:flex;flex-direction:column;gap:8px">
-      <h3>Redeems waiting</h3>
-      <ul id="redeemList"></ul>
-    </div>
-  </section>
 
   <section class="panel" id="pokerPanel" hidden aria-label="Poker">
     <header><h2>Casino Royale</h2><button class="x" type="button" id="pokerClose" aria-label="Close">✕</button></header>
@@ -623,7 +610,7 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
           <label class="opt2">Pet <select id="eqPet" aria-label="Pet"></select></label>
           <label class="opt2">Effect <select id="eqFx" aria-label="Effect"></select></label>
           <label class="opt2">Cursor <select id="eqCursor" aria-label="Cursor"></select></label>
-          <p class="small" id="stuffNote">Buy outfits, pets, effects and cursors in the Shop; they show up here. Member ranks unlock cursors too.</p>
+          <p class="small" id="stuffNote">Buy outfits, pets, effects and cursors in the Game shop; they show up here. Member ranks unlock cursors too.</p>
           <div id="carBox"></div>
         </div>
         <div class="row">
@@ -656,15 +643,15 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=61"></script>
-<script src="net.js?v=61"></script>
-<script src="bar.js?v=61"></script>
-<script src="pool.js?v=61"></script>
-<script src="extras.js?v=61"></script>
-<script src="poker.js?v=61"></script>
-<script src="cursors.js?v=61"></script>
-<script src="social.js?v=61"></script>
-<script src="hotel.js?v=61"></script>
+<script src="config.js?v=62"></script>
+<script src="net.js?v=62"></script>
+<script src="bar.js?v=62"></script>
+<script src="pool.js?v=62"></script>
+<script src="extras.js?v=62"></script>
+<script src="poker.js?v=62"></script>
+<script src="cursors.js?v=62"></script>
+<script src="social.js?v=62"></script>
+<script src="hotel.js?v=62"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
