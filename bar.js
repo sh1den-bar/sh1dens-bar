@@ -110,10 +110,13 @@ function toGeometry(parts, pivot) {
       p.tris.forEach((t, i) => { for (const v of t) { const k = v[0].toFixed(4) + ',' + v[1].toFixed(4) + ',' + v[2].toFixed(4); const a = acc.get(k); acc.set(k, a ? add(a, fn[i]) : fn[i]); } });
     }
     p.tris.forEach((t, i) => {
-      const c = p.cols[i], lc = [s2l(c[0]), s2l(c[1]), s2l(c[2])];
+      const c = p.cols[i];
+      let lc = [s2l(c[0]), s2l(c[1]), s2l(c[2])];
       for (const v of t) {
         let n = fn[i];
         if (acc) n = norm(acc.get(v[0].toFixed(4) + ',' + v[1].toFixed(4) + ',' + v[2].toFixed(4)));
+        // a part can shade itself per vertex (car paint: darker sills, lighter tops, a reflection line)
+        if (p.shade) { const sc = p.shade(v, n, c); lc = [s2l(Math.min(255, sc[0])), s2l(Math.min(255, sc[1])), s2l(Math.min(255, sc[2]))]; }
         pos[o] = v[0] - pivot[0]; pos[o + 1] = v[1] - pivot[1]; pos[o + 2] = v[2] - pivot[2];
         nor[o] = n[0]; nor[o + 1] = n[1]; nor[o + 2] = n[2];
         col[o] = lc[0]; col[o + 1] = lc[1]; col[o + 2] = lc[2];
@@ -656,10 +659,27 @@ function buildParts(look, seed) {
   return { B, B2, ember };
 }
 
+// a heavier build for the door staff: a broad chest and shoulders, a thick neck and big arms
+function buffUp(B, B2) {
+  const bell = (y, c, w) => Math.exp(-Math.pow((y - c) / w, 2) / 2);
+  const torso = (v) => { const y = v[1], fx = 1.05 + 0.18 * bell(y, 1.34, 0.13), fz = 1.05 + 0.2 * bell(y, 1.28, 0.12); return [v[0] * fx, y, v[2] * fz]; };
+  const limb = (a, b, k, dx) => (v) => {
+    const ab = sub(b, a), t = Math.max(0, Math.min(1, dot(sub(v, a), ab) / dot(ab, ab))), c = add(a, mul(ab, t));
+    const o = add(c, mul(sub(v, c), typeof k === 'function' ? k(v) : k));
+    return [o[0] + dx, o[1], o[2]];
+  };
+  const map = { spine: torso };
+  for (const [sh, el, e] of [['shL', 'elL', 1], ['shR', 'elR', -1]]) {
+    map[sh] = limb(PIV[sh], PIV[el], (v) => (v[1] > PIV[sh][1] - 0.04 ? 1.1 : 1.3), 0.03 * e);
+    map[el] = limb(PIV[el], add(PIV[el], [0.03 * e, -0.27, 0.02]), (v) => (v[1] < PIV[el][1] - 0.28 ? 1.1 : 1.22), 0.03 * e);
+  }
+  for (const BB of [B, B2]) for (const k in map) for (const p of BB[k] || []) p.tris = p.tris.map((t) => t.map(map[k]));
+}
 function getGeos(look, seed) {
-  const key = lookToCode(look) + ':' + (look.outfit || '') + ':' + seed;
+  const key = lookToCode(look) + ':' + (look.outfit || '') + ':' + seed + (look.buff ? ':buff' : '');
   if (geoCache.has(key)) return geoCache.get(key);
   const { B, B2, ember } = buildParts(look, seed);
+  if (look.buff) buffUp(B, B2);
   const geos = {}, over = {};
   for (const k in B) geos[k] = toGeometry(B[k], PIV[k]);
   for (const k in B2) if (B2[k].length) over[k] = toGeometry(B2[k], PIV[k]);
@@ -730,6 +750,37 @@ function makeTag(name, accent) {
   sp.scale.set(w / 36 * 0.13, 0.13, 1);
   return sp;
 }
+
+// ---------------------------------------------------------------- NPC idle loops
+const smooth01 = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+// hands folded low in front, arms folded across the chest, a hand pressed to the earpiece, checking the phone
+const BNC_CLASP = { 'shL.x': -0.22, 'shL.z': -0.22, 'elL.x': -0.78, 'elL.y': -1.1, 'shR.x': -0.24, 'shR.z': 0.22, 'elR.x': -0.74, 'elR.y': 1.1 };
+const NPC_LOOPS = {
+  bouncer: {
+    len: 40,
+    base: (b, t) => { b.thL.rotation.z = 0.1; b.thR.rotation.z = -0.1; b.hips.position.x = 0.012 * Math.sin(t * 0.37); b.spine.rotation.x = -0.04; },
+    segs: [
+      [0, (t) => Object.assign({ 'head.y': 0.6 * Math.sin(t * 0.31), 'spine.y': 0.1 * Math.sin(t * 0.31 - 0.7), 'head.x': 0.04 }, BNC_CLASP)],
+      [11, (t, u) => ({ 'shR.x': -0.9, 'shR.z': -0.85, 'elR.x': -2.45, 'elR.y': 0.55, 'head.z': 0.12, 'head.x': 0.06 + 0.07 * Math.max(0, Math.sin(t * 3.1)) * (u > 1.2 ? 1 : 0), 'head.y': -0.25, 'shL.x': -0.12, 'shL.z': -0.08, 'elL.x': -0.25 })],
+      [16, (t) => Object.assign({ 'head.y': -0.4 + 0.25 * Math.sin(t * 0.5), 'head.x': 0.02 }, BNC_CLASP)],
+      [23, (t) => ({ 'shR.x': -0.5, 'shR.z': 0.16, 'elR.x': -1.42 + 0.03 * Math.sin(t * 5), 'elR.y': 0.9, 'shL.x': -0.46, 'shL.z': -0.2, 'elL.x': -1.3, 'elL.y': -0.9, 'head.x': 0.42, 'spine.x': 0.08 })],
+      [31, (t) => ({ 'shL.x': -0.35, 'shL.z': -0.3, 'elL.x': -1.5, 'elL.y': -1.2, 'shR.x': -0.35, 'shR.z': 0.3, 'elR.x': -1.55, 'elR.y': 1.25, 'head.y': 0.5 * Math.sin(t * 0.27 + 1), 'spine.x': -0.03 })]
+    ]
+  },
+  // the valet at his desk: the ledger, a look outside, a call, a sip of coffee, a stretch
+  valet: {
+    len: 36,
+    base: (b) => { b.hips.position.y -= 0.45; b.thL.rotation.x = b.thR.rotation.x = -1.5; b.knL.rotation.x = b.knR.rotation.x = 1.45; b.thL.rotation.z = 0.1; b.thR.rotation.z = -0.1; },
+    segs: [
+      [0, (t) => ({ 'spine.x': 0.22, 'head.x': 0.38, 'head.y': 0.1 * Math.sin(t * 0.4), 'shR.x': -0.95, 'shR.z': 0.18, 'elR.x': -0.85 + 0.07 * Math.sin(t * 7), 'elR.y': 0.08 * Math.sin(t * 2.3), 'shL.x': -0.85, 'shL.z': -0.22, 'elL.x': -0.85 })],
+      [12, (t) => ({ 'spine.x': 0.05, 'shL.x': -0.85, 'shL.z': -0.2, 'elL.x': -0.9, 'shR.x': -0.85, 'shR.z': 0.2, 'elR.x': -0.9, 'head.y': 0.75 * Math.sin(t * 0.45), 'head.x': -0.05 })],
+      [18, (t) => ({ 'spine.x': -0.05, 'spine.z': 0.05, 'shR.x': -0.9, 'shR.z': -0.85, 'elR.x': -2.45, 'elR.y': 0.55, 'shL.x': -0.8, 'shL.z': -0.2, 'elL.x': -0.9, 'head.z': 0.2, 'head.y': 0.3 * Math.sin(t * 0.6) })],
+      [26, (t, u) => { const k = Math.max(0, Math.sin(u * 1.6)); return { 'spine.x': -0.06, 'shR.x': -0.6 - 0.7 * k, 'shR.z': 0.15, 'elR.x': -1.3 - 0.85 * k, 'shL.x': -0.85, 'shL.z': -0.2, 'elL.x': -0.9, 'head.x': -0.08 * k }; }],
+      [31, (t, u) => { const k = smooth01(u / 1.2) * smooth01((5 - u) / 1.2); return { 'spine.x': -0.18 * k, 'shL.z': 2.6 * k, 'shR.z': -2.6 * k, 'shL.x': -0.85 * (1 - k), 'shR.x': -0.85 * (1 - k), 'elL.x': -0.9 * (1 - k), 'elR.x': -0.9 * (1 - k), 'elL.z': 0.3 * k, 'elR.z': -0.3 * k, 'head.x': -0.3 * k }; }]
+    ]
+  }
+};
+const npcLoopT = (ch, t) => { const L = NPC_LOOPS[ch.act]; return L ? (t + (ch.phase || 0) * 60) % L.len : 0; };
 
 // ---------------------------------------------------------------- poses
 const ZERO = ['hips', 'spine', 'head', 'shL', 'elL', 'shR', 'elR', 'thL', 'knL', 'thR', 'knR'];
@@ -908,6 +959,19 @@ function pose(ch, act, beat, t) {
     b.shR.rotation.x = -1.1 - 0.15 * Math.max(0, Math.sin(t * 0.9)); b.elR.rotation.x = -0.4;
     b.shL.rotation.x = -0.5; b.elL.rotation.x = -1.2; b.shL.rotation.z = -0.2;
     b.head.rotation.x = 0.35 + 0.1 * Math.sin(t * 0.5); b.head.rotation.y = 0.3 * Math.sin(t * 0.3);
+  } else if (act === 'bouncer' || act === 'valet') {
+    // a loop of idle moments, eased into each other (see NPC_LOOPS)
+    const L = NPC_LOOPS[act], T = (t + ph * 60) % L.len;
+    let i = L.segs.length - 1; while (L.segs[i][0] > T) i--;
+    const end = i + 1 < L.segs.length ? L.segs[i + 1][0] : L.len, nxt = L.segs[(i + 1) % L.segs.length][1];
+    const a = L.segs[i][1](t, T - L.segs[i][0]), w = T > end - 0.8 ? smooth01((T - end + 0.8) / 0.8) : 0;
+    const bb = w > 0 ? nxt(t, 0) : null;
+    if (L.base) L.base(b, t);
+    const keys = new Set(Object.keys(a)); if (bb) for (const k in bb) keys.add(k);
+    for (const k of keys) {
+      const [bone, ax] = k.split('.'), v = (a[k] || 0) * (1 - w) + (bb ? (bb[k] || 0) * w : 0);
+      if (bone === 'hips') b.hips.position[ax] += v; else b[bone].rotation[ax] += v;
+    }
   } else if (act === 'walk') {
     const w = t * 7.5 + ph * 4, k = Math.sin(w);
     b.thL.rotation.x = -0.45 * k; b.thR.rotation.x = 0.45 * k;
@@ -1012,7 +1076,7 @@ const ROOMS = {
   swim: { x0: 5, x1: 14, z0: -12, z1: -4, name: 'Pool lounge' },
   change: { x0: 2, x1: 5, z0: -11, z1: -4, name: 'Changing room' },
   street: { x0: -26, x1: 28, z0: 4, z1: 15.4, name: 'Street', outside: true },
-  alley: { x0: -14, x1: 15, z0: -19, z1: -11, name: 'Backstreet', outside: true }
+  alley: { x0: -14, x1: 15, z0: -35, z1: -11, name: 'Backstreet', outside: true }
 };
 function roomAt(x, z) {
   for (const k in ROOMS) { const r = ROOMS[k]; if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r; }
@@ -2247,97 +2311,301 @@ function yzRing(x, yb, yt, w, n, pw) {
   return pts;
 }
 const CHROME_GRILLE = [190, 192, 198];
-const GLASS_D = [16, 20, 26], RUBBER = [12, 12, 13], RIM_C = [120, 122, 128];
-function carWheels(P, xs, track, r, w) {
-  for (const x of xs) for (const e of [-1, 1]) {
-    const zi = e * (track / 2 - w / 2), zo = e * (track / 2 + w / 2);
-    P.push(cyl(V(x, r, zi), V(x, r, zo), r, r, RUBBER, { n: 10, amt: 0.03 }));
-    P.push(cyl(V(x, r, zo), V(x, r, zo + e * 0.012), r * 0.62, r * 0.62, RIM_C, { n: 8, amt: 0.03 }));
+const GLASS_D = [16, 20, 26], RUBBER = [14, 14, 15], RIM_C = [150, 152, 158], CAR_BLK = [10, 10, 11], CAR_TRIM = [26, 26, 28];
+// a reflection map for the paint: a dark city at night, warm street lights low on the horizon and a faint sky glow above
+const carEnv = (() => {
+  const face = (kind) => {
+    const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d');
+    if (kind === 'top') { x.fillStyle = '#20232e'; x.fillRect(0, 0, 32, 32); x.fillStyle = '#4a4e5e'; x.fillRect(10, 10, 12, 12); }
+    else if (kind === 'bottom') { x.fillStyle = '#050506'; x.fillRect(0, 0, 32, 32); }
+    else {
+      const g = x.createLinearGradient(0, 0, 0, 32); g.addColorStop(0, '#1a1c26'); g.addColorStop(0.45, '#3a3a44'); g.addColorStop(0.55, '#141418'); g.addColorStop(1, '#060607');
+      x.fillStyle = g; x.fillRect(0, 0, 32, 32);
+      for (let k = 0; k < 4; k++) { x.fillStyle = k % 2 ? '#ffd9a0' : '#f4b870'; x.fillRect(3 + k * 8 + (kind.length % 3), 12, 2, 3); }
+      x.fillStyle = '#5a5e70'; x.fillRect(0, 15, 32, 1);
+    }
+    return c;
+  };
+  const tex = new THREE.CubeTexture([face('px'), face('nx'), face('top'), face('bottom'), face('pz'), face('nzz')]);
+  tex.needsUpdate = true;
+  return tex;
+})();
+const carPaintMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 70, specular: 0x505050, envMap: carEnv, combine: THREE.AddOperation, reflectivity: 0.16 }));
+const carGlassMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 110, specular: 0x8a8a8a, envMap: carEnv, combine: THREE.AddOperation, reflectivity: 0.32 }));
+const carChromeMat = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 90, specular: 0xb0b0b0, envMap: carEnv, combine: THREE.MixOperation, reflectivity: 0.45 }));
+// paint shading: darker toward the sills, lighter on the upward faces, and a bright reflection line just under the shoulder
+function paintShade(belt) {
+  return (v, n, c) => {
+    const y = v[1];
+    const k = 0.58 + 0.42 * Math.min(1, Math.max(0, (y - 0.15) / Math.max(0.1, belt - 0.15))) + 0.22 * Math.max(0, n[1]);
+    const side = 1 - Math.abs(n[1]);
+    const streak = Math.exp(-Math.pow((y - belt * 0.9) / 0.04, 2)) * side;
+    const add = 30 * streak + 22 * Math.pow(Math.max(0, n[1]), 4);
+    return [c[0] * k + add, c[1] * k + add, c[2] * k + add];
+  };
+}
+// a flat slab from a polygon in the x-y plane, between z0 and z1 (side windows, buttresses, panels)
+function slabXY(poly, z0, z1, col, amt) {
+  return loft([poly.map(([x, y]) => V(x, y, z0)), poly.map(([x, y]) => V(x, y, z1))], col, { amt: amt == null ? 0.02 : amt });
+}
+// a slim bar between two points (lamp strips, trim, wipers)
+function bar3(a, b, r, col) { return cyl(a, b, r, r, col, { n: 4, amt: 0.02, rot: Math.PI / 4 }); }
+function xyRing(cx, cy, z, r, n) { const p = []; for (let k = 0; k < n; k++) { const a = 2 * Math.PI * k / n; p.push(V(cx + Math.cos(a) * r, cy + Math.sin(a) * r, z)); } return p; }
+// detailed wheels: tyre with rounded shoulders, a dished rim with spokes, brake disc and caliper; fronts can be steered
+function carWheelSet(K, o) {
+  const r = o.r, w = o.w, n = 20, rimC = o.rim || RIM_C, cal = o.caliper || [150, 20, 24];
+  for (const [x, front] of [[o.xs[0], false], [o.xs[1], true]]) for (const e of [-1, 1]) {
+    const W = [], C = [], zc = e * o.track / 2, zo = zc + e * w / 2, zi = zc - e * w / 2;
+    W.push(loft([xyRing(x, r, zi, r * 0.8, n), xyRing(x, r, zi + e * w * 0.12, r * 0.98, n), xyRing(x, r, zc, r, n), xyRing(x, r, zo - e * w * 0.12, r * 0.98, n), xyRing(x, r, zo, r * 0.82, n)], RUBBER, { amt: 0.02, smooth: true, cap: false }));
+    W.push(cyl(V(x, r, zi), V(x, r, zi + e * 0.01), r * 0.82, r * 0.82, [8, 8, 9], { n: 16, amt: 0 }));
+    // rim: polished lip, a deep dark barrel, brake disc and caliper seen through the spokes
+    C.push(loft([xyRing(x, r, zo, r * 0.82, n), xyRing(x, r, zo + e * 0.008, r * 0.74, n), xyRing(x, r, zo - e * 0.01, r * 0.72, n)], rimC, { amt: 0.02, cap: false }));
+    W.push(cyl(V(x, r, zo - e * 0.13), V(x, r, zo - e * 0.12), r * 0.8, r * 0.8, [26, 26, 28], { n: 16, amt: 0.02 }));
+    W.push(cyl(V(x, r, zo - e * 0.08), V(x, r, zo - e * 0.065), r * 0.58, r * 0.58, [86, 84, 82], { n: 14, amt: 0.04 }));
+    W.push(box(x - 0.1, x + 0.06, r + r * 0.34, r + r * 0.56, zo - e * 0.075 - 0.03, zo - e * 0.075 + 0.03, cal, 0.02));
+    const sp = o.spokes || 5;
+    for (let k = 0; k < sp; k++) {
+      const a = k * 2 * Math.PI / sp + 0.3;
+      for (const d of o.split ? [-0.08, 0.08] : [0]) {
+        const aa = a + d;
+        C.push(cyl(V(x + Math.cos(a) * r * 0.12, r + Math.sin(a) * r * 0.12, zo + e * 0.004), V(x + Math.cos(aa) * r * 0.7, r + Math.sin(aa) * r * 0.7, zo - e * 0.012), 0.022, 0.014, rimC, { n: 4, amt: 0.02 }));
+      }
+    }
+    C.push(cyl(V(x, r, zo - e * 0.002), V(x, r, zo + e * 0.02), r * 0.15, r * 0.11, rimC, { n: 10, amt: 0.02 }));
+    W.push(cyl(V(x, r, zo + e * 0.02), V(x, r, zo + e * 0.024), r * 0.07, r * 0.07, CAR_BLK, { n: 8, amt: 0 }));
+    if (front && o.steer) for (const L of [W, C]) placeParts(L.map((q) => { q.tris = q.tris.map((t) => t.map((v) => [v[0] - x, v[1], v[2] - zc])); return q; }), x, zc, o.steer, 0);
+    K.P.push(...W); K.C.push(...C);
+    // a black arch liner around the top of each wheel, on the body side
+    if (o.half) {
+      const pts = [];
+      for (let k = 0; k <= 10; k++) { const a = Math.PI * (-0.08 + 1.16 * k / 10); pts.push(V(x + Math.cos(a) * (r + 0.05), r + Math.sin(a) * (r + 0.05), e * (o.half + 0.004))); }
+      K.P.push(tube(pts, pts.map(() => 0.028), CAR_BLK, { n: 4, amt: 0.02 }));
+    }
+  }
+}
+// body helpers
+const yzBody = (stations, n, pw) => stations.map(([x, b, t, w]) => yzRing(x, b, t, w, n, pw));
+function doorDetails(K, half, seams, y0, y1, handles, hy) {
+  for (const e of [-1, 1]) {
+    for (const x of seams) K.P.push(box(x - 0.006, x + 0.006, y0, y1, e * half - 0.006, e * half + 0.006, [8, 8, 9], 0.02));
+    for (const x of handles) K.C.push(box(x - 0.09, x + 0.09, hy - 0.016, hy + 0.016, e * (half + 0.012) - 0.008, e * (half + 0.012) + 0.008, CHROME_GRILLE, 0.02));
+  }
+}
+function plates(K, xf, xr, y, zf) {
+  for (const [x, d] of [[xf, 1], [xr, -1]]) {
+    K.P.push(box(x - 0.008, x + 0.008, y - 0.075, y + 0.075, -0.27, 0.27, [16, 16, 18], 0.02));
+    K.P.push(box(x + d * 0.006 - 0.004, x + d * 0.006 + 0.004, y - 0.06, y + 0.06, -0.25, 0.25, [214, 212, 200], 0.02));
+    for (let k = 0; k < 6; k++) { const z = -0.17 + k * 0.068; K.P.push(box(x + d * 0.012 - 0.002, x + d * 0.012 + 0.002, y - 0.03, y + 0.03, z - 0.018, z + 0.018, [30, 30, 40], 0)); }
+  }
+}
+function mirrors(K, x, y, z, color) {
+  for (const e of [-1, 1]) {
+    K.P.push(bar3(V(x + 0.05, y - 0.06, e * (z - 0.1)), V(x, y - 0.02, e * z), 0.014, CAR_BLK));
+    K.B.push(loft([yzRing(x - 0.07, y - 0.05, y + 0.05, 0.16, 10, 3).map((p) => V(p[0], p[1], p[2] + e * z)), yzRing(x + 0.03, y - 0.055, y + 0.055, 0.18, 10, 3).map((p) => V(p[0], p[1], p[2] + e * z)), yzRing(x + 0.08, y - 0.04, y + 0.04, 0.14, 10, 3).map((p) => V(p[0], p[1], p[2] + e * z))], color, { amt: 0.02, smooth: true }));
+    K.L.push(box(x + 0.075, x + 0.085, y - 0.01, y + 0.005, e * z - 0.05, e * z + 0.05, [255, 170, 60], 0));
   }
 }
 function carParts(kind, color, opts) {
-  const P = [], L = [];
-  const dark = color.map((v) => Math.round(v * 0.6));
-  const head = [255, 244, 220], tail = [210, 22, 22];
+  opts = opts || {};
+  const K = { P: [], L: [], B: [], G: [], C: [] };
+  const P = K.P, L = K.L, B = K.B;
+  const head = [255, 246, 226], drl = [235, 244, 255], tail = [215, 18, 22], tailD = [110, 8, 10], amber = [255, 160, 40];
+  const shadeAll = (belt) => { const f = paintShade(belt); for (const p of B) p.shade = f; };
   if (kind === 'suv') {
-    P.push(loft([yzRing(-2.45, 0.38, 1.0, 1.9, 12, 4), yzRing(-2.3, 0.32, 1.1, 1.96, 12, 4), yzRing(2.2, 0.32, 1.1, 1.96, 12, 4), yzRing(2.45, 0.42, 1.0, 1.9, 12, 4)], color, { amt: 0.03 }));
-    P.push(loft([yzRing(-2.25, 1.0, 1.82, 1.8, 12, 4), yzRing(0.75, 1.0, 1.82, 1.76, 12, 4), yzRing(1.3, 1.0, 1.3, 1.82, 12, 4)], GLASS_D, { amt: 0.03 }));
-    P.push(box(-2.2, 0.7, 1.8, 1.86, -0.84, 0.84, color, 0.03));
-    for (const x of [-1.0, 0.25]) P.push(box(x - 0.05, x + 0.05, 1.0, 1.81, -0.91, 0.91, color, 0.03));
-    P.push(box(2.4, 2.5, 0.5, 0.88, -0.55, 0.55, [10, 10, 11], 0.03));
+    // an original full-size luxury SUV: upright and square, floating black roof pillars, big chrome grille, side steps
+    B.push(loft(yzBody([[-2.52, 0.44, 0.98, 1.86], [-2.44, 0.36, 1.04, 1.94], [-2.2, 0.32, 1.08, 1.98], [-1.2, 0.3, 1.1, 1.98], [0.8, 0.3, 1.1, 1.98], [1.9, 0.3, 1.09, 1.98], [2.3, 0.33, 1.05, 1.96], [2.46, 0.38, 0.99, 1.9], [2.53, 0.46, 0.9, 1.82]], 22, 4.2), color, { amt: 0.015, smooth: true }));
+    K.G.push(loft(yzBody([[-2.34, 1.08, 1.74, 1.86], [-2.2, 1.08, 1.8, 1.84], [0.75, 1.08, 1.82, 1.8], [1.4, 1.08, 1.12, 1.88]], 18, 4), GLASS_D, { amt: 0.02 }));
+    B.push(loft(yzBody([[-2.3, 1.78, 1.84, 1.78], [-2.15, 1.79, 1.88, 1.8], [0.7, 1.8, 1.89, 1.78], [0.86, 1.8, 1.84, 1.74]], 16, 4), color, { amt: 0.015, smooth: true }));
     for (const e of [-1, 1]) {
-      L.push(box(2.38, 2.49, 0.9, 0.98, e * 0.66 - 0.2, e * 0.66 + 0.2, head, 0));
-      L.push(box(-2.5, -2.4, 0.8, 0.96, e * 0.74 - 0.13, e * 0.74 + 0.13, tail, 0));
+      // pillars: body-coloured A and D, black B and C
+      B.push(slabXY([[1.42, 1.08], [1.36, 1.12], [0.78, 1.8], [0.68, 1.8]], e * 0.9, e * 0.94, color));
+      P.push(slabXY([[0.12, 1.08], [0.24, 1.08], [0.24, 1.8], [0.12, 1.8]], e * 0.905, e * 0.935, CAR_BLK));
+      P.push(slabXY([[-1.16, 1.08], [-1.04, 1.08], [-1.04, 1.8], [-1.16, 1.8]], e * 0.905, e * 0.935, CAR_BLK));
+      B.push(slabXY([[-2.36, 1.08], [-2.06, 1.08], [-2.1, 1.8], [-2.3, 1.8]], e * 0.9, e * 0.935, color));
+      // chrome window line, roof rail, side step
+      K.C.push(box(-2.2, 1.38, 1.075, 1.095, e * 0.985 - 0.012, e * 0.985 + 0.012, CHROME_GRILLE, 0.02));
+      P.push(box(-1.9, 0.6, 1.9, 1.94, e * 0.72 - 0.03, e * 0.72 + 0.03, CAR_BLK, 0.02));
+      for (const x of [-1.85, 0.55]) P.push(box(x - 0.04, x + 0.04, 1.87, 1.92, e * 0.72 - 0.03, e * 0.72 + 0.03, CAR_BLK, 0.02));
+      P.push(box(-1.1, 1.05, 0.33, 0.4, e * 1.0 - 0.07, e * 1.0 + 0.07, CAR_BLK, 0.02));
+      K.C.push(box(-1.1, 1.05, 0.395, 0.41, e * 1.06 - 0.012, e * 1.06 + 0.012, CHROME_GRILLE, 0.02));
+      // headlights: dark housings with two projectors and a light strip; tail lights wrapping the corners
+      P.push(box(2.42, 2.53, 0.84, 0.98, e * 0.7 - 0.2, e * 0.7 + 0.2, [20, 22, 26], 0.02));
+      for (const dz of [-0.09, 0.09]) L.push(cyl(V(2.52, 0.9, e * 0.7 + dz), V(2.54, 0.9, e * 0.7 + dz), 0.045, 0.045, head, { n: 10, amt: 0 }));
+      L.push(box(2.52, 2.545, 0.955, 0.972, e * 0.7 - 0.19, e * 0.7 + 0.19, drl, 0));
+      L.push(box(2.47, 2.53, 0.5, 0.56, e * 0.72 - 0.08, e * 0.72 + 0.08, head, 0));
+      L.push(box(-2.53, -2.47, 0.78, 1.04, e * 0.8 - 0.1, e * 0.8 + 0.1, tail, 0));
+      L.push(box(-2.5, -2.3, 0.98, 1.04, e * 0.94 - 0.03, e * 0.94 + 0.03, tail, 0));
+      L.push(box(-2.535, -2.525, 0.8, 1.02, e * 0.8 - 0.05, e * 0.8 + 0.05, tailD, 0));
+      K.C.push(cyl(V(-2.4, 0.4, e * 0.6), V(-2.56, 0.4, e * 0.6), 0.05, 0.05, CHROME_GRILLE, { n: 10, amt: 0.02 }));
     }
-    carWheels(P, [-1.55, 1.55], 1.86, 0.42, 0.3);
-    P.push(box(-2.3, 2.3, 0.28, 0.34, -1.0, 1.0, dark, 0.03));
+    // grille: chrome frame, dark mesh, horizontal bars; lower intake and a silver skid plate
+    K.C.push(box(2.5, 2.56, 0.5, 0.96, -0.5, 0.5, CHROME_GRILLE, 0.02));
+    P.push(box(2.555, 2.57, 0.54, 0.92, -0.45, 0.45, [12, 12, 14], 0.02));
+    for (let y = 0.58; y < 0.92; y += 0.065) K.C.push(box(2.565, 2.58, y - 0.01, y + 0.01, -0.44, 0.44, CHROME_GRILLE, 0.02));
+    P.push(box(2.48, 2.56, 0.36, 0.48, -0.7, 0.7, CAR_BLK, 0.02));
+    K.C.push(box(2.42, 2.5, 0.3, 0.36, -0.55, 0.55, [130, 132, 138], 0.02));
+    L.push(box(-2.52, -2.5, 1.6, 1.64, -0.25, 0.25, tail, 0));
+    doorDetails(K, 0.995, [1.36, 0.18, -1.1], 0.48, 1.06, [0.75, -0.6], 1.0);
+    mirrors(K, 1.25, 1.2, 1.08, color);
+    plates(K, 2.57, -2.53, 0.62);
+    carWheelSet(K, { xs: [-1.6, 1.6], track: 1.72, r: 0.42, w: 0.3, spokes: 6, split: true, rim: [168, 170, 176], caliper: [20, 20, 22], half: 0.99 });
+    shadeAll(1.1);
   } else if (kind === 'super') {
-    // an original wedge supercar: very low, wide haunches, a small canopy set forward, a fixed rear wing
-    const prof = [[-2.25, 0.32, 0.78, 1.7], [-2.0, 0.25, 0.86, 1.96], [-1.2, 0.22, 0.88, 2.02], [0, 0.2, 0.78, 1.98], [1.2, 0.2, 0.62, 1.98], [1.9, 0.22, 0.5, 1.9], [2.3, 0.27, 0.4, 1.7]];
-    P.push(loft(prof.map(([x, b, t, w]) => yzRing(x, b, t, w, 18, 3.4)), color, { amt: 0.025, smooth: true }));
-    P.push(loft([yzRing(-1.3, 0.8, 0.86, 1.6, 16, 3.2), yzRing(-0.9, 0.8, 1.12, 1.42, 16, 3.2), yzRing(0.1, 0.75, 1.14, 1.36, 16, 3.2), yzRing(0.9, 0.62, 0.68, 1.6, 16, 3.2)], GLASS_D, { amt: 0.03, smooth: true }));
-    P.push(box(-2.3, -2.0, 1.02, 1.06, -0.85, 0.85, [10, 10, 11], 0.02));
+    // an original wedge supercar: very low, wide haunches, a small canopy set forward, side intakes, a fixed rear wing
+    const prof = [[-2.25, 0.32, 0.78, 1.7], [-2.15, 0.27, 0.84, 1.88], [-2.0, 0.25, 0.86, 1.96], [-1.6, 0.23, 0.88, 2.02], [-1.2, 0.22, 0.88, 2.02], [-0.6, 0.21, 0.84, 1.98], [0, 0.2, 0.78, 1.96], [0.6, 0.2, 0.7, 1.96], [1.2, 0.2, 0.62, 1.98], [1.6, 0.21, 0.56, 1.96], [1.9, 0.22, 0.5, 1.9], [2.15, 0.24, 0.44, 1.8], [2.3, 0.27, 0.4, 1.66], [2.36, 0.3, 0.37, 1.5]];
+    B.push(loft(yzBody(prof, 24, 3.4), color, { amt: 0.015, smooth: true }));
+    K.G.push(loft([yzRing(-1.3, 0.8, 0.86, 1.6, 18, 3.2), yzRing(-0.9, 0.8, 1.12, 1.42, 18, 3.2), yzRing(0.1, 0.75, 1.14, 1.36, 18, 3.2), yzRing(0.55, 0.7, 0.92, 1.5, 18, 3.2), yzRing(0.9, 0.62, 0.68, 1.6, 18, 3.2)], GLASS_D, { amt: 0.02, smooth: true }));
+    B.push(loft([yzRing(-0.95, 1.08, 1.13, 1.0, 12, 3), yzRing(-0.3, 1.12, 1.16, 1.0, 12, 3), yzRing(0.2, 1.1, 1.13, 0.96, 12, 3)], color, { amt: 0.015, smooth: true }));
+    P.push(box(-2.3, -2.0, 1.02, 1.06, -0.85, 0.85, CAR_BLK, 0.02));
     for (const e of [-1, 1]) {
-      P.push(box(-2.2, -2.1, 0.8, 1.02, e * 0.6 - 0.02, e * 0.6 + 0.02, [10, 10, 11], 0.02));
-      P.push(box(-0.6, 0.3, 0.3, 0.55, e * 0.98 - 0.02, e * 0.98 + 0.02, [10, 10, 11], 0.02));
-      L.push(box(1.95, 2.25, 0.46, 0.5, e * 0.6 - 0.2, e * 0.6 + 0.2, head, 0));
+      P.push(box(-2.2, -2.1, 0.8, 1.02, e * 0.6 - 0.02, e * 0.6 + 0.02, CAR_BLK, 0.02));
+      // a big side intake behind the door, and a carbon sill
+      P.push(slabXY([[-0.95, 0.38], [-0.35, 0.62], [-0.35, 0.36], [-0.95, 0.32]], e * 0.99, e * 1.012, [8, 8, 9]));
+      for (let k = 0; k < 4; k++) P.push(box(-0.9 + k * 0.14, -0.88 + k * 0.14, 0.34, 0.56, e * 1.0 - 0.012, e * 1.0 + 0.012, [40, 40, 44], 0.02));
+      P.push(box(-1.3, 1.0, 0.2, 0.26, e * 0.99 - 0.03, e * 0.99 + 0.03, [18, 18, 20], 0.02));
+      // slim headlights with three LED dots, a light blade at the back
+      P.push(slabXY([[2.24, 0.45], [1.92, 0.52], [1.9, 0.48], [2.24, 0.41]], e * 0.48, e * 0.82, [16, 18, 22]));
+      for (let k = 0; k < 3; k++) L.push(cyl(V(2.1 - k * 0.08, 0.47 + k * 0.015, e * (0.58 + k * 0.07)), V(2.12 - k * 0.08, 0.47 + k * 0.015, e * (0.58 + k * 0.07)), 0.022, 0.022, head, { n: 8, amt: 0 }));
+      L.push(bar3(V(2.22, 0.445, e * 0.5), V(1.93, 0.515, e * 0.8), 0.008, drl));
+      K.C.push(cyl(V(-2.2, 0.36, e * 0.18), V(-2.38, 0.36, e * 0.18), 0.055, 0.055, [120, 110, 100], { n: 10, amt: 0.02 }));
     }
     L.push(box(-2.27, -2.22, 0.66, 0.7, -0.8, 0.8, tail, 0));
-    P.push(box(2.2, 2.42, 0.18, 0.22, -0.85, 0.85, [10, 10, 11], 0.02));
-    carWheels(P, [-1.4, 1.4], 1.78, 0.36, 0.3);
+    L.push(box(-2.275, -2.265, 0.6, 0.66, -0.7, 0.7, tailD, 0));
+    P.push(box(2.2, 2.42, 0.18, 0.22, -0.85, 0.85, CAR_BLK, 0.02));
+    P.push(box(2.28, 2.36, 0.24, 0.34, -0.6, 0.6, [8, 8, 9], 0.02));
+    P.push(box(-2.32, -2.0, 0.17, 0.3, -0.75, 0.75, CAR_BLK, 0.02));
+    for (const z of [-0.5, -0.25, 0, 0.25, 0.5]) P.push(box(-2.34, -2.02, 0.17, 0.31, z - 0.01, z + 0.01, [30, 30, 32], 0.02));
+    // engine cover louvres
+    for (let k = 0; k < 6; k++) P.push(box(-1.95 + k * 0.12, -1.9 + k * 0.12, 0.885, 0.9, -0.4, 0.4, [12, 12, 13], 0.02));
+    doorDetails(K, 1.0, [0.95, -0.4], 0.4, 0.72, [], 0);
+    mirrors(K, 0.75, 0.86, 0.98, color);
+    carWheelSet(K, { xs: [-1.4, 1.4], track: 1.76, r: 0.36, w: 0.32, spokes: 10, rim: [40, 40, 44], caliper: [220, 170, 30] });
+    shadeAll(0.8);
   } else if (kind === 'saloon') {
-    // an original long luxury saloon: upright chrome grille, long bonnet, formal roofline
-    P.push(loft([yzRing(-2.6, 0.36, 0.92, 1.8, 14, 3.6), yzRing(-2.4, 0.3, 1.0, 1.92, 14, 3.6), yzRing(2.3, 0.3, 0.98, 1.92, 14, 3.6), yzRing(2.6, 0.38, 0.86, 1.84, 14, 3.6)], color, { amt: 0.025, smooth: true }));
-    P.push(loft([yzRing(-1.9, 0.98, 1.02, 1.8, 14, 3.6), yzRing(-1.5, 0.98, 1.52, 1.64, 14, 3.6), yzRing(0.5, 0.98, 1.52, 1.64, 14, 3.6), yzRing(1.15, 0.98, 1.02, 1.8, 14, 3.6)], GLASS_D, { amt: 0.03 }));
-    P.push(box(-1.45, 0.45, 1.5, 1.56, -0.8, 0.8, color, 0.03));
-    for (const x of [-0.5]) P.push(box(x - 0.05, x + 0.05, 0.98, 1.5, -0.83, 0.83, color, 0.03));
-    P.push(box(2.6, 2.64, 0.45, 0.88, -0.38, 0.38, CHROME_GRILLE, 0.03));
-    for (let z = -0.32; z <= 0.33; z += 0.08) P.push(box(2.64, 2.65, 0.47, 0.86, z - 0.01, z + 0.01, [40, 40, 44], 0.02));
+    // an original long luxury saloon: upright chrome grille, long bonnet, formal roofline, chrome everywhere
+    B.push(loft(yzBody([[-2.66, 0.38, 0.9, 1.78], [-2.55, 0.32, 0.98, 1.9], [-2.3, 0.3, 1.0, 1.94], [-1.0, 0.29, 1.0, 1.95], [1.0, 0.29, 0.99, 1.95], [2.2, 0.3, 0.98, 1.93], [2.5, 0.33, 0.94, 1.9], [2.64, 0.38, 0.86, 1.82]], 22, 3.8), color, { amt: 0.015, smooth: true }));
+    K.G.push(loft(yzBody([[-1.95, 0.98, 1.02, 1.8], [-1.55, 0.98, 1.5, 1.66], [0.5, 0.98, 1.52, 1.66], [1.2, 0.98, 1.02, 1.8]], 16, 3.6), GLASS_D, { amt: 0.02 }));
+    B.push(loft(yzBody([[-1.5, 1.49, 1.55, 1.6], [-1.3, 1.5, 1.58, 1.62], [0.35, 1.51, 1.58, 1.62], [0.52, 1.5, 1.54, 1.58]], 14, 3.6), color, { amt: 0.015, smooth: true }));
     for (const e of [-1, 1]) {
-      L.push(box(2.52, 2.64, 0.72, 0.84, e * 0.68 - 0.18, e * 0.68 + 0.18, head, 0));
-      L.push(box(-2.64, -2.56, 0.7, 0.86, e * 0.72 - 0.14, e * 0.72 + 0.14, tail, 0));
-      P.push(box(-2.3, 2.3, 0.62, 0.64, e * 0.96 - 0.01, e * 0.96 + 0.01, CHROME_GRILLE, 0.02));
+      B.push(slabXY([[1.2, 1.0], [1.08, 1.0], [0.46, 1.5], [0.56, 1.52]], e * 0.86, e * 0.89, color));
+      P.push(slabXY([[-0.44, 0.99], [-0.32, 0.99], [-0.32, 1.52], [-0.44, 1.52]], e * 0.82, e * 0.85, CAR_BLK));
+      B.push(slabXY([[-1.98, 1.0], [-1.6, 1.0], [-1.45, 1.52], [-1.6, 1.52]], e * 0.86, e * 0.89, color));
+      K.C.push(box(-1.95, 1.18, 0.985, 1.0, e * 0.97 - 0.01, e * 0.97 + 0.01, CHROME_GRILLE, 0.02));
+      K.C.push(box(-2.3, 2.3, 0.6, 0.625, e * 0.975 - 0.01, e * 0.975 + 0.01, CHROME_GRILLE, 0.02));
+      K.C.push(box(-1.2, 1.1, 0.3, 0.34, e * 0.97 - 0.01, e * 0.97 + 0.01, CHROME_GRILLE, 0.02));
+      P.push(box(2.55, 2.66, 0.72, 0.86, e * 0.68 - 0.2, e * 0.68 + 0.2, [22, 24, 28], 0.02));
+      L.push(cyl(V(2.65, 0.79, e * 0.58), V(2.67, 0.79, e * 0.58), 0.05, 0.05, head, { n: 10, amt: 0 }));
+      L.push(cyl(V(2.65, 0.79, e * 0.78), V(2.67, 0.79, e * 0.78), 0.05, 0.05, head, { n: 10, amt: 0 }));
+      L.push(box(2.65, 2.67, 0.7, 0.715, e * 0.68 - 0.18, e * 0.68 + 0.18, drl, 0));
+      L.push(box(-2.67, -2.6, 0.7, 0.88, e * 0.72 - 0.14, e * 0.72 + 0.14, tail, 0));
+      L.push(box(-2.675, -2.665, 0.73, 0.85, e * 0.72 - 0.08, e * 0.72 + 0.08, tailD, 0));
+      K.C.push(cyl(V(-2.5, 0.36, e * 0.55), V(-2.7, 0.36, e * 0.55), 0.05, 0.05, CHROME_GRILLE, { n: 10, amt: 0.02 }));
     }
-    carWheels(P, [-1.6, 1.6], 1.8, 0.37, 0.28);
+    // tall vertical-slat grille in a heavy chrome surround
+    K.C.push(box(2.6, 2.68, 0.44, 0.9, -0.4, 0.4, CHROME_GRILLE, 0.02));
+    P.push(box(2.675, 2.69, 0.47, 0.87, -0.35, 0.35, [16, 16, 18], 0.02));
+    for (let z = -0.31; z <= 0.32; z += 0.062) K.C.push(box(2.685, 2.7, 0.47, 0.87, z - 0.012, z + 0.012, CHROME_GRILLE, 0.02));
+    K.C.push(box(2.58, 2.68, 0.36, 0.4, -0.9, 0.9, CHROME_GRILLE, 0.02));
+    K.C.push(box(-2.68, -2.58, 0.4, 0.44, -0.88, 0.88, CHROME_GRILLE, 0.02));
+    doorDetails(K, 0.975, [1.18, -0.38, -1.75], 0.44, 0.97, [0.55, -0.9], 0.88);
+    mirrors(K, 1.05, 1.08, 1.0, color);
+    plates(K, 2.69, -2.66, 0.5);
+    carWheelSet(K, { xs: [-1.65, 1.65], track: 1.74, r: 0.38, w: 0.27, spokes: 7, split: true, rim: [190, 192, 198], caliper: [30, 30, 34], half: 0.975 });
+    shadeAll(0.98);
   } else if (kind === 'sedan') {
-    P.push(loft([yzRing(-2.3, 0.35, 0.86, 1.72, 12, 3.5), yzRing(-2.1, 0.28, 0.92, 1.8, 12, 3.5), yzRing(2.05, 0.28, 0.86, 1.8, 12, 3.5), yzRing(2.3, 0.36, 0.72, 1.72, 12, 3.5)], color, { amt: 0.03 }));
-    P.push(loft([yzRing(-1.7, 0.86, 0.95, 1.7, 12, 3.5), yzRing(-1.15, 0.86, 1.42, 1.56, 12, 3.5), yzRing(0.35, 0.86, 1.42, 1.56, 12, 3.5), yzRing(1.05, 0.86, 0.93, 1.7, 12, 3.5)], GLASS_D, { amt: 0.03 }));
-    P.push(box(-1.1, 0.3, 1.4, 1.46, -0.74, 0.74, color, 0.03));
+    B.push(loft(yzBody([[-2.32, 0.36, 0.84, 1.7], [-2.22, 0.3, 0.9, 1.78], [-1.9, 0.28, 0.92, 1.8], [1.6, 0.28, 0.88, 1.8], [2.1, 0.29, 0.84, 1.78], [2.32, 0.36, 0.72, 1.7]], 20, 3.5), color, { amt: 0.015, smooth: true }));
+    K.G.push(loft(yzBody([[-1.72, 0.86, 0.95, 1.7], [-1.15, 0.86, 1.42, 1.56], [0.35, 0.86, 1.42, 1.56], [1.08, 0.86, 0.93, 1.7]], 16, 3.5), GLASS_D, { amt: 0.02 }));
+    B.push(loft(yzBody([[-1.1, 1.4, 1.46, 1.48], [0.3, 1.4, 1.46, 1.48]], 12, 3.5), color, { amt: 0.015 }));
     for (const e of [-1, 1]) {
-      L.push(box(2.2, 2.33, 0.62, 0.72, e * 0.58 - 0.18, e * 0.58 + 0.18, head, 0));
-      L.push(box(-2.33, -2.24, 0.68, 0.8, e * 0.6 - 0.16, e * 0.6 + 0.16, tail, 0));
+      P.push(slabXY([[-0.42, 0.88], [-0.32, 0.88], [-0.32, 1.41], [-0.42, 1.41]], e * 0.78, e * 0.81, CAR_BLK));
+      P.push(box(2.18, 2.33, 0.6, 0.73, e * 0.58 - 0.2, e * 0.58 + 0.2, [24, 26, 30], 0.02));
+      L.push(box(2.32, 2.335, 0.63, 0.7, e * 0.58 - 0.16, e * 0.58 + 0.16, head, 0));
+      L.push(box(-2.33, -2.24, 0.66, 0.8, e * 0.62 - 0.17, e * 0.62 + 0.17, tail, 0));
     }
-    carWheels(P, [-1.4, 1.4], 1.66, 0.34, 0.24);
+    P.push(box(2.3, 2.34, 0.42, 0.58, -0.4, 0.4, [14, 14, 16], 0.02));
+    K.C.push(box(2.33, 2.345, 0.5, 0.52, -0.38, 0.38, CHROME_GRILLE, 0.02));
+    doorDetails(K, 0.9, [1.05, -0.37, -1.6], 0.42, 0.86, [0.4, -0.9], 0.78);
+    mirrors(K, 0.95, 0.98, 0.94, color);
+    plates(K, 2.34, -2.33, 0.48);
+    carWheelSet(K, { xs: [-1.4, 1.4], track: 1.6, r: 0.34, w: 0.24, spokes: 5, rim: RIM_C, caliper: [40, 40, 44], half: 0.9 });
+    shadeAll(0.88);
+  } else if (kind === 'roadster') {
+    // an original small two-seat roadster with a fastback folding hardtop: long bonnet with fender peaks, the cabin
+    // sitting back over the rear wheels, flying buttresses, slim swept lamps and round twin tail lights
+    B.push(loft(yzBody([[-1.98, 0.32, 0.66, 1.46], [-1.9, 0.26, 0.73, 1.62], [-1.7, 0.22, 0.77, 1.72], [-1.3, 0.2, 0.79, 1.74], [-0.8, 0.19, 0.79, 1.72], [-0.2, 0.19, 0.775, 1.7], [0.45, 0.19, 0.765, 1.72], [0.95, 0.19, 0.745, 1.74], [1.4, 0.19, 0.725, 1.74], [1.72, 0.2, 0.69, 1.7], [1.88, 0.22, 0.62, 1.6], [1.96, 0.26, 0.55, 1.42], [1.99, 0.3, 0.5, 1.2]], 26, 3.4), color, { amt: 0.012, smooth: true }));
+    // fender peaks over the front wheels and a rear haunch
+    for (const e of [-1, 1]) {
+      const fen = (st) => B.push(loft(st.map(([x, y0, y1, w]) => yzRing(x, y0, y1, w, 10, 2.6).map((p) => V(p[0], p[1], p[2] + e * 0.66))), color, { amt: 0.012, smooth: true }));
+      fen([[0.45, 0.6, 0.74, 0.18], [0.8, 0.6, 0.79, 0.3], [1.2, 0.6, 0.795, 0.32], [1.55, 0.58, 0.76, 0.28], [1.82, 0.52, 0.66, 0.18]]);
+      fen([[-1.78, 0.6, 0.74, 0.18], [-1.4, 0.62, 0.825, 0.3], [-1.0, 0.62, 0.825, 0.3], [-0.6, 0.62, 0.79, 0.18]]);
+    }
+    // cockpit: windscreen, piano-black roof panel, buttresses, a small vertical rear window
+    K.G.push(loft([[V(0.44, 0.77, -0.64), V(0.44, 0.77, 0.64), V(0.42, 0.785, 0.64), V(0.42, 0.785, -0.64)], [V(-0.12, 1.13, -0.57), V(-0.12, 1.13, 0.57), V(-0.14, 1.145, 0.57), V(-0.14, 1.145, -0.57)]], GLASS_D, { amt: 0.02 }));
+    P.push(loft([yzRing(-0.14, 1.12, 1.17, 1.16, 12, 3), yzRing(-0.4, 1.13, 1.18, 1.16, 12, 3), yzRing(-0.66, 1.1, 1.15, 1.12, 12, 3)], [8, 8, 10], { amt: 0.01, smooth: true }));
+    for (const e of [-1, 1]) {
+      // the cabin leans in toward the roof (tumblehome), so its sides are slanted slabs
+      const lean = (poly, zo, zi, col) => loft([poly.map(([x, y]) => V(x, y, e * (zo - (y - 0.78) * 0.38))), poly.map(([x, y]) => V(x, y, e * (zi - (y - 0.78) * 0.38)))], col, { amt: 0.012 });
+      B.push(lean([[-0.6, 1.16], [-0.7, 1.16], [-1.42, 0.8], [-1.1, 0.785], [-0.75, 0.86]], 0.715, 0.52, color));
+      P.push(lean([[0.46, 0.775], [0.42, 0.775], [-0.15, 1.14], [-0.11, 1.14]], 0.665, 0.62, CAR_BLK));
+      K.G.push(lean([[0.36, 0.785], [-0.12, 1.12], [-0.6, 1.12], [-0.7, 0.8]], 0.705, 0.695, GLASS_D));
+      P.push(bar3(V(0.4, 0.79, e * 0.72), V(-0.68, 0.8, e * 0.72), 0.008, [6, 6, 6]));
+    }
+    P.push(slabXY([[-0.66, 1.12], [-0.74, 1.12], [-0.84, 0.82], [-0.76, 0.82]], -0.42, 0.42, [10, 10, 12]));
+    K.G.push(slabXY([[-0.75, 1.07], [-0.82, 0.86], [-0.85, 0.86], [-0.78, 1.07]], -0.38, 0.38, GLASS_D));
+    // interior just visible through the glass
+    P.push(box(0.2, 0.42, 0.62, 0.78, -0.62, 0.62, [12, 12, 13], 0.02));
+    for (const e of [-1, 1]) { P.push(box(-0.62, -0.2, 0.32, 0.5, e * 0.33 - 0.2, e * 0.33 + 0.2, [30, 22, 18], 0.04)); P.push(box(-0.66, -0.52, 0.48, 1.0, e * 0.33 - 0.19, e * 0.33 + 0.19, [30, 22, 18], 0.04)); }
+    { const ring = []; for (let k = 0; k <= 12; k++) { const a = 2 * Math.PI * k / 12; ring.push(V(0.12 + Math.sin(a) * 0.03, 0.82 + Math.cos(a) * 0.15, -0.33 + Math.sin(a) * 0.15)); } P.push(tube(ring, ring.map(() => 0.015), CAR_BLK, { n: 4 })); }
+    // the face: a wide low mouth with a fine mesh, slim swept headlamps with a projector and a light strip
+    P.push(slabXY([[2.0, 0.28], [2.0, 0.46], [1.97, 0.47], [1.97, 0.27]], -0.42, 0.42, [10, 10, 11]));
+    for (let k = 0; k < 7; k++) for (let j = 0; j < 3; j++) P.push(box(2.0, 2.008, 0.3 + j * 0.055, 0.33 + j * 0.055, -0.38 + k * 0.11, -0.33 + k * 0.11, [34, 34, 38], 0));
+    P.push(box(1.88, 2.02, 0.2, 0.235, -0.62, 0.62, CAR_BLK, 0.02));
+    for (const e of [-1, 1]) {
+      P.push(loft([[V(1.94, 0.56, e * 0.4), V(1.91, 0.6, e * 0.42), V(1.89, 0.6, e * 0.42), V(1.92, 0.55, e * 0.4)], [V(1.72, 0.64, e * 0.76), V(1.66, 0.68, e * 0.78), V(1.64, 0.67, e * 0.78), V(1.7, 0.63, e * 0.76)]], [16, 18, 22], { amt: 0.02 }));
+      L.push(cyl(V(1.86, 0.6, e * 0.52), V(1.88, 0.6, e * 0.52), 0.032, 0.032, head, { n: 10, amt: 0 }));
+      L.push(bar3(V(1.93, 0.575, e * 0.42), V(1.7, 0.655, e * 0.76), 0.007, drl));
+      L.push(box(1.5, 1.56, 0.48, 0.51, e * 0.85 - 0.006, e * 0.85 + 0.006, amber, 0));
+      // round twin tail lights: a glowing outer ring around a darker centre
+      for (const z of [0.5, 0.7]) {
+        const ring = []; for (let k = 0; k <= 14; k++) { const a = 2 * Math.PI * k / 14; ring.push(V(-1.975, 0.6 + Math.cos(a) * 0.055, e * z + Math.sin(a) * 0.055)); }
+        L.push(tube(ring, ring.map(() => 0.012), tail, { n: 4, amt: 0 }));
+        L.push(cyl(V(-1.97, 0.6, e * z), V(-1.985, 0.6, e * z), 0.03, 0.03, tailD, { n: 10, amt: 0 }));
+      }
+      K.C.push(cyl(V(-1.85, 0.27, e * 0.24), V(-2.02, 0.27, e * 0.24), 0.045, 0.048, CHROME_GRILLE, { n: 12, amt: 0.02 }));
+      P.push(cyl(V(-2.019, 0.27, e * 0.24), V(-2.022, 0.27, e * 0.24), 0.034, 0.034, [6, 6, 6], { n: 10, amt: 0 }));
+    }
+    L.push(box(-1.93, -1.9, 0.775, 0.785, -0.14, 0.14, tail, 0));
+    B.push(box(-1.95, -1.72, 0.77, 0.8, -0.6, 0.6, color, 0.01));
+    P.push(box(-2.0, -1.84, 0.2, 0.3, -0.58, 0.58, CAR_BLK, 0.02));
+    doorDetails(K, 0.865, [0.42, -0.66], 0.36, 0.74, [-0.5], 0.68);
+    mirrors(K, 0.32, 0.86, 0.88, color);
+    plates(K, 2.005, -1.99, 0.42);
+    carWheelSet(K, { xs: [-1.12, 1.18], track: 1.5, r: 0.31, w: 0.21, spokes: 10, rim: [64, 66, 72], caliper: [190, 24, 30], half: 0.868, steer: opts.steer });
+    shadeAll(0.74);
   } else {
     // an original open-top sports coupe: flared arches, long low hood, open cockpit with a raked windscreen,
     // ducktail wing, splitter, diffuser and spoked wheels (front wheels steered, like it just pulled up)
     const prof = [[-2.28, 0.36, 0.82, 1.6], [-2.2, 0.3, 0.9, 1.74], [-2.02, 0.26, 0.94, 1.84], [-1.75, 0.24, 0.95, 1.9], [-1.35, 0.24, 0.94, 1.95],
       [-0.95, 0.24, 0.93, 1.9], [-0.4, 0.23, 0.92, 1.84], [0.3, 0.23, 0.9, 1.84], [0.85, 0.23, 0.84, 1.89], [1.38, 0.24, 0.78, 1.95],
       [1.8, 0.25, 0.7, 1.88], [2.12, 0.27, 0.6, 1.78], [2.3, 0.3, 0.52, 1.62], [2.38, 0.36, 0.46, 1.46]];
-    P.push(loft(prof.map(([x, b, t, w]) => yzRing(x, b, t, w, 20, 3.6)), color, { amt: 0.025, smooth: true }));
-    const BLK = [10, 10, 11], TRIM = [24, 22, 22], LEATH = [112, 72, 44], LEATH_D = [86, 54, 32], CHROME = [170, 172, 178];
-    // aero: splitter, grille, diffuser with fins, side skirts, exhausts
+    B.push(loft(yzBody(prof, 24, 3.6), color, { amt: 0.015, smooth: true }));
+    const BLK = CAR_BLK, TRIM = [24, 22, 22], LEATH = [112, 72, 44], LEATH_D = [86, 54, 32], CHROME = [170, 172, 178];
     P.push(box(2.18, 2.46, 0.19, 0.23, -0.78, 0.78, BLK, 0.02));
     P.push(box(2.32, 2.4, 0.27, 0.41, -0.52, 0.52, BLK, 0.02));
     P.push(box(-2.34, -2.04, 0.17, 0.29, -0.72, 0.72, BLK, 0.02));
     for (const z of [-0.45, -0.15, 0.15, 0.45]) P.push(box(-2.36, -2.06, 0.17, 0.3, z - 0.012, z + 0.012, TRIM, 0.02));
     for (const e of [-1, 1]) {
       P.push(box(-1.0, 0.95, 0.19, 0.27, e * 0.86 - 0.05, e * 0.86 + 0.05, BLK, 0.02));
-      P.push(cyl(V(-2.24, 0.3, e * 0.55), V(-2.4, 0.3, e * 0.55), 0.048, 0.048, CHROME, { n: 8, amt: 0.02 }));
+      K.C.push(cyl(V(-2.24, 0.3, e * 0.55), V(-2.4, 0.3, e * 0.55), 0.048, 0.048, CHROME, { n: 10, amt: 0.02 }));
       P.push(cyl(V(-2.395, 0.3, e * 0.55), V(-2.405, 0.3, e * 0.55), 0.034, 0.034, [6, 6, 6], { n: 8, amt: 0 }));
-      // mirrors on stalks
-      P.push(cyl(V(0.55, 0.9, e * 0.84), V(0.5, 0.98, e * 0.96), 0.012, 0.012, BLK, { n: 4 }));
-      P.push(box(0.42, 0.56, 0.95, 1.04, e * 0.95 - 0.07, e * 0.95 + 0.07, color, 0.03));
-      // slim headlights, a full-width light bar at the back
       L.push(box(1.98, 2.24, 0.57, 0.62, e * 0.62 - 0.17, e * 0.62 + 0.17, head, 0));
       L.push(box(2.18, 2.3, 0.49, 0.52, e * 0.55 - 0.15, e * 0.55 + 0.15, [255, 250, 240], 0));
     }
+    mirrors(K, 0.5, 0.98, 0.95, color);
     L.push(box(-2.3, -2.25, 0.74, 0.78, -0.74, 0.74, tail, 0));
     for (const e of [-1, 1]) L.push(box(-2.29, -2.24, 0.62, 0.74, e * 0.66 - 0.06, e * 0.66 + 0.06, tail, 0));
-    // ducktail wing on two posts
     P.push(box(-2.2, -1.92, 1.02, 1.05, -0.8, 0.8, BLK, 0.02));
     for (const e of [-1, 1]) P.push(box(-2.1, -2.02, 0.92, 1.02, e * 0.55 - 0.02, e * 0.55 + 0.02, BLK, 0.02));
-    // open cockpit: tub, dash, seats, steering wheel, roll hoops and the folded top
     P.push(box(-1.3, 0.56, 0.88, 0.957, -0.72, 0.72, [20, 16, 14], 0.03));
     P.push(box(0.4, 0.62, 0.88, 1.03, -0.72, 0.72, TRIM, 0.03));
     for (const e of [-1, 1]) {
@@ -2345,7 +2613,7 @@ function carParts(kind, color, opts) {
       P.push(box(-0.5, 0.05, 0.95, 1.02, z - 0.22, z + 0.22, LEATH, 0.04));
       P.push(box(-0.64, -0.5, 0.95, 1.32, z - 0.22, z + 0.22, LEATH, 0.04));
       P.push(box(-0.63, -0.53, 1.32, 1.43, z - 0.12, z + 0.12, LEATH_D, 0.04));
-      P.push(tube([V(-0.7, 0.95, z - 0.2), V(-0.7, 1.3, z - 0.18), V(-0.7, 1.36, z), V(-0.7, 1.3, z + 0.18), V(-0.7, 0.95, z + 0.2)], [0.02, 0.02, 0.02, 0.02, 0.02], CHROME, { n: 5 }));
+      K.C.push(tube([V(-0.7, 0.95, z - 0.2), V(-0.7, 1.3, z - 0.18), V(-0.7, 1.36, z), V(-0.7, 1.3, z + 0.18), V(-0.7, 0.95, z + 0.2)], [0.02, 0.02, 0.02, 0.02, 0.02], CHROME, { n: 6 }));
     }
     P.push(box(-1.2, -0.86, 0.95, 1.0, -0.62, 0.62, LEATH_D, 0.04));
     P.push(box(-1.3, -1.2, 0.95, 1.18, -0.62, 0.62, LEATH_D, 0.04));
@@ -2356,32 +2624,27 @@ function carParts(kind, color, opts) {
       P.push(tube(ring, ring.map(() => 0.016), BLK, { n: 5 }));
       P.push(cyl(V(0.3, 1.07, -0.4), V(0.5, 0.99, -0.4), 0.02, 0.02, BLK, { n: 5 }));
     }
-    // raked windscreen in a thin frame
     const ws = (x0, y0, x1, y1, t) => [V(x0, y0, -0.72), V(x0, y0, 0.72), V(x0 + t, y0, 0.72), V(x0 + t, y0, -0.72), V(x1, y1, -0.68), V(x1, y1, 0.68), V(x1 + t, y1, 0.68), V(x1 + t, y1, -0.68)];
-    { const q = ws(0.6, 0.92, 0.32, 1.22, 0.02); P.push(loft([q.slice(0, 4), q.slice(4)], [44, 56, 68], { amt: 0.02 })); }
+    { const q = ws(0.6, 0.92, 0.32, 1.22, 0.02); K.G.push(loft([q.slice(0, 4), q.slice(4)], [44, 56, 68], { amt: 0.02 })); }
     for (const e of [-1, 1]) P.push(cyl(V(0.62, 0.9, e * 0.74), V(0.33, 1.23, e * 0.7), 0.018, 0.018, BLK, { n: 5 }));
     P.push(cyl(V(0.33, 1.23, -0.7), V(0.33, 1.23, 0.7), 0.018, 0.018, BLK, { n: 5 }));
-    // spoked wheels, the fronts turned in
-    const steer = (opts && opts.steer) || 0;
-    for (const [x, front] of [[-1.35, false], [1.38, true]]) for (const e of [-1, 1]) {
-      const W = [], r = 0.35, zc = e * 0.85, zo = zc + e * 0.135, zi = zc - e * 0.135;
-      W.push(cyl(V(x, r, zi), V(x, r, zo), r, r, RUBBER, { n: 16, amt: 0.03 }));
-      W.push(cyl(V(x, r, zo), V(x, r, zo + e * 0.004), r * 0.7, r * 0.7, [36, 36, 40], { n: 14, amt: 0.02 }));
-      W.push(box(x - 0.16, x - 0.04, r + 0.02, r + 0.16, zo - e * 0.05 - 0.025, zo - e * 0.05 + 0.025, [200, 160, 40], 0.02));
-      for (let k = 0; k < 5; k++) {
-        const a = k * 2 * Math.PI / 5;
-        W.push(cyl(V(x, r, zo + e * 0.012), V(x + Math.cos(a) * r * 0.66, r + Math.sin(a) * r * 0.66, zo + e * 0.012), 0.022, 0.016, [150, 152, 158], { n: 4, amt: 0.02 }));
-      }
-      W.push(cyl(V(x, r, zo + e * 0.006), V(x, r, zo + e * 0.025), 0.045, 0.04, [150, 152, 158], { n: 8, amt: 0.02 }));
-      if (front && steer) placeParts(W.map((w) => { w.tris = w.tris.map((t) => t.map((v) => [v[0] - x, v[1], v[2] - zc])); return w; }), x, zc, steer, 0);
-      P.push(...W);
-    }
+    plates(K, 2.41, -2.36, 0.36);
+    carWheelSet(K, { xs: [-1.35, 1.38], track: 1.7, r: 0.35, w: 0.27, spokes: 5, rim: [150, 152, 158], caliper: [200, 160, 40], half: 0.95, steer: opts.steer || 0 });
+    shadeAll(0.92);
   }
-  return { P, L };
+  return K;
+}
+// one car as a group of meshes: plain parts, glowing lamps, glossy paint, glass and chrome
+function carGroup(K, extra) {
+  const g = new THREE.Group();
+  const add = (parts, mat) => { if (parts.length) g.add(new THREE.Mesh(toGeometry(parts), mat)); };
+  add(K.P.concat(extra || []), roomMat); add(K.L, glowMat); add(K.B, carPaintMat); add(K.G, carGlassMat); add(K.C, carChromeMat);
+  return g;
 }
 function parkCar(kind, color, x, z, yaw, y, opts) {
-  const c = carParts(kind, color, opts);
-  S.push(...placeParts(c.P, x, z, yaw, y)); G.push(...placeParts(c.L, x, z, yaw, y));
+  const g = carGroup(carParts(kind, color, opts));
+  g.position.set(x, y || 0, z); g.rotation.y = yaw; scene.add(g);
+  return g;
 }
 
 // outside walls are only drawn while the camera is outside at street level (from above they'd hide the rooms)
@@ -2499,7 +2762,7 @@ for (let x = ST.x0, k = 0; x < ST.x1; k++) {
 
 // black SUVs parked along the curb (the entrance stays clear)
 const PARKED = [-10.5, -5.0, 5.0, 10.5];
-for (const x of PARKED) parkCar('suv', [13, 13, 15], x, ST.curb0 + 1.1, 0, ROAD_Y);
+PARKED.forEach((x, i) => parkCar('suv', [[13, 13, 15], [20, 20, 24], [13, 13, 15], [36, 38, 44]][i], x, ST.curb0 + 1.1, 0, ROAD_Y));
 
 // passing traffic in both lanes, looping from one end of the street to the other
 const TRAFFIC = [
@@ -2517,10 +2780,7 @@ const beamTex = canvasTex(16, 16, (x, w, h) => {
 const beamMat = new THREE.MeshBasicMaterial({ map: beamTex, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -16 });
 const traffic = [];
 for (const tc of TRAFFIC) {
-  const c = carParts(tc.kind, tc.color);
-  const grp = new THREE.Group();
-  grp.add(new THREE.Mesh(toGeometry(c.P), roomMat));
-  grp.add(new THREE.Mesh(toGeometry(c.L), glowMat));
+  const grp = carGroup(carParts(tc.kind, tc.color));
   const beam = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 2.4), beamMat);
   beam.rotation.x = -Math.PI / 2; beam.position.set(2.3 + 2.75, 0.02, 0); grp.add(beam);
   grp.position.set(tc.x, ROAD_Y, tc.z); grp.rotation.y = tc.dir > 0 ? 0 : Math.PI;
@@ -2535,36 +2795,171 @@ function driveTraffic(dt) {
   }
 }
 
-// ===== BACKSTREET =====
-const AL = { x0: -14, x1: 15, z0: -19, z1: -11 };
+// ===== BACKSTREET: a walled courtyard behind the VIP with a round valet drive =====
+const AL = { x0: -14, x1: 15, z0: -35, z1: -11 };
 groundPlane(AL.x0, 5, AL.z0, -11.02, wetTex, 3, 0);
 groundPlane(5, AL.x1, AL.z0, -12.02, wetTex, 3, 0);
-// the far side of the alley: the back of another building
+// the far side of the courtyard: the back of another building, and high walls left and right (an arch on the right for the drive)
 {
   const w = AL.x1 - AL.x0, g = new THREE.PlaneGeometry(w, 7);
   scaleUV(g, w / 3.2, 7 / 6.4);
   const m = new THREE.Mesh(g, windowMat); m.position.set((AL.x0 + AL.x1) / 2, 3.5, AL.z0 - 0.02); scene.add(m);
 }
-// ===== PRIVATE LOT: numbered bays for the hosts' cars; a car is only here while its owner is online =====
-const LOT_BAYS = [-3.8, -0.6, 2.6, 5.8, 9.0, -7.0, -10.2, 12.2];     // bay 1 is right by the back door
-const LOT_Z = -16.3;
-for (const x of [-11.8, -8.6, -5.4, -2.2, 1.0, 4.2, 7.4, 10.6, 13.8]) S.push(box(x - 0.04, x + 0.04, 0, 0.03, -19.0, -14.2, [200, 198, 190], 0.02));
-for (const bx of LOT_BAYS) S.push(box(bx - 0.7, bx + 0.7, 0, 0.12, -18.75, -18.55, [90, 90, 94], 0.04));
-// a boom barrier at the lot's exit, two tall lot lamps
-S.push(box(14.3, 14.55, 0, 1.1, -19.0, -18.75, [40, 40, 44], 0.03));
-for (let k = 0; k < 8; k++) S.push(box(14.38, 14.48, 0.95, 1.05, -18.75 + k * 0.6, -18.75 + (k + 1) * 0.6, k % 2 ? [220, 220, 216] : [190, 30, 30], 0.02));
-for (const lx of [-2.2, 7.4]) {
-  S.push(cyl(V(lx, 0, -18.8), V(lx, 4.4, -18.8), 0.06, 0.05, [24, 24, 28], { n: 6 }));
-  S.push(box(lx - 0.35, lx + 0.35, 4.35, 4.45, -18.9, -18.3, [30, 30, 34], 0.03));
-  G.push(box(lx - 0.3, lx + 0.3, 4.33, 4.35, -18.85, -18.35, [255, 236, 210], 0));
+facade(-14.01, AL.z0, -14.01, -11.0, 1, 0);
+facade(15.01, -12.0, 15.01, AL.z0, -1, 0, [[8.3, 12.2]]);   // the arch for the drive at z -24.2..-20.3
+facade(14.0, -12.01, 15.0, -12.01, 0, 1);
+// the round drive: a raised island with a fountain, a ring of granite setts, and eight bays fanned around it
+const LOT = { x: 0, z: -22.5, ri: 2.2, ro: 5.0, R: 7.9, rb: 10.5 };
+const settTex = canvasTex(32, 32, (x, w, h) => {
+  x.fillStyle = 'rgb(16,16,19)'; x.fillRect(0, 0, w, h);
+  for (let j = 0; j < h; j += 4) for (let i = (j / 4) % 2 ? -3 : 0; i < w; i += 6) {
+    const v = 42 + Math.floor(rr() * 22); x.fillStyle = `rgb(${v},${v},${v + 4})`; x.fillRect(i + 1, j + 1, 5, 3);
+  }
+});
+const graniteTex = canvasTex(32, 32, (x, w, h) => {
+  noiseFill(x, w, h, [22, 22, 26], 4);
+  for (let k = 0; k < 40; k++) { const v = 60 + Math.floor(rr() * 50); x.fillStyle = `rgb(${v},${v},${v})`; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 1); }
+  x.fillStyle = 'rgb(12,12,14)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+});
+const stoneLTex = canvasTex(16, 16, (x, w, h) => {
+  noiseFill(x, w, h, [96, 92, 86], 5);
+  x.fillStyle = 'rgb(60,58,54)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
+});
+for (const t of [settTex, graniteTex, stoneLTex]) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+const flatMat = (tex, units) => ps1(new THREE.MeshLambertMaterial({ map: tex, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: units }));
+function ringPlane(r0, r1, mat, tile, y) {
+  const g = r0 > 0 ? new THREE.RingGeometry(r0, r1, 64, 2) : new THREE.CircleGeometry(r1, 48);
+  scaleUV(g, 2 * r1 / tile, 2 * r1 / tile);
+  const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.set(LOT.x, y, LOT.z); scene.add(m);
+  return m;
 }
-const carLamp = pLight(0xffe8d0, 1.3, 13, 2.6, 4.2, -16.0);
-// reserved plates on the wall at the head of each bay, with the owner's name when they're here
-const lotPlates = LOT_BAYS.map((bx, i) => {
+ringPlane(LOT.ro, LOT.rb + 0.6, flatMat(graniteTex, -2), 1.6, 0.006);
+ringPlane(LOT.ri, LOT.ro, flatMat(settTex, -4), 1.1, 0.01);
+groundPlane(4.6, AL.x1 + 0.8, LOT.z - 1.6, LOT.z + 1.6, settTex, 1.1, 0.009);
+groundPlane(-5.2, -2.4, LOT.z + LOT.ro - 0.2, -11.6, stoneLTex, 1.0, 0.008);
+// pieces of a ring (curbs, hedges, inlays), each its own small box so the faces point the right way
+const ang = (a) => [Math.sin(a), -Math.cos(a)];
+function arcBox(r0, r1, y0, y1, a0, a1, steps, col, amt) {
+  const out = [];
+  for (let k = 0; k < steps; k++) {
+    const sec = [];
+    for (const a of [a0 + (a1 - a0) * k / steps, a0 + (a1 - a0) * (k + 1) / steps]) {
+      const [s, c] = ang(a);
+      sec.push([V(LOT.x + s * r0, y0, LOT.z + c * r0), V(LOT.x + s * r0, y1, LOT.z + c * r0), V(LOT.x + s * r1, y1, LOT.z + c * r1), V(LOT.x + s * r1, y0, LOT.z + c * r1)]);
+    }
+    out.push(loft(sec, col, { amt: amt == null ? 0.04 : amt }));
+  }
+  return out;
+}
+const MARBLE_W = [198, 194, 186], HEDGE = [30, 62, 34], BRONZE = [70, 54, 34];
+const D2R = Math.PI / 180;
+S.push(...arcBox(LOT.ri - 0.12, LOT.ri + 0.1, 0, 0.2, 0, 2 * Math.PI, 48, MARBLE_W, 0.03));
+G.push(...arcBox(LOT.ro - 0.03, LOT.ro + 0.03, 0.012, 0.018, 0, 2 * Math.PI, 64, [190, 150, 80], 0));
+// the island: dark lawn, four clipped cypress cones, and a three-tier fountain lit from below
+ringPlane(0, LOT.ri - 0.1, ps1(new THREE.MeshLambertMaterial({ map: canvasTex(16, 16, (x, w, h) => noiseFill(x, w, h, [26, 52, 28], 10)) })), 1.2, 0.16);
+for (let k = 0; k < 4; k++) {
+  const [s, c] = ang(Math.PI / 4 + k * Math.PI / 2), x = LOT.x + s * 1.7, z = LOT.z + c * 1.7;
+  S.push(cyl(V(x, 0.16, z), V(x, 0.42, z), 0.2, 0.18, [120, 110, 100], { n: 10 }));
+  S.push(loft([rring(0.42, 0.42, 0.42, x, z, 10, 2), rring(0.9, 0.5, 0.5, x, z, 10, 2), rring(1.5, 0.34, 0.34, x, z, 10, 2), rring(2.0, 0.04, 0.04, x, z, 10, 2)], HEDGE, { smooth: true, amt: 0.1 }));
+}
+{
+  const fx = LOT.x, fz = LOT.z;
+  S.push(loft([rring(0.16, 2.5, 2.5, fx, fz, 28, 2), rring(0.55, 2.5, 2.5, fx, fz, 28, 2), rring(0.6, 2.62, 2.62, fx, fz, 28, 2), rring(0.64, 2.5, 2.5, fx, fz, 28, 2), rring(0.64, 2.3, 2.3, fx, fz, 28, 2), rring(0.3, 2.3, 2.3, fx, fz, 28, 2)], MARBLE_W, { amt: 0.03, cap: false, center: [fx, 2, fz] }));
+  S.push(cyl(V(fx, 0.3, fz), V(fx, 1.25, fz), 0.16, 0.11, MARBLE_W, { n: 12 }));
+  S.push(loft([rring(1.2, 0.2, 0.2, fx, fz, 20, 2), rring(1.32, 1.2, 1.2, fx, fz, 20, 2), rring(1.42, 1.3, 1.3, fx, fz, 20, 2), rring(1.42, 1.16, 1.16, fx, fz, 20, 2), rring(1.36, 0.2, 0.2, fx, fz, 20, 2)], MARBLE_W, { amt: 0.03, smooth: true }));
+  S.push(cyl(V(fx, 1.36, fz), V(fx, 1.85, fz), 0.07, 0.05, MARBLE_W, { n: 10 }));
+  S.push(loft([rring(1.82, 0.08, 0.08, fx, fz, 16, 2), rring(1.9, 0.56, 0.56, fx, fz, 16, 2), rring(1.96, 0.6, 0.6, fx, fz, 16, 2), rring(1.92, 0.08, 0.08, fx, fz, 16, 2)], MARBLE_W, { amt: 0.03, smooth: true }));
+  S.push(loft([rring(1.96, 0.1, 0.1, fx, fz, 10, 2), rring(2.08, 0.14, 0.14, fx, fz, 10, 2), rring(2.22, 0.02, 0.02, fx, fz, 10, 2)], BRASS, { amt: 0.03, smooth: true }));
+  G.push(loft([rring(0.56, 2.28, 2.28, fx, fz, 28, 2), rring(0.56, 0.01, 0.01, fx, fz, 28, 2)], [52, 104, 132], { amt: 0.05 }));
+  G.push(loft([rring(1.38, 1.14, 1.14, fx, fz, 20, 2), rring(1.38, 0.01, 0.01, fx, fz, 20, 2)], [70, 130, 160], { amt: 0.05 }));
+  for (let k = 0; k < 8; k++) { const [s, c] = ang(k * Math.PI / 4); G.push(cyl(V(fx + s * 1.18, 0.6, fz + c * 1.18), V(fx + s * 1.18, 0.62, fz + c * 1.18), 0.05, 0.05, [200, 230, 255], { n: 6, amt: 0 })); }
+}
+const fountainWater = new THREE.Group(); scene.add(fountainWater);
+let fountainTick = () => {};
+{
+  const wm = new THREE.MeshBasicMaterial({ color: 0x9fd0ff, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false, fog: true });
+  const parts = [];
+  // falling sheets from the two bowls and a jet from the top
+  for (let k = 0; k < 10; k++) {
+    const [s, c] = ang(k * Math.PI / 5);
+    parts.push(tube([V(s * 1.3, 1.4, c * 1.3), V(s * 1.45, 1.1, c * 1.45), V(s * 1.55, 0.6, c * 1.55)], [0.035, 0.03, 0.02], [255, 255, 255], { n: 4 }));
+    if (k % 2 === 0) parts.push(tube([V(s * 0.6, 1.95, c * 0.6), V(s * 0.72, 1.7, c * 0.72), V(s * 0.8, 1.42, c * 0.8)], [0.025, 0.02, 0.015], [255, 255, 255], { n: 4 }));
+  }
+  parts.push(cyl(V(0, 2.2, 0), V(0, 2.65, 0), 0.03, 0.01, [255, 255, 255], { n: 6 }));
+  const m = new THREE.Mesh(toGeometry(parts), wm); m.position.set(LOT.x, 0, LOT.z); fountainWater.add(m);
+  fountainTick = (dt, t) => { wm.opacity = 0.26 + 0.08 * Math.sin(t * 5.3) + 0.04 * Math.sin(t * 11.7); m.rotation.y = t * 0.15; };
+}
+// the bays: brass lines, a marble wheel stop at the back of each, and a numbered plate on a post
+const BAY_A = [-120, -90, -60, -30, 0, 30, 60, 120].map((d) => d * D2R);   // bay 1 is the closest to the back door
+const LOT_BAYS = BAY_A.map((a) => { const [s, c] = ang(a); return [LOT.x + s * LOT.R, LOT.z + c * LOT.R]; });
+function groundStrip(ax, az, bx, bz, w, y, col, h) {
+  const dx = bx - ax, dz = bz - az, l = Math.hypot(dx, dz), nx = -dz / l * w / 2, nz = dx / l * w / 2;
+  const q = (yy) => [V(ax + nx, yy, az + nz), V(bx + nx, yy, bz + nz), V(bx - nx, yy, bz - nz), V(ax - nx, yy, az - nz)];
+  return loft([q(y), q(y + (h || 0.008))], col, { amt: 0.02 });
+}
+for (const a of BAY_A) for (const d of [-15, 15]) {
+  const [s, c] = ang(a + d * D2R);
+  G.push(groundStrip(LOT.x + s * (LOT.ro + 0.25), LOT.z + c * (LOT.ro + 0.25), LOT.x + s * LOT.rb, LOT.z + c * LOT.rb, 0.07, 0.008, [170, 136, 70]));
+}
+for (const a of BAY_A) {
+  const [s, c] = ang(a), [ts, tc] = [c, -s];
+  const r = LOT.rb - 0.35, x = LOT.x + s * r, z = LOT.z + c * r;
+  S.push(groundStrip(x - ts * 0.75, z - tc * 0.75, x + ts * 0.75, z + tc * 0.75, 0.15, 0.0, MARBLE_W, 0.1));
+  const px = LOT.x + s * (LOT.rb + 0.35), pz = LOT.z + c * (LOT.rb + 0.35);
+  S.push(cyl(V(px, 0, pz), V(px, 0.06, pz), 0.1, 0.09, BRONZE, { n: 8 }));
+  S.push(cyl(V(px, 0.06, pz), V(px, 1.08, pz), 0.025, 0.025, BRASS, { n: 6 }));
+}
+// a low clipped hedge around the far side of the drive, lit bollards and twin-globe lamps behind it
+S.push(...arcBox(LOT.rb + 0.75, LOT.rb + 1.3, 0, 0.66, -100 * D2R, 66 * D2R, 30, HEDGE, 0.12));
+S.push(...arcBox(LOT.rb + 0.7, LOT.rb + 1.35, 0, 0.12, -100 * D2R, 66 * D2R, 30, [60, 58, 56], 0.04));
+for (const d of [-105, -75, -45, -15, 15, 45]) {
+  const [s, c] = ang(d * D2R), x = LOT.x + s * (LOT.rb + 0.45), z = LOT.z + c * (LOT.rb + 0.45);
+  S.push(cyl(V(x, 0, z), V(x, 0.62, z), 0.07, 0.07, BRONZE, { n: 8 }));
+  G.push(cyl(V(x, 0.5, z), V(x, 0.58, z), 0.072, 0.072, [255, 214, 150], { n: 8, amt: 0 }));
+  S.push(cyl(V(x, 0.62, z), V(x, 0.66, z), 0.08, 0.06, BRONZE, { n: 8 }));
+}
+for (const d of [-80, -27, 27]) {
+  const [s, c] = ang(d * D2R), x = LOT.x + s * (LOT.rb + 1.7), z = LOT.z + c * (LOT.rb + 1.7);
+  S.push(cyl(V(x, 0, z), V(x, 0.3, z), 0.16, 0.12, [20, 20, 22], { n: 8 }));
+  S.push(cyl(V(x, 0.3, z), V(x, 3.4, z), 0.06, 0.045, [20, 20, 22], { n: 8 }));
+  S.push(cyl(V(x - 0.45, 3.4, z), V(x + 0.45, 3.4, z), 0.025, 0.025, [20, 20, 22], { n: 5 }));
+  for (const e of [-1, 1]) {
+    S.push(cyl(V(x + e * 0.45, 3.4, z), V(x + e * 0.45, 3.5, z), 0.03, 0.03, [20, 20, 22], { n: 6 }));
+    G.push(loft([rring(3.5, 0.08, 0.08, x + e * 0.45, z, 10, 2), rring(3.62, 0.26, 0.26, x + e * 0.45, z, 10, 2), rring(3.78, 0.2, 0.2, x + e * 0.45, z, 10, 2), rring(3.84, 0.04, 0.04, x + e * 0.45, z, 10, 2)], [255, 226, 180], { smooth: true, amt: 0 }));
+  }
+}
+// the archway in from the side street: stone piers, brass lanterns, open iron gates
+for (const zz of [LOT.z - 1.85, LOT.z + 1.85]) {
+  S.push(box(14.4, 15.0, 0, 2.7, zz - 0.3, zz + 0.3, [64, 62, 60], 0.04));
+  S.push(box(14.34, 15.06, 2.7, 2.82, zz - 0.36, zz + 0.36, [86, 84, 80], 0.03));
+  S.push(box(14.2, 14.34, 1.7, 2.1, zz - 0.09, zz + 0.09, BRASS_D, 0.03));
+  G.push(box(14.22, 14.32, 1.75, 2.05, zz - 0.07, zz + 0.07, [255, 210, 140], 0));
+  const e = zz < LOT.z ? -1 : 1;
+  for (let k = 0; k <= 8; k++) { const u = k / 8, gx = 14.35 - u * 1.25 * 0.6, gz = zz - e * 0.3 - e * u * 1.25 * 0.8; S.push(cyl(V(gx, 0.05, gz), V(gx, 1.9 + 0.15 * Math.sin(Math.PI * u), gz), 0.012, 0.012, [16, 16, 18], { n: 4 })); }
+  S.push(cyl(V(14.35, 1.85, zz - e * 0.3), V(14.35 - 0.75, 1.85, zz - e * 0.3 - e * 1.0), 0.015, 0.015, [16, 16, 18], { n: 4 }));
+  S.push(cyl(V(14.35, 0.4, zz - e * 0.3), V(14.35 - 0.75, 0.4, zz - e * 0.3 - e * 1.0), 0.015, 0.015, [16, 16, 18], { n: 4 }));
+}
+for (const zz of [LOT.z - 1.65, LOT.z + 1.65]) S.push(box(4.8, AL.x1 + 0.8, 0, 0.1, zz - 0.07, zz + 0.07, MARBLE_W, 0.03));
+// a red carpet from the VIP back door to the drive, with brass stanchions and velvet ropes
+S.push(box(-4.2, -3.4, 0.008, 0.024, LOT.z + LOT.ro - 0.3, -11.6, [120, 14, 24], 0.04));
+for (const x of [-4.55, -3.05]) {
+  const zs = [-12.4, -14.0, -15.6, -17.0];
+  for (const z of zs) {
+    S.push(cyl(V(x, 0, z), V(x, 0.04, z), 0.12, 0.11, BRASS_D, { n: 8 }));
+    S.push(cyl(V(x, 0.04, z), V(x, 0.95, z), 0.022, 0.022, BRASS, { n: 6 }));
+    S.push(cyl(V(x, 0.95, z), V(x, 1.0, z), 0.035, 0.03, BRASS, { n: 6 }));
+  }
+  for (let k = 0; k < zs.length - 1; k++) S.push(tube([V(x, 0.93, zs[k]), V(x, 0.72, (zs[k] + zs[k + 1]) / 2), V(x, 0.93, zs[k + 1])], [0.022, 0.022, 0.022], VELVET, { n: 5 }));
+}
+// one warm light over the fountain for the whole drive
+const carLamp = pLight(0xffe2c0, 1.5, 17, LOT.x, 4.4, LOT.z);
+// reserved plates on the posts at the back of each bay, with the owner's name when they're here
+const lotPlates = LOT_BAYS.map((b, i) => {
   const c = document.createElement('canvas'); c.width = 160; c.height = 48;
   const tex = new THREE.CanvasTexture(c); tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.encoding = THREE.sRGBEncoding;
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.33), decal({ map: tex }));
-  m.position.set(bx, 1.75, -18.97); scene.add(m);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.24), decal({ map: tex, side: THREE.DoubleSide }));
+  const [s, cc] = ang(BAY_A[i]);
+  m.position.set(LOT.x + s * (LOT.rb + 0.35), 1.2, LOT.z + cc * (LOT.rb + 0.35)); m.rotation.y = -BAY_A[i]; scene.add(m);
   const draw = (name) => {
     const x = c.getContext('2d');
     x.fillStyle = '#0d0c0e'; x.fillRect(0, 0, 160, 48); x.strokeStyle = '#b8924a'; x.lineWidth = 2; x.strokeRect(2, 2, 156, 44);
@@ -2574,7 +2969,7 @@ const lotPlates = LOT_BAYS.map((bx, i) => {
   };
   draw(''); return { draw, name: '' };
 });
-// the cars themselves: rebuilt whenever someone arrives, leaves or repaints
+// the cars themselves: rebuilt whenever someone arrives, leaves or repaints; parked nose-out, facing the fountain
 const lotCars = new Map();
 function setLotCars(list) {
   const want = new Map((list || []).map((c) => [c.uid, c]));
@@ -2586,16 +2981,65 @@ function setLotCars(list) {
   for (const c of list || []) {
     if (lotCars.has(c.uid) || c.bay < 0 || c.bay >= LOT_BAYS.length) continue;
     const col = CAR_COLORS[c.color] || CAR_COLORS[0];
-    const parts = carParts(CAR_STYLES.includes(c.style) ? c.style : 'super', col[1]);
-    const g = new THREE.Group();
-    g.add(new THREE.Mesh(toGeometry(parts.P), roomMat)); g.add(new THREE.Mesh(toGeometry(parts.L), glowMat));
-    g.position.set(LOT_BAYS[c.bay], 0, LOT_Z); g.rotation.y = -Math.PI / 2; g.userData.key = c.style + c.color + c.bay;
+    const g = carGroup(carParts(CAR_STYLES.includes(c.style) ? c.style : 'super', col[1]));
+    const a = BAY_A[c.bay];
+    g.position.set(LOT_BAYS[c.bay][0], 0.006, LOT_BAYS[c.bay][1]); g.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); g.userData.key = c.style + c.color + c.bay;
     scene.add(g); lotCars.set(c.uid, g);
   }
 }
-const CAR_STYLES = ['coupe', 'super', 'saloon', 'suv'];
-const CAR_STYLE_NAMES = { coupe: 'Open-top coupe', super: 'Wedge supercar', saloon: 'Luxury saloon', suv: 'Armoured SUV' };
-const CAR_COLORS = [['Racing red', [176, 18, 24]], ['Black', [14, 14, 16]], ['Midnight blue', [18, 26, 60]], ['Gunmetal', [62, 64, 70]], ['Pearl white', [222, 220, 212]], ['Royal purple', [70, 20, 90]], ['Emerald', [16, 80, 52]], ['Gold', [176, 140, 60]]];
+const CAR_STYLES = ['roadster', 'coupe', 'super', 'saloon', 'suv'];
+const CAR_STYLE_NAMES = { roadster: 'Hardtop roadster', coupe: 'Open-top coupe', super: 'Wedge supercar', saloon: 'Luxury saloon', suv: 'Armoured SUV' };
+const CAR_COLORS = [['Racing red', [176, 18, 24]], ['Black', [14, 14, 16]], ['Midnight blue', [18, 26, 60]], ['Gunmetal', [62, 64, 70]], ['Pearl white', [222, 220, 212]], ['Royal purple', [70, 20, 90]], ['Emerald', [16, 80, 52]], ['Gold', [176, 140, 60]],
+  ['Candy red', [150, 6, 22]], ['Liquid silver', [150, 154, 160]], ['Machine gray', [92, 94, 98]], ['Deep teal', [14, 66, 74]], ['Desert sand', [168, 150, 118]], ['Sky blue', [70, 120, 170]]];
+// ---- the valet booth by the archway: black lacquer and brass, glass all round, a desk, a key cabinet and a lamp
+const VB = { x0: 11.6, x1: 13.4, z0: -18.0, z1: -16.4 };
+{
+  const { x0, x1, z0, z1 } = VB, T = 0.05, LQ = LACQUER, WAL = [74, 48, 30];
+  S.push(box(x0 - 0.1, x1 + 0.1, 0, 0.12, z0 - 0.1, z1 + 0.1, MARBLE_W, 0.03));
+  // low walls, a solid back wall and a door on the east side
+  S.push(box(x0, x1, 0.12, 1.0, z0, z0 + T, LQ)); S.push(box(x0, x0 + T, 0.12, 1.0, z0, z1, LQ));
+  S.push(box(x0, x1, 0.12, 2.25, z1 - T, z1, LQ)); S.push(box(x1 - T, x1, 0.12, 2.25, z0 + 0.7, z1, LQ));
+  S.push(box(x1 - T, x1, 0.12, 1.0, z0, z0 + 0.7, LQ));
+  S.push(box(x1 - 0.004, x1 + 0.004, 1.0, 1.02, z0 + 0.74, z1 - 0.1, BRASS, 0.02));
+  for (const [x, z] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) S.push(box(x - 0.04, x + 0.04, 0.12, 2.25, z - 0.04, z + 0.04, BRASS_D, 0.03));
+  S.push(box(x0, x1, 0.98, 1.03, z0 - 0.02, z0 + 0.07, BRASS, 0.02)); S.push(box(x0 - 0.02, x0 + 0.07, 0.98, 1.03, z0, z1, BRASS, 0.02));
+  for (const x of [x0 + 0.6, x0 + 1.2]) S.push(box(x - 0.015, x + 0.015, 1.03, 2.2, z0 - 0.01, z0 + 0.02, BRASS_D, 0.02));
+  // roof with an overhang and a brass band
+  S.push(box(x0 - 0.3, x1 + 0.3, 2.25, 2.38, z0 - 0.4, z1 + 0.15, LQ));
+  S.push(box(x0 - 0.31, x1 + 0.31, 2.23, 2.27, z0 - 0.41, z1 + 0.16, BRASS, 0.02));
+  // desk under the front window, a ledger, a lamp, a phone; the key cabinet on the back wall
+  S.push(box(x0 + 0.06, x1 - 0.06, 0.72, 0.77, z0 + 0.06, z0 + 0.58, WAL, 0.04));
+  S.push(box(x0 + 0.08, x1 - 0.08, 0.12, 0.72, z0 + 0.06, z0 + 0.12, WAL, 0.04));
+  S.push(box(12.2, 12.66, 0.77, 0.79, z0 + 0.22, z0 + 0.5, [210, 200, 176], 0.03));
+  S.push(box(12.18, 12.68, 0.765, 0.775, z0 + 0.2, z0 + 0.52, [60, 16, 20], 0.03));
+  S.push(cyl(V(13.05, 0.77, z0 + 0.4), V(13.05, 0.79, z0 + 0.4), 0.07, 0.07, BRASS_D, { n: 8 }));
+  S.push(cyl(V(13.05, 0.79, z0 + 0.4), V(13.0, 1.08, z0 + 0.3), 0.012, 0.012, BRASS, { n: 4 }));
+  G.push(loft([rring(1.02, 0.06, 0.06, 13.0, z0 + 0.3, 8, 2), rring(1.08, 0.16, 0.16, 13.0, z0 + 0.3, 8, 2), rring(1.12, 0.14, 0.14, 13.0, z0 + 0.3, 8, 2)], [70, 130, 80], { amt: 0 }));
+  S.push(box(11.82, 12.0, 0.77, 0.82, z0 + 0.28, z0 + 0.46, [16, 16, 18], 0.03));
+  S.push(box(x0 + 0.35, x1 - 0.35, 1.05, 1.85, z1 - 0.12, z1 - T, WAL, 0.04));
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 6; k++) {
+    const x = x0 + 0.45 + k * 0.17, y = 1.72 - r * 0.2;
+    S.push(cyl(V(x, y, z1 - 0.12), V(x, y, z1 - 0.16), 0.006, 0.006, BRASS, { n: 4 }));
+    if ((r * 6 + k) % 3 !== 1) S.push(box(x - 0.018, x + 0.018, y - 0.09, y - 0.02, z1 - 0.15, z1 - 0.13, [[20, 20, 22], [140, 20, 24], [200, 200, 200]][(r + k) % 3], 0.03));
+  }
+  // the chair
+  const cx = 12.5, cz = -17.0;
+  for (let k = 0; k < 5; k++) { const a = k * 2 * Math.PI / 5; S.push(cyl(V(cx, 0.15, cz), V(cx + Math.cos(a) * 0.26, 0.13, cz + Math.sin(a) * 0.26), 0.018, 0.018, [20, 20, 22], { n: 4 })); }
+  S.push(cyl(V(cx, 0.14, cz), V(cx, 0.42, cz), 0.025, 0.025, [120, 120, 126], { n: 6 }));
+  S.push(box(cx - 0.24, cx + 0.24, 0.42, 0.48, cz - 0.22, cz + 0.22, [24, 20, 18], 0.04));
+  S.push(box(cx - 0.22, cx + 0.22, 0.5, 1.0, cz + 0.2, cz + 0.26, [24, 20, 18], 0.04));
+  // a small podium outside for the keys
+  S.push(box(11.0, 11.4, 0.0, 1.02, -18.75, -18.45, LQ)); S.push(box(10.96, 11.44, 1.02, 1.08, -18.82, -18.4, BRASS, 0.02));
+}
+const valetSign = goldSign('VALET', 192, 40, 30); CARD_SIGNS.push(valetSign);
+{ const m = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.23), decal({ map: valetSign.tex, transparent: true })); m.position.set((VB.x0 + VB.x1) / 2, 2.31, VB.z0 - 0.415); m.rotation.y = Math.PI; scene.add(m); }
+{
+  const gm = new THREE.MeshBasicMaterial({ color: 0x9ab8c8, transparent: true, opacity: 0.1, depthWrite: false });
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(VB.x1 - VB.x0, 1.17), gm); front.position.set((VB.x0 + VB.x1) / 2, 1.615, VB.z0 + 0.01); scene.add(front);
+  const side = new THREE.Mesh(new THREE.PlaneGeometry(VB.z1 - VB.z0, 1.17), gm); side.position.set(VB.x0 + 0.01, 1.615, (VB.z0 + VB.z1) / 2); side.rotation.y = Math.PI / 2; scene.add(side);
+  const side2 = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 1.17), gm); side2.position.set(VB.x1 - 0.01, 1.615, VB.z0 + 0.35); side2.rotation.y = Math.PI / 2; scene.add(side2);
+}
+const boothLight = pLight(0xffdcae, 0.9, 5, 12.5, 2.0, -17.2);
 // back door: steps and a caged lamp over it
 S.push(box(-4.6, -3.0, 0, 0.16, -11.6, -11.02, [50, 50, 54], 0.03));
 S.push(box(-4.05, -3.55, 2.56, 2.66, -11.24, -11.02, [30, 30, 34], 0.03));
@@ -2885,7 +3329,7 @@ const standHit = (x, z) => hitBox(x, 0.9, z, 0.45, 1.8, 0.45);
 [[-3.9, 4.4, 0.35], [3.9, 4.4, -0.35], [-7.8, 4.4, 0.2], [7.8, 4.4, -0.2]].forEach(([x, z, yaw], i) => addSpot('street-wall-' + i, 6, 'lean', x, z, yaw, 'Lean on the wall outside', standHit(x, z)));
 PARKED.forEach((x, i) => addSpot('street-suv-' + i, 6, 'lean', x + 0.6, ST.curb0 - 0.32, Math.PI, 'Lean on the SUV', standHit(x + 0.6, ST.curb0 - 0.32)));
 // the backstreet: by the cars in the lot, at the back door, on the crates
-[-2.2, 1.0, 4.2, 7.4].forEach((x, i) => addSpot('alley-car-' + i, 7, 'lean', x, -13.3, Math.PI, 'Hang out by the cars', standHit(x, -13.3)));
+[-105, -75, -15, 45].forEach((d, i) => { const a = d * D2R, x = LOT.x + Math.sin(a) * (LOT.rb + 0.2), z = LOT.z - Math.cos(a) * (LOT.rb + 0.2); addSpot('alley-car-' + i, 7, 'lean', x, z, -a, 'Hang out by the cars', standHit(x, z)); });
 addSpot('alley-door-0', 7, 'lean', -3.9, -11.85, Math.PI - 0.3, 'Step out back', standHit(-3.9, -11.85));
 CRATES.forEach(([x, z], i) => addSpot('alley-crate-' + i, 7, 'sitlow', x, z, Math.PI / 2, 'Sit on a crate', hitBox(x, 0.4, z, 0.65, 0.8, 0.65)));
 [[2.6, -11.45, Math.PI], [-8.6, -12.7, Math.PI - 0.4], [3.6, -12.4, Math.PI + 0.5]].forEach(([x, z, yaw], i) => addSpot('alley-wall-' + i, 7, 'lean', x, z, yaw, 'Hang out in the backstreet', standHit(x, z)));
@@ -3045,18 +3489,23 @@ function rebuild() {
 }
 
 // ---------------------------------------------------------------- music (original tracks, Web Audio)
-// Four original tracks for a late-night hotel bar. The jukebox rotates them every 48 bars unless a visitor picks one.
+// Original tracks for a late-night hotel bar. Two jazz pieces open the night; the jukebox rotates the jazz
+// every 48 bars unless a visitor picks something else.
 const TRACKS = [
+  { name: 'Smoke & Brass', gain: 4, bpm: 116, swing: 0, swing8: 0.33, prog: [[36, 51, 55, 58, 62], [41, 51, 57, 62, 67], [46, 50, 53, 57, 60], [43, 53, 56, 59, 62]] }, // Cm9 F13 Bbmaj9 G7b9 — swing trio + vibes
+  { name: 'Blue Hour', gain: 7, bpm: 68, swing: 0, swing8: 0.33, prog: [[39, 55, 58, 62, 65], [36, 51, 55, 58, 62], [41, 56, 60, 63, 67], [46, 56, 62, 67, 60]] },  // Ebmaj9 Cm9 Fm9 Bb13 — brushed ballad
   { name: 'Velvet Rope', bpm: 112, swing: 0, prog: [[45, 48, 52], [45, 48, 52], [41, 45, 48], [43, 47, 50]] },          // Am Am F G — dark electro
-  { name: 'Last Round', bpm: 86, swing: 0, swing8: 0.33, prog: [[38, 41, 45, 48, 52], [43, 47, 50, 53, 57], [36, 40, 43, 47, 50], [45, 49, 52, 55, 58]] }, // Dm9 G13 Cmaj9 A7 — noir lounge
+  { name: 'Last Round', gain: 1.5, bpm: 86, swing: 0, swing8: 0.33, prog: [[38, 41, 45, 48, 52], [43, 47, 50, 53, 57], [36, 40, 43, 47, 50], [45, 49, 52, 55, 58]] }, // Dm9 G13 Cmaj9 A7 — noir lounge
   { name: 'Midnight Ledger', bpm: 118, swing: 0, prog: [[40, 43, 47], [36, 40, 43], [43, 47, 50], [42, 45, 49]] },    // Em C G F#dim — darkwave
   { name: 'Quiet Contract', bpm: 128, swing: 0, prog: [[38, 41, 45], [38, 41, 45], [38, 41, 45], [36, 39, 43]] }      // Dm Dm Dm Cm — industrial techno
 ];
+const JAZZ_TRACKS = [0, 1, 3];
+const rnd = (k) => { const x = Math.sin(k * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
 let trackIdx = 0, pinnedTrack = false, pendingTrack = -1;
 let SPB = 60 / TRACKS[0].bpm;
-let actx = null, master = null, muted = false, nextStep = 0, stepIdx = 0, schedTimer = null, ducked = false;
+let actx = null, master = null, bus = null, muted = false, nextStep = 0, stepIdx = 0, schedTimer = null, ducked = false;
 let beatBase = 0, beatT0 = 0;
-const MASTER_VOL = 0.55;
+const MASTER_VOL = 0.36;
 const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 let noiseBuf = null;
 function startAudio() {
@@ -3064,7 +3513,12 @@ function startAudio() {
   const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
   actx = new AC();
   master = actx.createGain(); master.gain.value = ducked ? 0.0001 : MASTER_VOL;
-  const comp = actx.createDynamicsCompressor(); master.connect(comp); comp.connect(actx.destination);
+  // each track has its own level: the soft jazz is mixed up to sit at a steady, gentle volume
+  bus = actx.createGain(); bus.gain.value = TRACKS[trackIdx].gain || 1; bus.connect(master);
+  // a gentle low-pass and a soft compressor keep it warm in the background instead of punchy
+  const soft = actx.createBiquadFilter(); soft.type = 'lowpass'; soft.frequency.value = 6500; soft.Q.value = 0.5;
+  const comp = actx.createDynamicsCompressor(); comp.threshold.value = -20; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.3;
+  master.connect(soft); soft.connect(comp); comp.connect(actx.destination);
   noiseBuf = actx.createBuffer(1, actx.sampleRate * 0.5, actx.sampleRate);
   const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   nextStep = actx.currentTime + 0.1; stepIdx = 0;
@@ -3076,22 +3530,60 @@ function env(g, t, a, peak, dcy) { g.gain.setValueAtTime(0.0001, t); g.gain.expo
 function kick(t, peak, low) {
   const o = actx.createOscillator(), g = actx.createGain();
   o.frequency.setValueAtTime(low ? 100 : 130, t); o.frequency.exponentialRampToValueAtTime(low ? 38 : 42, t + 0.12);
-  env(g, t, 0.003, peak || 0.9, low ? 0.22 : 0.28); o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.35);
+  env(g, t, 0.003, peak || 0.9, low ? 0.22 : 0.28); o.connect(g); g.connect(bus); o.start(t); o.stop(t + 0.35);
 }
 function noise(t, freq, q, peak, dcy, type) {
   const s = actx.createBufferSource(); s.buffer = noiseBuf;
   const f = actx.createBiquadFilter(); f.type = type || 'highpass'; f.frequency.value = freq; f.Q.value = q;
   const g = actx.createGain(); env(g, t, 0.002, peak, dcy);
-  s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random() * 0.3); s.stop(t + dcy + 0.05);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(t, Math.random() * 0.3); s.stop(t + dcy + 0.05);
 }
 function tone(t, midi, dur, type, peak, cutoff, detune, attack) {
   const o = actx.createOscillator(); o.type = type; o.frequency.value = mtof(midi); if (detune) o.detune.value = detune;
   const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cutoff; f.Q.value = 4;
   const g = actx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + (attack || 0.01)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + 0.05);
 }
 const ARP = [0, 1, 2, 1, 0, 2, 1, 2];
 const STEPS = [
+  // Smoke & Brass: a swinging piano trio with vibes — ride cymbal, hi-hat on 2 and 4, walking bass, Charleston comping
+  function (t, s, bar, ch, sec, st) {
+    const tr = TRACKS[trackIdx], next = tr.prog[(bar + 1) % 4];
+    if (s === 0 || s === 4 || s === 6 || s === 8 || s === 12 || s === 14) noise(t, 6500, 0.7, s % 4 === 2 ? 0.016 : 0.028, 0.45);
+    if (s === 4 || s === 12) noise(t, 3500, 3, 0.02, 0.035, 'bandpass');
+    if (s % 4 === 0) noise(t, 2400, 0.4, 0.008, SPB * 0.9, 'bandpass');
+    if (s === 0 || s === 8) kick(t, 0.1, true);
+    if (s % 2 === 0 && s && rnd(bar * 16 + s) < 0.1) noise(t, 1800, 0.7, 0.026, 0.12, 'bandpass');
+    if (s % 4 === 0 && (sec > 0 || s % 8 === 0)) {
+      const r = ch[0], walk = sec > 0 ? [r, r + ((ch[1] - r) % 12), r + 7, next[0] + (bar % 2 ? -1 : 1)][s / 4] : [r, r + 7][s / 8];
+      tone(t, walk, SPB * (sec > 0 ? 0.85 : 1.8), 'triangle', 0.2, 600, 0, 0.008);
+      tone(t, walk, SPB * (sec > 0 ? 0.8 : 1.7), 'sine', 0.1, 400, 0, 0.008);
+    }
+    const comp = [[0, 6], [6, 14], [4, 10], [0, 10]][bar % 4];
+    if (comp.includes(s)) for (const n of ch.slice(1)) { tone(t, n, SPB * (s === 0 ? 1.4 : 0.7), 'triangle', 0.024, 1600, 0, 0.004); tone(t, n + 12, SPB * 0.5, 'sine', 0.008, 3000, 2, 0.004); }
+    if (sec >= 1 && s % 2 === 0 && !(bar % 4 === 3 && s >= 8) && rnd(bar * 31 + s) < (sec === 3 ? 0.25 : 0.42)) {
+      const n = ch[1 + Math.floor(rnd(bar * 7 + s * 3) * 4)] + 12;
+      tone(t, n, st * 5, 'sine', 0.04, 4000, 0, 0.003); tone(t, n + 12, st * 2, 'sine', 0.008, 5000, 0, 0.003);
+    }
+  },
+  // Blue Hour: a slow brushed ballad — two-feel bass, rolled piano chords, a soft muted horn line
+  function (t, s, bar, ch, sec, st) {
+    const tr = TRACKS[trackIdx], next = tr.prog[(bar + 1) % 4];
+    if (s % 4 === 0) noise(t, 2200, 0.35, 0.01, SPB * 1.1, 'bandpass');
+    if (s === 4 || s === 12) noise(t, 3200, 3, 0.014, 0.04, 'bandpass');
+    if (s === 0 || s === 8) noise(t, 6800, 0.7, 0.014, 0.6);
+    if (s === 0) kick(t, 0.08, true);
+    if (s === 0 || s === 8 || (s === 12 && bar % 2)) {
+      const r = ch[0], n = s === 0 ? r : s === 8 ? r + 7 : next[0] - 1;
+      tone(t, n, SPB * (s === 12 ? 0.9 : 1.8), 'triangle', 0.2, 550, 0, 0.012); tone(t, n, SPB * 1.6, 'sine', 0.1, 350, 0, 0.012);
+    }
+    if (s === 0) ch.slice(1).forEach((n, k) => tone(t + k * 0.035, n, SPB * 3.2, 'triangle', 0.022, 1500, 0, 0.006));
+    if (s === 10 && bar % 2 === 0) for (const n of ch.slice(1, 4)) tone(t, n, SPB * 0.8, 'triangle', 0.014, 1400, 0, 0.006);
+    if (sec >= 1 && (s % 4 === 0 || s === 6) && !(bar % 4 === 3 && s >= 8) && rnd(bar * 17 + s) < 0.5) {
+      const n = ch[1 + Math.floor(rnd(bar * 5 + s) * 4)] + 12;
+      tone(t, n, SPB * 1.8, 'triangle', 0.035, 1300, 0, 0.05); tone(t, n, SPB * 1.6, 'sine', 0.02, 900, 4, 0.06);
+    }
+  },
   // Velvet Rope: dark electro, gritty pulsing bass, metallic hats, sparse minor stabs
   function (t, s, bar, ch, sec, st) {
     if (s % 4 === 0 && !(sec === 0 && bar % 8 < 2)) kick(t, 0.95);
@@ -3103,7 +3595,7 @@ const STEPS = [
   },
   // Last Round: noir lounge, brushed snare, ride cymbal, walking bass, soft electric piano
   function (t, s, bar, ch, sec, st) {
-    const tr = TRACKS[1], next = tr.prog[(bar + 1) % 4];
+    const tr = TRACKS[trackIdx], next = tr.prog[(bar + 1) % 4];
     if (s === 0 || s === 4 || s === 6 || s === 8 || s === 12 || s === 14) noise(t, 8500, 1.5, s % 4 === 2 ? 0.035 : 0.055, 0.28);
     if (s % 2 === 0) noise(t, 2800, 0.5, 0.025, 0.12, 'bandpass');
     if (s === 4 || s === 12) noise(t, 2000, 0.6, 0.06, 0.2, 'bandpass');
@@ -3136,13 +3628,14 @@ const STEPS = [
 function setTrackNow(i, t) {
   const b = beatAt(t);
   trackIdx = i; SPB = 60 / TRACKS[i].bpm; beatBase = b; beatT0 = t;
+  if (bus) bus.gain.setValueAtTime(TRACKS[i].gain || 1, t);
   stepIdx = 0; updateTrackUI();
 }
 function schedule() {
   while (nextStep < actx.currentTime + 0.12) {
     if (stepIdx % 16 === 0) {
       if (pendingTrack >= 0) { setTrackNow(pendingTrack, nextStep); pendingTrack = -1; }
-      else if (!pinnedTrack && stepIdx > 0 && stepIdx % (16 * 48) === 0) setTrackNow((trackIdx + 1) % TRACKS.length, nextStep);
+      else if (!pinnedTrack && stepIdx > 0 && stepIdx % (16 * 48) === 0) { const j = JAZZ_TRACKS.indexOf(trackIdx); setTrackNow(j >= 0 ? JAZZ_TRACKS[(j + 1) % JAZZ_TRACKS.length] : (trackIdx + 1) % TRACKS.length, nextStep); }
     }
     const tr = TRACKS[trackIdx], st = SPB / 4;
     const s = stepIdx % 16, bar = Math.floor(stepIdx / 16), ch = tr.prog[bar % 4], sec = Math.floor(bar / 8) % 4;
@@ -3197,7 +3690,7 @@ const VIEWS = {
   swim: { tx: 9.5, ty: 0.7, tz: -8.0, d: 6.5, yaw: 0.0, pitch: 0.55 },
   change: { tx: 3.5, ty: 1.0, tz: -8.2, d: 5, yaw: 0.0, pitch: 0.5 },
   street: { tx: 0, ty: 1.6, tz: 6.2, d: 9, yaw: 0.0, pitch: 0.22 },
-  alley: { tx: -2.6, ty: 0.9, tz: -15.2, d: 7, yaw: 0.55, pitch: 0.32 },
+  alley: { tx: 2.0, ty: 0.9, tz: -21.5, d: 12, yaw: -0.25, pitch: 0.5 },
   map: { tx: 0.5, ty: 0, tz: -1.8, d: 34, yaw: 0, pitch: 1.3, free: true }
 };
 for (const k in VIEWS) VIEWS[k].free = !!VIEWS[k].free;
@@ -3295,7 +3788,7 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'Shift') keys.fast = false;
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-const BIRD = { pitch: 1.3, d: 14, x0: -20, x1: 22, z0: -18.5, z1: 15 };
+const BIRD = { pitch: 1.3, d: 14, x0: -20, x1: 22, z0: -33, z1: 15 };
 function keyboardPan(dt) {
   const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), mz = (keys.f ? 1 : 0) - (keys.b ? 1 : 0), rot = (keys.e ? 1 : 0) - (keys.q ? 1 : 0);
   if (!mx && !mz && !rot) return;
@@ -3652,6 +4145,7 @@ function toast(text) {
 // ================================================================ v42: restroom, VIP glass, Charon, card room, coins, lot, events
 const PRE_HOOKS = [], POST_HOOKS = [], REBUILD_HOOKS = [];
 POST_HOOKS.push(cinemaHook);
+PRE_HOOKS.push((dt, t) => fountainTick(dt, t));
 const hash32 = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 9); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return n >>> 0; };
 const camRoom = () => (camT.free ? null : roomAt(cam.tx, cam.tz));
 
@@ -3862,9 +4356,7 @@ const fxOn = (k) => (fx.until[k] || 0) > performance.now();
 // a police car tearing past on the street, lights going
 const policeCar = new THREE.Group();
 {
-  const parts = carParts('sedan', [18, 18, 22]);
-  policeCar.add(new THREE.Mesh(toGeometry(parts.P.concat([box(-0.6, 0.6, 0.3, 0.92, 0.91, 0.94, [220, 220, 220], 0.02), box(-0.6, 0.6, 0.3, 0.92, -0.94, -0.91, [220, 220, 220], 0.02)])), roomMat));
-  policeCar.add(new THREE.Mesh(toGeometry(parts.L), glowMat));
+  policeCar.add(carGroup(carParts('sedan', [18, 18, 22]), [box(-0.6, 0.6, 0.32, 0.86, 0.9, 0.93, [220, 220, 220], 0.02), box(-0.6, 0.6, 0.32, 0.86, -0.93, -0.9, [220, 220, 220], 0.02)]));
 }
 const sirenR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.5), new THREE.MeshBasicMaterial({ color: 0xff2020 })); sirenR.position.set(-0.4, 1.52, -0.28);
 const sirenB = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.5), new THREE.MeshBasicMaterial({ color: 0x2050ff })); sirenB.position.set(-0.4, 1.52, 0.28);
@@ -3872,7 +4364,7 @@ const sirenLight = new THREE.PointLight(0xff2020, 0, 14, 1.5); sirenLight.positi
 policeCar.add(sirenR, sirenB, sirenLight); policeCar.visible = false; scene.add(policeCar);
 // the limo and the stranger in the long coat
 const limo = new THREE.Group();
-{ const parts = carParts('saloon', [10, 10, 12]); limo.add(new THREE.Mesh(toGeometry(parts.P), roomMat), new THREE.Mesh(toGeometry(parts.L), glowMat)); limo.scale.set(1.45, 1, 1); }
+limo.add(carGroup(carParts('saloon', [10, 10, 12]))); limo.scale.set(1.45, 1, 1);
 limo.visible = false; scene.add(limo);
 const GUEST_LOOK = { jacket: 0, pants: 1, skin: 0, head: 4, hair: 1, beard: 0, eyes: 2, smoke: 0, dance: 3, spot: 6, body: 0, top: 1, bottom: 2, shoes: 2 };
 REBUILD_HOOKS.push(() => {
@@ -3891,12 +4383,12 @@ const cat = new THREE.Group();
 }
 cat.visible = false; scene.add(cat);
 // rain over the street and the backstreet
-const RAIN_N = 900, rainPos = new Float32Array(RAIN_N * 6);
+const RAIN_N = 1300, rainPos = new Float32Array(RAIN_N * 6);
 const rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
 const rain = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0x8090a8, transparent: true, opacity: 0.55 }));
 rain.frustumCulled = false; rain.visible = false; scene.add(rain);
 const rainSeed = [];
-for (let i = 0; i < RAIN_N; i++) rainSeed.push(i % 2 ? [-26 + Math.random() * 54, 4.2 + Math.random() * 11.2, Math.random() * 9] : [-14 + Math.random() * 29, -19 + Math.random() * 7.8, Math.random() * 9]);
+for (let i = 0; i < RAIN_N; i++) rainSeed.push(i % 2 ? [-26 + Math.random() * 54, 4.2 + Math.random() * 11.2, Math.random() * 9] : [-14 + Math.random() * 29, -35 + Math.random() * 23.8, Math.random() * 9]);
 const flashEl = document.createElement('div'); flashEl.id = 'flash'; stage.appendChild(flashEl);
 const ROUND_LINES = ["This round's on the house.", 'Drinks are on Charon tonight. Don\'t get used to it.', 'Everyone, a glass on me. The ferryman pays for once.'];
 const PHONE_LINES = ['…No, he isn\'t here. I\'ll tell him you called.', '…Wrong number. Nobody here goes by that name.', '…Understood. The car will be out back at midnight.', '…The coin is non-refundable, sir. Goodnight.', '…I don\'t take reservations. They take me.'];
@@ -4029,7 +4521,7 @@ PRE_HOOKS.push((dt, t) => { if (ben) { const T = (t + ben.phase * 40) % 40; benP
 const SEC_FEEDS = [
   ['BAR', [4.6, 2.9, 3.6], [0, 1, -1.2]], ['DANCE', [13.6, 2.9, 3.6], [9, 0.6, 0]], ['POOL LOUNGE', [13.6, 2.9, -4.4], [9, 0.5, -8]],
   ['CINEMA', [-5.4, 2.9, -4.4], [-10, 1, -8]], ['BILLIARDS', [-5.4, 2.9, 3.6], [-9.4, 0.5, -0.2]], ['CARD ROOM', [-12.2, 2.9, 3.6], [-14.6, 0.5, 0]],
-  ['STREET', [6, 3.6, 4.6], [0, 0.6, 9]], ['BACKSTREET', [12, 3.6, -11.4], [0, 0.6, -15.5]], null
+  ['STREET', [6, 3.6, 4.6], [0, 0.6, 9]], ['BACKSTREET', [12.5, 4.2, -12.4], [0, 0.5, -23]], null
 ];
 const secCams = [];
 SEC_FEEDS.forEach((f, i) => {
@@ -4287,6 +4779,34 @@ scene.add(new THREE.Mesh(toGeometry([
   loft([rring(0.0, 0.36, 0.34, -13.55, -17.25, 10), rring(0.18, 0.44, 0.4, -13.55, -17.25, 10), rring(0.36, 0.36, 0.33, -13.55, -17.25, 10), rring(0.45, 0.12, 0.12, -13.56, -17.27, 10)], [24, 30, 22], { smooth: true, amt: 0.06 }),
   loft([rring(0.42, 0.34, 0.3, -13.8, -17.55, 10), rring(0.58, 0.38, 0.34, -13.8, -17.55, 10), rring(0.72, 0.28, 0.25, -13.8, -17.55, 10), rring(0.78, 0.1, 0.1, -13.8, -17.57, 10)], [14, 14, 16], { smooth: true, amt: 0.06 }),
   cyl(V(-13.86, 0.52, -17.72), V(-13.86, 0.6, -17.72), 0.03, 0.01, [220, 200, 60], { n: 5 })]), roomMat));
+// ---- security on the doors: two big bald men in black suits and dark shades, with earpieces,
+// one at the front entrance and one at the VIP back door; and the valet in his booth by the drive
+const BOUNCER_LOOK = { jacket: 0, pants: 1, skin: 4, head: 7, hair: 1, beard: 1, eyes: 2, smoke: 0, dance: 3, spot: 6, body: 0, top: 2, bottom: 2, shoes: 2, buff: true };
+const VALET_LOOK = { jacket: 6, pants: 1, skin: 0, head: 3, hair: 1, beard: 0, eyes: 0, smoke: 0, dance: 3, spot: 7, body: 0, top: 1, bottom: 2, shoes: 2 };
+const NPC_PROPS = [];
+function npcProp(ch, bone, parts, x, y, z, show) {
+  const m = new THREE.Mesh(toGeometry(parts), charMat); m.position.set(x, y, z); ch.bones[bone].add(m);
+  NPC_PROPS.push({ ch, m, show });
+  return m;
+}
+const phoneParts = () => [box(-0.03, 0.03, -0.12, 0.0, -0.008, 0.008, [18, 18, 20], 0.02), box(-0.026, 0.026, -0.115, -0.005, 0.008, 0.01, [70, 110, 150], 0)];
+REBUILD_HOOKS.push(() => {
+  NPC_PROPS.length = 0;
+  for (const [name, x, z, yaw] of [['Cerberus', -1.2, 5.15, 0.2], ['Plutus', -2.6, -11.8, Math.PI + 0.35]]) {
+    const b = addChar(BOUNCER_LOOK, name, { npc: true, seedName: name.toLowerCase(), staff: true });
+    b.act = 'bouncer'; b.root.position.set(x, 0, z); b.root.rotation.y = yaw;
+    // earpiece in the right ear with a coiled wire down into the collar
+    const ear = new THREE.Mesh(toGeometry([box(-0.012, 0.012, -0.012, 0.012, -0.012, 0.012, [14, 14, 16], 0.02),
+      tube([V(-0.004, -0.01, -0.006), V(0.0, -0.06, -0.03), V(0.012, -0.11, -0.045), V(0.02, -0.15, -0.05)], [0.004, 0.004, 0.004, 0.004], [200, 210, 220], { n: 4 })]), charMat);
+    ear.position.set(-0.098, 0.105, 0.0); b.bones.head.add(ear);
+    npcProp(b, 'elR', phoneParts(), 0, -0.29, 0.05, (T) => T >= 23.4 && T < 30.6);
+  }
+  const v = addChar(VALET_LOOK, 'Phlegyas', { npc: true, seedName: 'valet', staff: true });
+  v.act = 'valet'; v.root.position.set(12.5, 0, -17.02); v.root.rotation.y = Math.PI;
+  npcProp(v, 'elR', phoneParts(), 0, -0.3, 0.06, (T) => T >= 18.3 && T < 25.7);
+  npcProp(v, 'elR', [cyl(V(0, -0.05, 0), V(0, 0.05, 0), 0.035, 0.032, [236, 232, 222], { n: 10 }), cyl(V(0, 0.04, 0), V(0, 0.05, 0), 0.03, 0.03, [60, 36, 20], { n: 10 })], 0.0, -0.3, 0.06, (T) => T >= 26.3 && T < 30.7);
+});
+PRE_HOOKS.push((dt, t) => { for (const p of NPC_PROPS) p.m.visible = p.show(npcLoopT(p.ch, t)); });
 // ---- a soft pink haze drifting through the pool lounge
 const hazeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 4, 32, 32, 32); g.addColorStop(0, 'rgba(255,120,220,0.5)'); g.addColorStop(1, 'rgba(255,90,200,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
 const HAZE = [];
@@ -4619,7 +5139,9 @@ window.BAR = {
   meInVip() { const me = crowd.find((c) => c.mine); const sp = me && SPOT_BY_ID[me.spot]; return !!sp && sp.cat === 4; },
   viewRoom() { if (camT.free) return 'map'; const r = roomAt(cam.tx, cam.tz); for (const k in ROOMS) if (ROOMS[k] === r) return k; return ''; },
   getMyState() { return myState; },
-  _parts(look) { const r = buildParts(Object.assign(randomLook(Math.random), look), 1); return { B: r.B, B2: r.B2 }; },
+  _pose(look, act, t, ph) { const ch = { bones: {}, phase: ph || 0, look }; for (const k of ZERO) ch.bones[k] = { rotation: { x: 0, y: 0, z: 0, set(a, b, c) { this.x = a; this.y = b; this.z = c; } }, position: { x: 0, y: 0, z: 0, set(a, b, c) { this.x = a; this.y = b; this.z = c; } } }; pose(ch, act, 0, t); const o = {}; for (const k of ZERO) o[k] = [ch.bones[k].rotation.x, ch.bones[k].rotation.y, ch.bones[k].rotation.z, ch.bones[k].position.x, ch.bones[k].position.y, ch.bones[k].position.z]; return { o, PIV, PARENT }; },
+  _car(kind, color) { const K = carParts(kind, color || [176, 18, 24]); const out = []; for (const [k, arr] of Object.entries(K)) for (const part of arr) part.tris.forEach((t, i) => out.push([t.map((v) => v.slice()), part.shade ? part.shade(t[0], norm(cross(sub(t[1], t[0]), sub(t[2], t[0]))), part.cols[i]) : part.cols[i], k])); return out; },
+  _parts(look) { const r = buildParts(Object.assign(randomLook(Math.random), look), 1); if (look.buff) buffUp(r.B, r.B2); return { B: r.B, B2: r.B2 }; },
   setJukebox(i, by, fresh) {
     if (!(i >= 0 && i < TRACKS.length)) return;
     if (i !== trackIdx) pickTrack(i);

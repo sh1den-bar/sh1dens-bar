@@ -321,6 +321,10 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
   .pcard { width: 32px; height: 46px; font-size: 13px; }
   .reel { width: 70px; height: 80px; font-size: 28px; }
 }
+#updBar { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 32px);
+  padding: 8px 10px 8px 14px; background: var(--panel); border: 1px solid var(--neon); color: var(--fg); font: 13px var(--mono); box-shadow: 0 0 18px rgba(226,180,103,0.35); }
+#updBar button { font: inherit; background: none; border: 1px solid var(--line); color: var(--fg); padding: 3px 10px; cursor: pointer; }
+#updBar #updGo { border-color: var(--neon); color: var(--neon); }
 </style>
 </head>
 <body>
@@ -581,13 +585,13 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=57"></script>
-<script src="net.js?v=57"></script>
-<script src="bar.js?v=57"></script>
-<script src="pool.js?v=57"></script>
-<script src="extras.js?v=57"></script>
-<script src="poker.js?v=57"></script>
-<script src="social.js?v=57"></script>
+<script src="config.js?v=58"></script>
+<script src="net.js?v=58"></script>
+<script src="bar.js?v=58"></script>
+<script src="pool.js?v=58"></script>
+<script src="extras.js?v=58"></script>
+<script src="poker.js?v=58"></script>
+<script src="social.js?v=58"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -626,6 +630,33 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
   new MutationObserver(() => { $('hostBtn').hidden = $('adminBox').hidden; }).observe($('adminBox'), { attributes: true, attributeFilter: ['hidden'] });
   // the business card opens and closes on a tap
   $('bizCard').onclick = () => $('bizCard').classList.toggle('open');
+  // new version check: when the site is updated, a small bar at the top asks everyone to refresh
+  (function () {
+    const tag = document.querySelector('script[src^="bar.js"]');
+    const cur = tag && (tag.getAttribute('src').match(/v=(\d+)/) || [])[1];
+    if (!cur) return;
+    let shown = false;
+    const show = () => {
+      if (shown) return; shown = true;
+      const d = document.createElement('div'); d.id = 'updBar'; d.setAttribute('role', 'status');
+      d.innerHTML = '<span>New changes were made. Please refresh the site.</span><button type="button" id="updGo">Refresh</button><button type="button" id="updX" aria-label="Dismiss">\u00d7</button>';
+      document.body.appendChild(d);
+      $('updGo').onclick = () => location.reload();
+      $('updX').onclick = () => d.remove();
+    };
+    const check = async () => {
+      if (shown || document.hidden) return;
+      try {
+        const r = await fetch(location.pathname.replace(/[^/]*$/, '') + 'index.html?nc=' + Date.now(), { cache: 'no-store' });
+        if (!r.ok) return;
+        const m = (await r.text()).match(/bar\.js\?v=(\d+)/);
+        if (m && m[1] !== cur) show();
+      } catch (e) { /* offline for a moment; try again later */ }
+    };
+    setTimeout(check, 30000); setInterval(check, 120000);
+    document.addEventListener('visibilitychange', check);
+    window.UI.checkUpdate = check;
+  })();
 })();
 </script>
 </body>
