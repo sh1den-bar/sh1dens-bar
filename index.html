@@ -229,7 +229,7 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
       <header><h3>On the TV</h3><button type="button" id="tvWatch" class="mini">Watch</button></header>
       <div id="tvNow">Nothing playing</div>
       <div id="tvBy">Post a YouTube link to start the TV.</div>
-      <div class="row"><button type="button" id="tvSkip" class="mini danger" hidden>Skip video</button></div>
+      <div class="row"><button type="button" id="tvSkip" class="mini danger" hidden>Skip video</button><button type="button" id="pokerCam" class="mini" hidden>♠ Show the poker table on the TV</button></div>
       <form id="tvForm" class="inline" novalidate>
         <input id="tvInput" name="tvInput" placeholder="Paste a YouTube link" autocomplete="off" spellcheck="false" aria-label="YouTube link">
         <button type="submit" id="tvAdd">Add</button>
@@ -323,10 +323,10 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=39"></script>
-<script src="net.js?v=39"></script>
-<script src="bar.js?v=39"></script>
-<script src="pool.js?v=39"></script>
+<script src="config.js?v=40"></script>
+<script src="net.js?v=40"></script>
+<script src="bar.js?v=40"></script>
+<script src="pool.js?v=40"></script>
 <script>
   document.getElementById('whoBtn').onclick = () => { const p = document.getElementById('whoPanel'); p.hidden = !p.hidden; };
   document.getElementById('whoClose').onclick = () => { document.getElementById('whoPanel').hidden = true; };

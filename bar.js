@@ -2127,6 +2127,59 @@ outSignMesh.position.set(0, 3.75, 4.27); scene.add(outSignMesh);
 // so walls and people in front of the TV hide it properly
 const tvGlass = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), decal({ color: 0x000000, opacity: 0, blending: THREE.NoBlending, fog: false }));
 tvGlass.position.set(TV.x, TV.y, TV.z); tvGlass.rotation.y = Math.PI / 2; scene.add(tvGlass);
+const tvHoleMat = tvGlass.material;
+// the poker broadcast: a camera straight above the poker table, shown on the cinema TV with a high-stakes overlay
+const pokerRT = new THREE.WebGLRenderTarget(640, 360, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
+const pokerCam = new THREE.PerspectiveCamera(33, 640 / 360, 2.9, 8);   // the near plane cuts away the chandelier
+pokerCam.up.set(0, 0, -1); pokerCam.position.set(PK.x, 4.6, PK.z + 0.1); pokerCam.lookAt(PK.x, 0, PK.z + 0.1);
+const pokerScreenMat = new THREE.MeshBasicMaterial({ map: pokerRT.texture, fog: false });
+const pokerHud = document.createElement('canvas'); pokerHud.width = 640; pokerHud.height = 360;
+const pokerHudTex = new THREE.CanvasTexture(pokerHud); pokerHudTex.minFilter = THREE.LinearFilter;
+const pokerHudMesh = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), new THREE.MeshBasicMaterial({ map: pokerHudTex, transparent: true, fog: false, depthWrite: false }));
+pokerHudMesh.position.set(TV.x + 0.006, TV.y, TV.z); pokerHudMesh.rotation.y = Math.PI / 2; pokerHudMesh.visible = false; pokerHudMesh.renderOrder = 3; scene.add(pokerHudMesh);
+let pokerOn = false, pokerFrame = 0, pokerHudAt = 0;
+function setPokerCam(on) {
+  pokerOn = !!on;
+  tvGlass.material = pokerOn ? pokerScreenMat : tvHoleMat;
+  pokerHudMesh.visible = pokerOn;
+}
+const pokerPlayers = () => crowd.filter((c) => c.spot && c.spot.startsWith('poker-seat-') && c.root.visible !== false);
+function drawPokerHud() {
+  const x = pokerHud.getContext('2d'), w = 640, h = 360;
+  x.clearRect(0, 0, w, h);
+  // vignette and a thin gold frame
+  const g = x.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, h * 0.85);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.65)'); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.strokeStyle = 'rgba(214,170,90,0.85)'; x.lineWidth = 2; x.strokeRect(10, 10, w - 20, h - 20);
+  x.strokeStyle = 'rgba(214,170,90,0.35)'; x.lineWidth = 1; x.strokeRect(15, 15, w - 30, h - 30);
+  // title plate
+  x.fillStyle = 'rgba(8,6,6,0.82)'; x.fillRect(20, 20, 300, 44);
+  x.fillStyle = '#e7c98a'; x.font = '22px "Limelight", Georgia, serif'; x.textBaseline = 'middle'; x.fillText("SH1DEN'S  HIGH STAKES", 32, 37);
+  x.fillStyle = '#b8a27a'; x.font = '11px "IBM Plex Mono", monospace'; x.fillText("NO-LIMIT TEXAS HOLD'EM · PRIVATE TABLE", 32, 56);
+  // live tag, blinking
+  const on = Math.floor(performance.now() / 600) % 2 === 0;
+  x.fillStyle = 'rgba(8,6,6,0.82)'; x.fillRect(w - 98, 20, 78, 26);
+  x.fillStyle = on ? '#e3262f' : '#6a1216'; x.beginPath(); x.arc(w - 84, 33, 6, 0, 7); x.fill();
+  x.fillStyle = '#f2ead8'; x.font = 'bold 13px "IBM Plex Mono", monospace'; x.fillText('LIVE', w - 72, 34);
+  // a name plate by every seated player
+  const v = new THREE.Vector3();
+  for (const ch of pokerPlayers()) {
+    if (!ch.name) continue;
+    ch.root.updateMatrixWorld(true); v.set(0, 0.42, 0); ch.bones.head.localToWorld(v); v.project(pokerCam);
+    const px = (v.x + 1) / 2 * w, py = (1 - v.y) / 2 * h;
+    x.font = '13px "IBM Plex Mono", monospace';
+    const tw = x.measureText(ch.name).width + 16;
+    x.fillStyle = 'rgba(10,6,6,0.85)'; x.fillRect(px - tw / 2, py - 30, tw, 20);
+    x.strokeStyle = 'rgba(214,170,90,0.8)'; x.strokeRect(px - tw / 2 + 0.5, py - 29.5, tw - 1, 19);
+    x.fillStyle = '#efe2c2'; x.fillText(ch.name, px - tw / 2 + 8, py - 20);
+  }
+  // lower third
+  x.fillStyle = 'rgba(8,6,6,0.82)'; x.fillRect(20, h - 52, 250, 32);
+  x.fillStyle = '#b8a27a'; x.font = '12px "IBM Plex Mono", monospace';
+  const n = pokerPlayers().length;
+  x.fillText(n ? n + (n === 1 ? ' PLAYER' : ' PLAYERS') + ' AT THE TABLE · BLINDS 500/1,000' : 'TABLE OPEN · TAKE A SEAT', 32, h - 36);
+  pokerHudTex.needsUpdate = true;
+}
 const vipGlass = new THREE.Mesh(new THREE.PlaneGeometry(VTV.w, VTV.h), decal({ color: 0x000000, opacity: 0, blending: THREE.NoBlending, fog: false }));
 vipGlass.position.set(VTV.x, VTV.y, VTV.z); vipGlass.rotation.y = Math.PI; scene.add(vipGlass);
 const tvLight = new THREE.PointLight(0x9aa6ff, 0, 6, 1.5); tvLight.position.set(-11.6, TV.y, TV.z); scene.add(tvLight);
@@ -3016,6 +3069,10 @@ function tick() {
 
   updateCamera(dt, t);
   placeLabels();
+  if (pokerOn) {
+    if (pokerFrame++ % 3 === 0) { renderer.setRenderTarget(pokerRT); renderer.render(scene, pokerCam); renderer.setRenderTarget(null); }
+    if (performance.now() - pokerHudAt > 300) { pokerHudAt = performance.now(); drawPokerHud(); }
+  }
   renderer.render(scene, camera);
   if (cssRenderer) cssRenderer.render(cssScene, camera);
   requestAnimationFrame(tick);
@@ -3173,6 +3230,8 @@ window.BAR = {
   bubble: showBubble,
   setDucked,
   setTvOn(on) { tvOn = !!on; },
+  setPokerCam(on) { setPokerCam(on); },
+  pokerCount() { return pokerPlayers().length; },
   poolTable: () => POOL_TABLE,
   setPoolBalls(b) { setPoolBalls(b); },
   goTo(id) { goTo(id); },

@@ -14,7 +14,7 @@ const YT_RE = /(?:youtube\.com\/(?:watch\?(?:[^#\s]*&)?v=|shorts\/|embed\/|live\
 let db = null, TS = null, offset = 0, banned = false, myName = null, lastSend = 0, joinedAt = Date.now();
 let current = null, queue = [], curDur = 0, durWritten = false, errored = false, tooLong = false, advancing = false;
 let player = null, playerReady = false, loadedId = null, entered = false, mutedAll = false, tvVolume = 70;
-let msgs = [], triedLocalSave = false;
+let msgs = [], triedLocalSave = false, pokerOn = false, pokerEmptySince = 0;
 let vip = null, vipPlayer = null, vipReady = false, vipLoaded = null, vipDur = 0, vipLastSeek = 0;
 let allChars = [], online = new Map(), lastCrowdKey = '', myAct = { s: '', d: '' };
 // t is when you took your spot (server time); it decides who keeps a seat if two people click it at once
@@ -149,6 +149,7 @@ function joined() {
   });
   chat.on('child_removed', (s) => { msgs = msgs.filter((m) => m.key !== s.key); renderChat(); });
 
+  db.ref('pokercam').on('value', (s) => { pokerOn = s.val() === true; window.BAR.setPokerCam && window.BAR.setPokerCam(pokerOn); applyVolume(); renderPokerBtn(); });
   db.ref('viptv').on('value', (s) => { const v = s.val(); vip = v && v.v ? v : null; syncVip(); });
   setInterval(vipTick, 1000);
   db.ref('tv/current').on('value', (s) => {
@@ -528,8 +529,18 @@ function onVipState(e) {
     else vipPlayer.playVideo();
   }
 }
+// the poker broadcast on the cinema TV: offered whenever someone sits at the poker table
+function renderPokerBtn() {
+  const b = $('pokerCam'); if (!b) return;
+  const n = window.BAR.pokerCount ? window.BAR.pokerCount() : 0;
+  b.hidden = !NET.online || !myName || !(pokerOn || n > 0);
+  b.textContent = pokerOn ? '⏏ Back to YouTube on the TV' : '♠ Show the poker table on the TV (' + n + (n === 1 ? ' player' : ' players') + ')';
+  // nobody left at the table for a while: switch the TV back
+  if (pokerOn && n === 0) { if (!pokerEmptySince) pokerEmptySince = Date.now(); else if (Date.now() - pokerEmptySince > 45000 && myName) { pokerEmptySince = Date.now(); db.ref('pokercam').set(false).catch(() => { }); } }
+  else pokerEmptySince = 0;
+}
 function vipTick() {
-  vipVolume(); applyVolume(); if (NET.online) updateComposer();
+  vipVolume(); applyVolume(); renderPokerBtn(); if (NET.online) updateComposer();
   if (!vip || !vipReady || !entered) return;
   const st = vipPlayer.getPlayerState(), exp = vipExpected();
   if (vipDur && exp > vipDur + 3) { if (NET.isAdmin) db.ref('viptv').remove().catch(() => { }); return; }
@@ -546,7 +557,7 @@ async function playVip(text) {
 function applyVolume() {
   if (!playerReady) return;
   player.setVolume(tvVolume);
-  if (mutedAll || tvVolume === 0 || meInVip()) player.mute(); else player.unMute();
+  if (mutedAll || tvVolume === 0 || meInVip() || pokerOn) player.mute(); else player.unMute();
   updateDuck();
 }
 function updateDuck() { window.BAR.setDucked((!!current && entered && !mutedAll && tvVolume > 0 && !meInVip()) || vipAudible()); }
@@ -555,6 +566,7 @@ NET.onEnter = function (withSound) { entered = true; mutedAll = !withSound; sync
 
 // ---------------------------------------------------------------- UI wiring
 function wireUI() {
+  $('pokerCam').onclick = () => { if (db && myName) db.ref('pokercam').set(!pokerOn).catch((e) => tvMsg("Couldn't switch the TV. The room's Firebase rules may need updating.")); };
   $('tabRoom').onclick = () => setChatTab('room');
   $('tabVip').onclick = () => setChatTab('vip');
   $('vipForm').addEventListener('submit', (e) => { e.preventDefault(); playVip($('vipInput').value); });
