@@ -197,7 +197,7 @@ function wireRemove() {
     if (!b.dataset.armed) { b.dataset.armed = '1'; const t0 = b.textContent; b.textContent = 'Click again: ' + c.name; setTimeout(() => { delete b.dataset.armed; b.textContent = t0; }, 4000); return; }
     delete b.dataset.armed; b.textContent = ban ? 'Remove & ban' : 'Remove';
     const up = {};
-    for (const k of ['chars', 'coins', 'inv', 'perks', 'buffs', 'cars', 'mutes']) up[k + '/' + who] = null;
+    for (const k of ['chars', 'coins', 'inv', 'perks', 'buffs', 'cars', 'mutes', 'careers', 'items']) up[k + '/' + who] = null;
     up['names/' + c.name.toLowerCase()] = null;
     if (NET().isOnline(who)) up['kicks/' + who] = ts();
     if (ban) up['bans/' + who] = true;
@@ -305,6 +305,7 @@ window.EXTRAS = {
   myTier: () => (isAdmin() ? 'diamond' : tierOf(hours())[1] || ''),
   isOwner: () => isOwner(),
   myCoins: () => (mine && mine.n) || 0,
+  myCar: () => !!cars[myUid()],
   mySpent: spent,
   hasCoinsRecord: () => !!mine,
   start, openCoins, adminChanged: () => { start(); adminChanged(); renderCard(); renderDonate(); renderMods(); },

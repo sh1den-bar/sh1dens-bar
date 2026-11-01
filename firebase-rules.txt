@@ -443,6 +443,42 @@
           }
         }
       }
+    },
+    "careers": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && ((newData.exists() && ((auth.uid == $uid && !root.child('bans').child(auth.uid).exists() && newData.child('role').val().beginsWith('t0-') && ((newData.child('lvl').val() == 1 && newData.child('xp').val() == 0) || (data.exists() && data.child('place').val() == newData.child('place').val() && newData.child('lvl').val() == data.child('lvl').val() && newData.child('xp').val() == data.child('xp').val())))) || (auth.uid != $uid && ((newData.child('place').val() != 'none' && root.child('places').child(newData.child('place').val()).child('owner').val() == auth.uid && !newData.child('role').val().beginsWith('t4-') && (!data.exists() || data.child('place').val() == newData.child('place').val() || data.child('role').val().beginsWith('t0-')) && (!data.exists() || data.child('place').val() != newData.child('place').val() || (newData.child('lvl').val() == data.child('lvl').val() && newData.child('xp').val() == data.child('xp').val()))) || (data.exists() && data.child('place').val() != 'none' && root.child('places').child(data.child('place').val()).child('owner').val() == auth.uid && !data.child('role').val().beginsWith('t4-') && newData.child('place').val() == 'none' && newData.child('role').val() == 't0-unemployed'))))) || root.child('admins').child(auth.uid).exists())",
+        ".validate": "newData.hasChildren(['place', 'role', 'since', 'lvl', 'xp', 'name']) && newData.child('place').isString() && newData.child('place').val().matches(/^(none|bank|cardealer|clothes|court|realty|bar)$/) && newData.child('role').isString() && newData.child('role').val().matches(/^t[0-4]-[a-z]{2,16}$/) && (newData.child('place').val() != 'none' || newData.child('role').val() == 't0-unemployed') && newData.child('since').val() == now && newData.child('lvl').isNumber() && newData.child('lvl').val() >= 1 && newData.child('lvl').val() <= 100 && newData.child('xp').isNumber() && newData.child('xp').val() >= 0 && newData.child('name').isString() && newData.child('name').val().length <= 25",
+        "$other": {
+          ".validate": "$other == 'place' || $other == 'role' || $other == 'since' || $other == 'lvl' || $other == 'xp' || $other == 'name'"
+        }
+      }
+    },
+    "jobapps": {
+      ".read": true,
+      "$place": {
+        ".validate": "$place.matches(/^(none|bank|cardealer|clothes|court|realty|bar)$/) && $place != 'none'",
+        "$uid": {
+          ".write": "auth != null && ((auth.uid == $uid && !root.child('bans').child(auth.uid).exists()) || root.child('places').child($place).child('owner').val() == auth.uid || root.child('admins').child(auth.uid).exists())",
+          ".validate": "newData.hasChildren(['role', 'name', 't']) && newData.child('role').isString() && newData.child('role').val().matches(/^t[1-4]-[a-z]{2,16}$/) && newData.child('t').val() == now && newData.child('name').isString() && newData.child('name').val().length <= 25 && root.child('careers').child($uid).child('place').val() == $place"
+        }
+      }
+    },
+    "places": {
+      ".read": true,
+      "$place": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+        ".validate": "$place.matches(/^(none|bank|cardealer|clothes|court|realty|bar)$/) && newData.hasChildren(['owner']) && newData.child('owner').isString()"
+      }
+    },
+    "items": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || root.child('admins').child(auth.uid).exists())",
+        ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+        "$item": {
+          ".validate": "$item.matches(/^[a-z0-9-]{1,24}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999"
+        }
+      }
     }
   }
 }

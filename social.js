@@ -346,5 +346,7 @@ function start() {
 }
 build();
 const boot = setInterval(() => { if (NET().online && NET().db && NET().db()) { clearInterval(boot); start(); } }, 1000);
-window.SOCIAL = { openPlayerMenu, openSlots, openShop, openBeggar, showCard, creatorOpened, owned: () => { const m = inv[uid()] || {}; return m; } };
+window.SOCIAL = { openPlayerMenu, openSlots, openShop, openBeggar, showCard, creatorOpened, owned: () => { const m = inv[uid()] || {}; return m; },
+  catalog: () => SHOP,
+  useItem: (slot, id) => (slot === 'cursor' ? useCursor(id) : equip(slot, id)) };
 })();

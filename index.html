@@ -374,8 +374,41 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
 /* the shop: cursor previews and quick bet chips */
 .curprev { display: flex; gap: 18px; justify-content: center; align-items: center; padding: 18px; border: 1px solid rgba(214,170,90,0.35); background: radial-gradient(ellipse at center, #1a1410, #0a0809); }
 .curprev[hidden] { display: none; }
-.curprev img { width: 64px; height: 64px; image-rendering: pixelated; }
+.curprev img { width: auto; height: 60px; image-rendering: pixelated; }
 .betq { display: inline-flex; gap: 4px; flex-wrap: wrap; } .betq button { padding: 3px 7px; font-size: 11px; }
+/* careers: the profession picker, the job centre and the inventory */
+#careerPick { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(680px, calc(100vw - 24px)); max-height: calc(100% - 40px); background: #0c0b0d; z-index: 6; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
+.cplist { display: grid; gap: 10px; }
+.cpcard { border: 1px solid var(--line); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.015); }
+.cphead { display: flex; flex-direction: column; gap: 2px; } .cphead b { font-family: var(--deco); font-weight: 400; font-size: 18px; color: #e7c98a; }
+.cproles { display: flex; flex-wrap: wrap; gap: 6px; }
+.cprole { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; min-width: 150px; }
+.cppay { font-size: 10px; color: #ffd98a; letter-spacing: 0.04em; white-space: nowrap; }
+.cpladder { color: var(--dim); }
+.cpunemp { align-self: flex-start; }
+#jobsPanel { left: 50%; top: 70px; transform: translateX(-50%); width: min(620px, calc(100vw - 24px)); max-height: calc(100% - 150px); background: #0c0b0d; }
+.jobnow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; } .jobnow b { font-family: var(--deco); font-weight: 400; font-size: 20px; color: #f0deb0; flex: 1 1 100%; }
+.jobnow .small { flex: 1 1 auto; }
+#jobTabs { flex-wrap: wrap; } #jobTabs button { font-size: 16px; }
+.jobbody { display: flex; flex-direction: column; gap: 6px; }
+.rankhead { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--amber); margin-top: 8px; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+.jobrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.06); }
+.jobl { display: flex; flex-direction: column; gap: 1px; min-width: 0; } .jobl b { font-weight: 500; }
+.jobwho { color: #b8a27a; overflow-wrap: anywhere; }
+.jobr { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.tagme { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #120c04; background: var(--neon); padding: 2px 6px; }
+.jobmanage { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.bizjob { font-size: 11px; color: #e7c98a; letter-spacing: 0.04em; }
+#invPanel { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); width: 330px; max-height: calc(100% - 150px); background: #0c0b0d; }
+.wallet { display: flex; align-items: center; gap: 8px; } .wallet img { width: 24px; height: 24px; image-rendering: pixelated; } .wallet b { font-family: var(--deco); font-weight: 400; font-size: 26px; color: #ffd98a; }
+.pocket { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.slot { position: relative; aspect-ratio: 1; padding: 0; display: grid; place-items: center; background: #15131a; border: 1px solid rgba(214,170,90,0.35); box-shadow: inset 0 0 0 2px #0b0a0d; }
+.slot.empty { background: #0f0e12; border-color: rgba(255,255,255,0.08); }
+.slot img { width: 70%; height: 70%; object-fit: contain; image-rendering: pixelated; }
+.slot .qty { position: absolute; right: 3px; bottom: 1px; font-size: 10px; color: #fff; text-shadow: 0 1px 0 #000; }
+.owned { display: flex; flex-direction: column; gap: 4px; } .ownhead { text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+.ownrow { display: flex; align-items: center; gap: 8px; font-size: 12px; } .ownrow img { width: 18px; height: 18px; image-rendering: pixelated; } .ownrow span { flex: 1; }
+@media (max-width: 760px) { #jobsPanel, #invPanel, #careerPick { left: 6px !important; right: 6px !important; width: auto !important; transform: none !important; top: auto !important; bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important; max-height: 78% !important; } .cprole { min-width: 0; flex: 1 1 140px; } }
 #slotBet { font: inherit; font-size: 13px; color: var(--fg); background: var(--solid); border: 1px solid var(--line); padding: 5px 7px; }
 </style>
 </head>
@@ -461,6 +494,8 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
       </div>
     </div>
     <button id="roomBtn" type="button" aria-pressed="false">💬 <span class="lbl">Chat &amp; TV</span><span class="badge" id="chatBadge" hidden>0</span></button>
+    <button id="jobsBtn" type="button" title="Jobs (J)">💼 <span class="lbl">Jobs</span></button>
+    <button id="invBtn" type="button" title="Inventory (I)">🎒 <span class="lbl">Inventory</span></button>
     <span class="spacer"></span>
     <div class="dropup right" id="coinDrop">
       <button type="button" data-drop="coinMenu">🪙 <span id="coinBtnN">0</span><span class="caret">▲</span></button>
@@ -643,15 +678,16 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=62"></script>
-<script src="net.js?v=62"></script>
-<script src="bar.js?v=62"></script>
-<script src="pool.js?v=62"></script>
-<script src="extras.js?v=62"></script>
-<script src="poker.js?v=62"></script>
-<script src="cursors.js?v=62"></script>
-<script src="social.js?v=62"></script>
-<script src="hotel.js?v=62"></script>
+<script src="config.js?v=63"></script>
+<script src="net.js?v=63"></script>
+<script src="bar.js?v=63"></script>
+<script src="pool.js?v=63"></script>
+<script src="extras.js?v=63"></script>
+<script src="poker.js?v=63"></script>
+<script src="cursors.js?v=63"></script>
+<script src="social.js?v=63"></script>
+<script src="hotel.js?v=63"></script>
+<script src="careers.js?v=63"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);

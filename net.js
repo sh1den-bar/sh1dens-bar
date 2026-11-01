@@ -164,6 +164,7 @@ function joined() {
   };
   // a cigarette or cigar lasts a while, even across a page refresh
   try { const sm = JSON.parse(localStorage.getItem('sh1den-bar-smoke') || 'null'); if (sm && sm.e > Date.now()) { myAct.k = sm.k; myAct.e = sm.e; pres.set(myPresence()).catch(() => { }); } } catch (e) { }
+  NET.mySmoke = () => ({ k: myAct.k || '', e: +myAct.e || 0 });
   NET.setSmoke = function (kind, minutes) {
     myAct.k = kind; myAct.e = now() + minutes * 60000;
     try { localStorage.setItem('sh1den-bar-smoke', JSON.stringify({ k: myAct.k, e: Date.now() + minutes * 60000 })); } catch (e) { }
