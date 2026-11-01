@@ -1083,7 +1083,7 @@ const RUNNER_EDGE = [[-0.75, -2.0, -0.75, 0.8], [-0.75, 2.2, -0.75, 3.98], [0.75
 for (const [ax, az, bx, bz] of RUNNER_EDGE) S.push(box(Math.min(ax, bx) - 0.015, Math.max(ax, bx) + 0.015, 0, 0.034, Math.min(az, bz) - 0.015, Math.max(az, bz) + 0.015, [150, 112, 54], 0.02));
 // lounge corners by the entrance: copper leather banquettes with puffed backs, a pink glow underneath,
 // and a low brass-and-glass table with an ice bowl, bottles, glasses and an ashtray
-const COPPER = [170, 110, 62], COPPER_D = [128, 80, 44], BANQ_BASE = [24, 20, 22], GLOW_PINK = [255, 70, 170];
+const COPPER_L = [170, 110, 62], COPPER_LD = [128, 80, 44], BANQ_BASE = [24, 20, 22], GLOW_PINK = [255, 70, 170];
 const LOUNGE_SEATS = [];
 const glowTex = canvasTex(4, 32, (x, w, h) => {
   for (let j = 0; j < h; j++) { const k = Math.pow(j / (h - 1), 2.4); x.fillStyle = `rgb(${Math.round(200 * k)},${Math.round(30 * k)},${Math.round(120 * k)})`; x.fillRect(0, j, w, 1); }
@@ -1098,8 +1098,8 @@ function floorGlow(ax, az, bx, bz, nx, nz, depth) {
   const m = new THREE.Mesh(g, floorGlowMat); m.renderOrder = 2; scene.add(m);
 }
 // one straight run of banquette, built facing +z (its back along local z = 0) and turned into place
-function banquette(px, pz, yaw, len) {
-  const P = [], D = 0.66;
+function banquette(px, pz, yaw, len, col, colD) {
+  const P = [], D = 0.66, COPPER = col || COPPER_L, COPPER_D = colD || COPPER_LD;
   P.push(box(0, len, 0.07, 0.42, 0.05, D - 0.06, BANQ_BASE, 0.03));
   P.push(loft([rect(0.42, len, D - 0.02, len / 2, D / 2 + 0.01), rect(0.5, len, D - 0.02, len / 2, D / 2 + 0.01)], COPPER, { amt: 0.04 }));
   P.push(box(0, len, 0.42, 0.62, 0, 0.18, COPPER_D, 0.04));
@@ -1383,6 +1383,13 @@ for (let i = 0; i < 6; i++) {
   chipStack(cx + Math.cos(yaw) * 0.17, cz - Math.sin(yaw) * 0.17, CHIP_COLS[(i + 2) % 5], 2 + (i * 5) % 5);
 }
 chandelierRound(PK.x, PK.z, 2.5, 0.62);
+// a red version of the entrance banquettes in the corner between the cinema and bar doors
+const VELVET_R = [126, 16, 30], VELVET_RD = [92, 10, 22], POOL_SOFA = [];
+banquette(-8.25, -3.95, 0, 3.2, VELVET_R, VELVET_RD);
+banquette(-5.05, -3.29, -Math.PI / 2, 3.4, VELVET_R, VELVET_RD);
+loungeTable(-6.5, -2.3);
+for (const x of [-7.7, -7.0, -6.3, -5.6]) POOL_SOFA.push([x, -3.62, 0]);
+for (const z of [-2.7, -2.0, -1.3, -0.6]) POOL_SOFA.push([-5.38, z, -Math.PI / 2]);
 // velvet rope in front of the VIP door
 for (const z of [-8.75, -6.75]) {
   S.push(cyl(V(-5.4, 0, z), V(-5.4, 0.03, z), 0.13, 0.12, BRASS_D, { n: 8 }));
@@ -2205,8 +2212,9 @@ COUCH_SEATS.forEach(([x, z], i) => addSpot('cinema-seat-' + i, 2, 'sitlow', x, z
 addSpot('pool-cue-0', 3, 'pool', PT.x - PT.l / 2 - 0.55, PT.z - 0.25, Math.PI / 2, 'Play pool', hitBox(PT.x - PT.l / 2 - 0.5, 0.8, PT.z - 0.25, 0.6, 1.6, 0.6));
 addSpot('pool-cue-1', 3, 'pool', PT.x + PT.l / 2 + 0.55, PT.z + 0.2, -Math.PI / 2, 'Play pool', hitBox(PT.x + PT.l / 2 + 0.5, 0.8, PT.z + 0.2, 0.6, 1.6, 0.6));
 [1.7, 3.0].forEach((z, i) => addSpot('pool-stool-' + i, 3, 'sit', -15.95, z, -Math.PI / 2, 'Sit at the self-serve bar', hitBox(-15.95, 0.45, z, 0.45, 0.9, 0.45)));
+POOL_SOFA.forEach(([x, z, yaw], i) => addSpot('pool-sofa-' + i, 3, 'sitlow', x, z, yaw, 'Chill on the sofa', hitBox(x, 0.45, z, 0.6, 0.9, 0.6)));
 POKER_SEATS.forEach(([x, z, yaw], i) => addSpot('poker-seat-' + i, 3, 'poker', x, z, yaw, 'Sit in on poker', hitBox(x, 0.45, z, 0.55, 0.9, 0.55)));
-[[-7.6, -3.1, 0], [-7.0, -2.0, -0.6], [-11.8, -2.6, 0.5], [-6.0, 2.9, Math.PI + 0.6], [-11.2, 3.3, Math.PI - 0.4]].forEach(([x, z, yaw], i) =>
+[[-12.4, -3.1, 0.4], [-8.0, 2.8, Math.PI], [-11.8, -2.6, 0.5], [-6.0, 2.9, Math.PI + 0.6], [-11.2, 3.3, Math.PI - 0.4]].forEach(([x, z, yaw], i) =>
   addSpot('pool-watch-' + i, 3, 'lean', x, z, yaw, 'Watch the game', hitBox(x, 0.9, z, 0.45, 1.8, 0.45)));
 // VIP lounge: the host's armchair is his alone
 VIP_CHAIRS.forEach(([x, z, yaw], i) => addSpot('vip-chair-' + i, 4, i === 0 ? 'lounge' : 'sitlow', x, z, yaw,
