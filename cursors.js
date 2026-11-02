@@ -23,45 +23,44 @@ const SHOP = [['cur-neon', 'Neon pink', 250, 'neon'], ['cur-zombie', 'Zombie han
 const RANK = [['rank-silver', 'Silver member', 'silver', 1], ['rank-gold', 'Gold member', 'rgold', 2], ['rank-platinum', 'Platinum member', 'platinum', 3],
   ['rank-emerald', 'Emerald member', 'emerald', 4], ['rank-diamond', 'Diamond member', 'rdiamond', 5]];
 const TIER_N = { '': 0, silver: 1, gold: 2, platinum: 3, emerald: 4, diamond: 5 };
-// shapes on a 32x32 grid: the arrow's tip is its top-left corner, the hand points straight up with the index finger
-const ARROW = [[2, 2], [2, 25], [8, 19], [12, 28], [16, 26], [12, 17], [20, 17]];
-function handPath(x) {
-  x.beginPath();
-  x.moveTo(11, 2); x.lineTo(15, 2); x.lineTo(15, 12);            // index finger
-  x.lineTo(18, 11); x.lineTo(20, 12); x.lineTo(21, 11); x.lineTo(23, 12); x.lineTo(24, 12); x.lineTo(26, 14); // knuckles
-  x.lineTo(26, 22); x.lineTo(23, 29); x.lineTo(12, 29);          // palm
-  x.lineTo(6, 22); x.lineTo(4, 17); x.lineTo(6, 15); x.lineTo(9, 18); x.lineTo(11, 18); // thumb
-  x.closePath();
-}
-function arrowPath(x) { x.beginPath(); ARROW.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); }
+// pixel art: each letter is one chunky pixel (drawn 2x2 on screen). O outline, H highlight, F fill, S shade
+const ARROW = ['O.......', 'OO......', 'OHO.....', 'OHFO....', 'OHFFO...', 'OHFFFO..', 'OHFFFFO.', 'OHFFFFFO', 'OHFFOOOO', 'OHSOSO..', 'OSO.OSO.', 'OO..OSO.', '.....OO.'];
+const HAND = ['...OO......', '..OHFO.....', '..OHFO.....', '..OHFO.....', '..OHFOOO...', '..OHFOHFOO.', '..OHFOHFOFO', 'OOOHFFFFFFO', 'OHOHFFFFFFO', 'OHFHFFFFFFO', '.OHFFFFFFFO', '..OFFFFFFSO', '...OFFFFSO.', '....OOOOO..'];
+const PX = 2;   // screen pixels per art pixel
+function hexA(c, a) { const m = c.match(/^#(..)(..)(..)$/); return m ? `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${a})` : c; }
 function draw(kind, hand) {
-  const p = P[kind] || P.brass, c = document.createElement('canvas'); c.width = c.height = 32;
-  const x = c.getContext('2d'), path = () => (hand ? handPath(x) : arrowPath(x));
-  x.imageSmoothingEnabled = false;
-  if (p.flame) {
-    // flames licking up behind it
-    for (let k = 0; k < 5; k++) { x.fillStyle = k % 2 ? '#ff6a1a' : '#ffd040'; const bx = hand ? 9 + k * 4 : 3 + k * 3, by = hand ? 6 + (k % 2) * 3 : 10 + k * 2; x.beginPath(); x.moveTo(bx, by + 6); x.lineTo(bx + 2, by - 2 - (k % 3) * 2); x.lineTo(bx + 4, by + 6); x.fill(); }
+  const p = P[kind] || P.brass, art = hand ? HAND : ARROW, w = Math.max(...art.map((r) => r.length)), h = art.length;
+  const c = document.createElement('canvas'); c.width = (w + 2) * PX; c.height = (h + 2) * PX;
+  const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
+  const at = (i, j) => (art[j] && art[j][i]) || '.';
+  // a one-pixel glow round the outside for the shiny ones
+  if (p.glow) {
+    x.fillStyle = p.glow;
+    for (let j = -1; j <= h; j++) for (let i = -1; i <= w; i++) {
+      if (at(i, j) !== '.') continue;
+      if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => at(i + a, j + b) === 'O')) x.fillRect((i + 1) * PX, (j + 1) * PX, PX, PX);
+    }
   }
-  if (p.glow) { x.shadowColor = p.glow; x.shadowBlur = 4; }
-  path(); x.lineWidth = 3; x.strokeStyle = p.line; x.lineJoin = 'round'; x.stroke();
-  x.shadowBlur = 0;
-  const g = x.createLinearGradient(0, 0, 24, 30); g.addColorStop(0, p.hi); g.addColorStop(0.35, p.fill); g.addColorStop(1, p.shade);
-  path(); x.fillStyle = g; x.fill();
-  x.save(); path(); x.clip();
-  if (p.facets) { x.strokeStyle = 'rgba(255,255,255,0.55)'; x.lineWidth = 1; for (const [a, b, c2, d] of [[2, 10, 14, 18], [6, 24, 18, 12], [10, 4, 22, 26], [4, 16, 24, 20]]) { x.beginPath(); x.moveTo(a, b); x.lineTo(c2, d); x.stroke(); } }
-  if (p.spots) { x.fillStyle = p.spots; for (const [a, b] of [[5, 12], [9, 20], [14, 24], hand ? [20, 18] : [6, 18]]) x.fillRect(a, b, 3, 2); x.fillStyle = p.stitch; for (let k = 0; k < 4; k++) x.fillRect(hand ? 12 + k * 3 : 4 + k * 2, hand ? 21 : 14 + k * 2, 1, 3); }
-  if (p.bones) { x.fillStyle = '#2a2a2a'; if (hand) { x.fillRect(13, 6, 1, 1); x.fillRect(13, 9, 1, 1); x.fillRect(19, 15, 1, 4); x.fillRect(22, 15, 1, 4); x.fillRect(14, 22, 8, 1); } else { x.fillRect(5, 12, 4, 1); x.fillRect(5, 17, 6, 1); x.fillRect(9, 22, 4, 1); } }
-  if (p.sparkle) { x.fillStyle = '#ffffff'; for (const [a, b] of hand ? [[13, 5], [20, 20], [9, 24]] : [[4, 7], [8, 16], [13, 23]]) { x.fillRect(a, b, 1, 1); x.fillRect(a - 1, b, 3, 1); x.fillRect(a, b - 1, 1, 3); } }
-  x.restore();
-  // a crisp highlight along the leading edge
-  x.strokeStyle = p.hi; x.lineWidth = 1; x.beginPath();
-  if (hand) { x.moveTo(12, 3); x.lineTo(12, 12); } else { x.moveTo(3, 4); x.lineTo(3, 20); }
-  x.stroke();
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const ch = at(i, j); if (ch === '.') continue;
+    let col = ch === 'O' ? p.line : ch === 'H' ? p.hi : ch === 'S' ? p.shade : p.fill;
+    if (ch === 'F') {
+      if (p.flame) col = j < h * 0.35 ? '#fff3a0' : j < h * 0.6 ? '#ffb030' : j < h * 0.8 ? '#ff6a1a' : '#e0401a';
+      if (p.spots && (i * 7 + j * 3) % 9 === 0) col = p.spots;
+      if (p.facets) col = (i + j) % 3 === 0 ? p.hi : (i + j) % 3 === 1 ? p.fill : p.shade;
+      if (p.bones && (i + j * 2) % 5 === 0) col = p.shade;
+      if (p.sparkle && (i * 5 + j) % 11 === 0) col = '#ffffff';
+    }
+    if (ch === 'S' && p.stitch && j % 2) col = p.stitch;
+    x.fillStyle = col; x.fillRect((i + 1) * PX, (j + 1) * PX, PX, PX);
+  }
   return c.toDataURL('image/png');
 }
+// where the click lands: the arrow's tip, the end of the pointing finger
+const HOT = { arrow: [PX, PX], hand: [Math.round(4.5 * PX), PX] };
 const cache = {};
 function css(kind) {
-  if (!cache[kind]) cache[kind] = { arrow: 'url(' + draw(kind, false) + ') 2 2, default', hand: 'url(' + draw(kind, true) + ') 13 2, pointer' };
+  if (!cache[kind]) cache[kind] = { arrow: 'url(' + draw(kind, false) + ') ' + HOT.arrow.join(' ') + ', default', hand: 'url(' + draw(kind, true) + ') ' + HOT.hand.join(' ') + ', pointer' };
   return cache[kind];
 }
 const paletteOf = (id) => { const s = SHOP.find((x) => x[0] === id); if (s) return s[3]; const r = RANK.find((x) => x[0] === id); if (r) return r[2]; return id === 'ruby' ? 'ruby' : 'brass'; };
