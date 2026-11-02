@@ -366,6 +366,8 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
 #volWrap:hover .vnum, #volWrap:focus-within .vnum, #volWrap.open .vnum { width: 28px; }
 .navgroup #roomSelect { max-width: 30vw; }
 /* member-rank nametags, built like the ruby one */
+.nametag.midnight { color: #e6dcff; border: 1px solid #7a4aff; background: rgba(16, 6, 40, 0.88); box-shadow: 0 0 0 1px rgba(46, 16, 110, 0.95), 0 0 9px rgba(120, 70, 255, 0.65); }
+.bizrole.midnight { color: #b49aff; text-shadow: 0 0 8px rgba(120, 70, 255, 0.6); }
 .nametag.rank-silver { color: #eef1f6; border: 1px solid #aab4c4; background: rgba(20, 24, 30, 0.85); box-shadow: 0 0 0 1px rgba(80, 90, 104, 0.9), 0 0 7px rgba(210, 220, 235, 0.45); }
 .nametag.rank-gold { color: #ffe3a0; border: 1px solid #d6a23a; background: rgba(34, 22, 4, 0.86); box-shadow: 0 0 0 1px rgba(110, 72, 8, 0.9), 0 0 8px rgba(255, 196, 70, 0.55); }
 .nametag.rank-platinum { color: #ffffff; border: 1px solid #dfe6f6; background: rgba(26, 28, 36, 0.86); box-shadow: 0 0 0 1px rgba(120, 128, 150, 0.9), 0 0 9px rgba(235, 242, 255, 0.6); }
@@ -396,6 +398,7 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
 .jobl { display: flex; flex-direction: column; gap: 1px; min-width: 0; } .jobl b { font-weight: 500; }
 .jobwho { color: #b8a27a; overflow-wrap: anywhere; }
 .jobr { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.jobaway { margin: 0; font-size: 12px; color: #ffcf8a; border: 1px dashed rgba(255,207,138,0.45); padding: 6px 8px; }
 .tagme { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #120c04; background: var(--neon); padding: 2px 6px; }
 .jobmanage { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .bizjob { font-size: 11px; color: #e7c98a; letter-spacing: 0.04em; }
@@ -469,8 +472,8 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
     <select id="roomSelect" aria-label="Go somewhere">
       <option value="">Places ▾</option>
       <optgroup label="City">
-        <option value="map">City map</option><option value="downtown">Main Street</option><option value="carshop">Car dealership</option><option value="clothes">Clothes store</option>
-        <option value="bank">Bank</option><option value="court">Courthouse</option><option value="homes">Residential area</option><option value="mansions">Mansion row</option>
+        <option value="map">City map</option><option value="downtown">Main Street</option><option value="carshop">Sh1den Motors</option><option value="clothes">Threads &amp; Co.</option><option value="realty">Hearth &amp; Key Realty</option>
+        <option value="bank">Bank</option><option value="court">Courthouse</option><option value="homes">Residential street</option><option value="mansions">Mansion row</option>
       </optgroup>
       <optgroup label="Sh1den's bar">
         <option value="bar">Bar</option><option value="lounge">Lounge</option><option value="dance">Dance</option><option value="swim">Pool lounge</option><option value="change">Changing</option>
@@ -678,16 +681,16 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=63"></script>
-<script src="net.js?v=63"></script>
-<script src="bar.js?v=63"></script>
-<script src="pool.js?v=63"></script>
-<script src="extras.js?v=63"></script>
-<script src="poker.js?v=63"></script>
-<script src="cursors.js?v=63"></script>
-<script src="social.js?v=63"></script>
-<script src="hotel.js?v=63"></script>
-<script src="careers.js?v=63"></script>
+<script src="config.js?v=64"></script>
+<script src="net.js?v=64"></script>
+<script src="bar.js?v=64"></script>
+<script src="pool.js?v=64"></script>
+<script src="extras.js?v=64"></script>
+<script src="poker.js?v=64"></script>
+<script src="cursors.js?v=64"></script>
+<script src="social.js?v=64"></script>
+<script src="hotel.js?v=64"></script>
+<script src="careers.js?v=64"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);

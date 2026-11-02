@@ -88,7 +88,8 @@ async function showCard(who, name) {
   const card = el('div', 'bigcard');
   card.appendChild(el('div', 'bcTop', "SH1DEN'S · MEMBER CARD"));
   card.appendChild(el('div', 'bcName', name));
-  card.appendChild(el('div', 'bizrole ' + (owner ? 'ruby' : co ? 'co' : tier[1].toLowerCase()), owner ? 'Owner' : co ? 'Co-owner' : tier[1] + ' member'));
+  const mid = (name || '').toLowerCase() === 'matenro';
+  card.appendChild(el('div', 'bizrole ' + (owner ? 'ruby' : mid ? 'midnight' : co ? 'co' : tier[1].toLowerCase()), owner ? 'Owner' : co || mid ? 'Co-owner' : tier[1] + ' member'));
   const st = el('div', 'bcStats');
   st.append(el('span', '', 'Time here'), el('b', '', (h >= 10 ? Math.floor(h) : h.toFixed(1)) + ' h'), el('span', '', 'Coins'), el('b', '', fmt(v.n)), el('span', '', 'Suit'), el('b', '', wear && wear !== 'none' ? wear[0].toUpperCase() + wear.slice(1) + ' tuxedo' : 'Their own clothes'));
   card.appendChild(st);

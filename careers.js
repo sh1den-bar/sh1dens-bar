@@ -154,6 +154,7 @@ function openPicker(first, then) {
       b.append(el('span', '', name), el('span', 'cppay', pay + ' 🪙/h · ' + holders(P.id, id).length + '/' + n));
       if (mine && mine.place === P.id && mine.role === id) { b.disabled = true; b.lastChild.textContent = 'your job'; }
       else if (full) { b.disabled = true; b.lastChild.textContent = 'full'; }
+      else if (!first && !atPlace(P.id)) { b.disabled = true; b.lastChild.textContent = 'go there to start'; }
       b.onclick = pick(P.id, id, name); row.appendChild(b);
     }
     card.appendChild(row);
@@ -183,7 +184,22 @@ function buildJobs() {
   $('jobsClose').onclick = () => { p.hidden = true; };
 }
 let jobTab = null;
-function openJobs() { buildJobs(); $('jobsPanel').hidden = false; ensure(() => render()); render(); }
+// you can read every job board from anywhere, but you only apply in person: at the place itself, or by talking to its contact
+const PLACE_ROOMS = { bank: ['bank'], cardealer: ['carshop'], clothes: ['clothes'], court: ['court'], realty: ['realty', 'homes', 'mansions'],
+  bar: ['bar', 'lounge', 'dance', 'swim', 'tv', 'pool', 'card', 'sec', 'vip', 'change', 'street', 'alley', 'wc', 'wcM', 'wcW', 'vest'] };
+const CONTACT = { bank: 'Midas on the bank steps', cardealer: 'Hermes on the car lot', clothes: 'Arachne outside Threads & Co.', court: 'Aeacus on the courthouse steps', realty: 'Hestia at Hearth & Key', bar: 'Charon at the bar' };
+const visits = {};
+function atPlace(place) {
+  if (isAdmin()) return true;
+  if (visits[place] && Date.now() - visits[place] < 20 * 60000) return true;
+  const r = BAR().viewRoom ? BAR().viewRoom() : '';
+  return (PLACE_ROOMS[place] || []).includes(r);
+}
+function openJobs(place, talked) {
+  buildJobs();
+  if (place && PLACE[place]) { jobTab = place; if (talked) visits[place] = Date.now(); }
+  $('jobsPanel').hidden = false; ensure(() => render()); render();
+}
 function since(t) { const d = Math.max(0, now() - (+t || now())); return d < 3600000 ? Math.max(1, Math.round(d / 60000)) + ' min' : d < DAY ? (d / 3600000).toFixed(1) + ' h' : Math.floor(d / DAY) + ' days'; }
 function render() {
   renderCardLine();
@@ -210,6 +226,8 @@ function renderPlace(P) {
   body.append(el('p', 'small', P.blurb + ' Owner: ' + ownerName + '.'));
   const myTier = mine && mine.place === P.id ? tierOf(mine.role) : -1;
   const myApp = apps[P.id] && apps[P.id][uid()];
+  const here = atPlace(P.id);
+  if (!here) body.appendChild(el('p', 'jobaway', 'To start or apply here, go there: talk to ' + CONTACT[P.id] + '.'));
   for (let t = 0; t <= 4; t++) {
     const rs = P.roles.filter((r) => tierOf(r[0]) === t); if (!rs.length) continue;
     body.appendChild(el('div', 'rankhead', RANKS[t] + (t > 0 ? ' · ' + WAIT_DAYS[t] + (WAIT_DAYS[t] === 1 ? ' day' : ' days') + ' in the rank below' : '')));
@@ -227,9 +245,12 @@ function renderPlace(P) {
       if (mine && mine.place === P.id && mine.role === id) right.appendChild(el('span', 'tagme', 'you'));
       else if (t === 0 && !(mine && mine.place === P.id && myTier > 0)) {
         const b = el('button', 'mini', mine && mine.place === P.id ? 'Move here' : 'Start here'); b.type = 'button';
-        b.disabled = hs.length >= n;
-        b.onclick = () => openPicker(false);
-        if (mine && mine.place === P.id) b.onclick = async () => { await save(uid(), careerFor(P.id, id, mine)); };
+        b.disabled = hs.length >= n || !here;
+        // a new career starts over at level 1, so it takes a second click
+        b.onclick = async (e) => {
+          if (!(mine && mine.place === P.id) && mine && !b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Click again: start over'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Start here'; }, 4000); return; }
+          if (await save(uid(), careerFor(P.id, id, mine && mine.place === P.id ? mine : null))) { toast("You're now a " + name.toLowerCase() + ' at ' + P.name.replace(/^Sh1den's /, 'the ') + '.'); render(); }
+        };
         right.appendChild(b);
       } else if (mine && mine.place === P.id && t === myTier + 1 && !(P.owned && t === 4)) {
         const wait = WAIT_DAYS[t] * DAY - (now() - (+mine.since || now()));
@@ -239,7 +260,7 @@ function renderPlace(P) {
           right.appendChild(b);
         } else {
           const b = el('button', 'mini primary', wait > 0 ? 'Apply in ' + since(now() - wait) : 'Apply'); b.type = 'button';
-          b.disabled = wait > 0 || !db || offline;
+          b.disabled = wait > 0 || !db || offline || !here;
           b.onclick = () => apply(P.id, id, name);
           right.appendChild(b);
         }
@@ -433,7 +454,14 @@ setTimeout(() => { if (!db) { clearInterval(boot); offlineStart(); } }, 8000);
 setInterval(() => { renderInv(); const p = $('jobsPanel'); if (p && !p.hidden) render(); }, 15000);
 
 // buttons on the bottom bar, the keyboard (J = jobs, I = inventory), and "make a character" asks for a job first
+function addCharonButton() {
+  const dm = $('drinkMenu'); if (!dm || $('dmJobs')) return;
+  const b = el('button', null, '💼 Work at the bar'); b.type = 'button'; b.id = 'dmJobs';
+  b.onclick = () => { dm.hidden = true; openJobs('bar', true); };
+  const quiet = dm.querySelector('button.quiet'); dm.insertBefore(b, quiet || null);
+}
 function wireUi() {
+  addCharonButton(); setTimeout(addCharonButton, 3000);
   const jb = $('jobsBtn'); if (jb) jb.onclick = () => { const p = $('jobsPanel'); if (p && !p.hidden) p.hidden = true; else openJobs(); };
   const ib = $('invBtn'); if (ib) ib.onclick = openInv;
   window.addEventListener('keydown', (e) => {
