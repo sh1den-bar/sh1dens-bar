@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07080a">
+<title>SH1DEN'S · Phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Limelight&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07080a; --body: #16171b; --body2: #0e0f12; --lcd: #0b1410; --lcd2: #0f1c16; --ink: #b8f0c8; --dim: #6f9a80; --line: #24402f;
+  --gold: #e2b467; --red: #f0806e; --blue: #8fd0ff;
+  --px: 'VT323', ui-monospace, monospace; --deco: 'Limelight', Georgia, serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--px); font-size: 20px; -webkit-text-size-adjust: 100%; }
+body { display: flex; justify-content: center; align-items: center; }
+button, input, select, textarea { font: inherit; color: inherit; }
+/* the handset: fills a real phone, sits on the desk as a device on a computer */
+.phone { width: 100%; height: 100%; display: flex; flex-direction: column; background: linear-gradient(180deg, var(--body), var(--body2)); }
+@media (min-width: 560px) {
+  .phone { width: 400px; height: min(820px, calc(100vh - 40px)); border-radius: 36px; padding: 14px 12px 18px; border: 2px solid #2a2b31;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.8), inset 0 2px 0 rgba(255,255,255,0.05); }
+}
+.earpiece { height: 22px; display: flex; justify-content: center; align-items: center; gap: 10px; padding-top: env(safe-area-inset-top, 0); }
+.earpiece i { width: 54px; height: 5px; border-radius: 3px; background: #050506; box-shadow: inset 0 1px 2px #000; }
+.brand { font-family: var(--deco); color: var(--gold); font-size: 13px; letter-spacing: 0.25em; text-align: center; margin: 2px 0 6px; text-shadow: 0 0 8px rgba(226,180,103,0.4); }
+.screen { flex: 1; min-height: 0; margin: 0 6px; border-radius: 10px; background: radial-gradient(ellipse at 50% 30%, var(--lcd2), var(--lcd)); border: 3px solid #050606;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.7), 0 0 0 1px #2c2e33; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.screen::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px); }
+.sbar { display: flex; justify-content: space-between; align-items: center; padding: 4px 10px; font-size: 16px; color: var(--dim); border-bottom: 1px solid var(--line); }
+.sig { display: inline-flex; gap: 2px; align-items: flex-end; height: 12px; } .sig i { width: 3px; background: var(--ink); } .sig i:nth-child(1){height:4px}.sig i:nth-child(2){height:7px}.sig i:nth-child(3){height:10px}.sig i:nth-child(4){height:12px}
+.sig.off i { background: var(--line); }
+.bat { display: inline-block; width: 22px; height: 11px; border: 2px solid var(--ink); position: relative; vertical-align: -1px; } .bat::before { content: ''; position: absolute; inset: 1px 6px 1px 1px; background: var(--ink); } .bat::after { content: ''; position: absolute; right: -5px; top: 2px; width: 3px; height: 3px; background: var(--ink); }
+.title { padding: 6px 10px 4px; font-size: 26px; color: var(--gold); display: flex; justify-content: space-between; align-items: baseline; }
+.title small { font-size: 16px; color: var(--dim); }
+.view { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 12px; -webkit-overflow-scrolling: touch; }
+.softkeys { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 10px 8px 4px; }
+.key { height: 44px; border-radius: 14px; border: 1px solid #2c2e34; background: linear-gradient(180deg, #24252b, #17181c); color: #d8d4cc; font-size: 20px; box-shadow: 0 3px 0 #08090a; }
+.key:active { transform: translateY(2px); box-shadow: 0 1px 0 #08090a; }
+.key.c { background: linear-gradient(180deg, #3a2f1c, #261e10); color: var(--gold); }
+p { margin: 6px 0; line-height: 1.15; }
+.dim { color: var(--dim); } .gold { color: var(--gold); } .red { color: var(--red); } .blue { color: var(--blue); }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 6px; }
+.app { aspect-ratio: 1; border: 1px solid var(--line); background: rgba(184,240,200,0.04); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 18px; position: relative; }
+.app b { font-size: 30px; line-height: 1; font-weight: 400; } .app:active { background: rgba(184,240,200,0.12); }
+.app .dot { position: absolute; top: 6px; right: 8px; width: 8px; height: 8px; background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+.card { border: 1px solid var(--line); padding: 8px 10px; margin: 8px 0; background: rgba(184,240,200,0.03); }
+.card h3 { margin: 0 0 4px; font-weight: 400; font-size: 22px; color: var(--gold); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn { border: 1px solid var(--ink); background: transparent; padding: 6px 12px; min-height: 40px; color: var(--ink); }
+.btn.p { background: var(--ink); color: var(--lcd); } .btn:disabled { opacity: 0.4; } .btn.wide { width: 100%; }
+.btn.g { background: #f4f1ea; color: #222; border-color: #f4f1ea; }
+input, select, textarea { width: 100%; background: #050a07; border: 1px solid var(--line); padding: 8px; color: var(--ink); font-size: 20px; }
+label { display: block; margin: 8px 0 2px; color: var(--dim); font-size: 16px; }
+.list { list-style: none; margin: 0; padding: 0; } .list li { padding: 7px 0; border-bottom: 1px dashed var(--line); line-height: 1.1; }
+.list li .t { color: var(--dim); font-size: 15px; }
+.msg { margin: 0; padding: 4px 0; line-height: 1.1; word-wrap: break-word; } .msg b { font-weight: 400; }
+.compose { display: flex; gap: 6px; padding-top: 6px; } .compose input { flex: 1; }
+.bar { height: 14px; border: 1px solid var(--ink); padding: 2px; } .bar i { display: block; height: 100%; background: var(--ink); width: 0; transition: width 0.4s steps(10); }
+.task { border: 1px dashed var(--gold); padding: 10px; margin: 8px 0; color: var(--gold); animation: blink 1s steps(2) 3; }
+@keyframes blink { 50% { border-color: transparent; } }
+.ph { display: inline-block; width: 6px; height: 10px; border: 2px solid var(--blue); position: relative; margin-left: 4px; vertical-align: -1px; } .ph::after { content: ''; position: absolute; left: 1px; right: 1px; bottom: 1px; height: 2px; background: var(--blue); }
+.on { color: var(--ink); } .off { color: var(--dim); }
+.tabs { display: flex; gap: 6px; margin: 4px 0 6px; } .tabs button { flex: 1; border: 1px solid var(--line); background: transparent; padding: 4px; color: var(--dim); } .tabs button.sel { border-color: var(--ink); color: var(--ink); }
+.toast { position: absolute; left: 10px; right: 10px; bottom: 10px; background: var(--ink); color: var(--lcd); padding: 8px 10px; z-index: 3; }
+a { color: var(--blue); }
+.center { text-align: center; }
+.big { font-size: 34px; color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="earpiece"><i></i></div>
+  <div class="brand">SH1DEN'S</div>
+  <div class="screen">
+    <div class="sbar"><span class="sig off" id="sig"><i></i><i></i><i></i><i></i></span><span id="clock">--:--</span><span><span id="who" class="dim"></span> <span class="bat"></span></span></div>
+    <div class="title"><span id="ttl">Starting…</span><small id="sub"></small></div>
+    <div class="view" id="view"><p class="dim">Dialling in…</p></div>
+  </div>
+  <div class="softkeys">
+    <button class="key" id="kL" type="button">Back</button>
+    <button class="key c" id="kC" type="button">Menu</button>
+    <button class="key" id="kR" type="button">Me</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="config.js?v=66"></script>
+<script>
+/* SH1DEN'S on the phone: no 3D, just the things you'd do on a flip phone between rounds.
+   Same accounts and database as the PC game. While you're here, your character shows in town with a phone by its name. */
+(function () {
+'use strict';
+const cfg = window.BAR_CONFIG || {};
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const fmt = (n) => (+n || 0).toLocaleString();
+let db = null, TS = null, offset = 0, me = null, uid = null, myName = '', isAdmin = false;
+let coins = 0, career = null, shift = null, items = {}, online = {}, chars = {}, friends = {}, chat = [], news = [], market = [], gifts = [], careersAll = {};
+let screen = 'home', backTo = [], lastSend = 0;
+const now = () => Date.now() + offset;
+const PLACE_NAMES = { bank: 'Bank', cardealer: 'Sh1den Motors', clothes: 'Threads & Co.', realty: 'Hearth & Key', court: 'Courthouse', bar: "Sh1den's bar", homes: 'Residential street', mansions: 'Mansion row', none: '—' };
+const roleName = (r) => { const s = String(r || 't0-unemployed').replace(/^t\d-/, '').replace(/-/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
+const placeName = (p) => PLACE_NAMES[p] || (p ? p.charAt(0).toUpperCase() + p.slice(1) : '—');
+const ago = (t) => { const s = Math.max(0, (now() - t) / 1000); return s < 60 ? 'now' : s < 3600 ? Math.floor(s / 60) + 'm' : s < 86400 ? Math.floor(s / 3600) + 'h' : Math.floor(s / 86400) + 'd'; };
+
+function toast(t) { const o = document.createElement('div'); o.className = 'toast'; o.textContent = t; document.querySelector('.screen').appendChild(o); setTimeout(() => o.remove(), 2600); }
+setInterval(() => { const d = new Date(); $('clock').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }, 1000);
+
+// ---------------------------------------------------------------- screens
+const APPS = [
+  ['work', '⚒', 'Work'], ['pickups', '▤', 'Pickups'], ['market', '⚖', 'Market'],
+  ['news', '✉', 'News'], ['chat', '☏', 'Chat'], ['friends', '☺', 'Friends'],
+  ['wallet', '¤', 'Wallet'], ['me', '◉', 'Me'], ['pc', '▣', 'Full game']
+];
+function go(s, push) { if (push !== false && s !== screen) backTo.push(screen); screen = s; render(); $('view').scrollTop = 0; }
+$('kL').onclick = () => { if (backTo.length) { screen = backTo.pop(); render(); } };
+$('kC').onclick = () => { backTo = []; go(me ? 'home' : 'login', false); };
+$('kR').onclick = () => go(me ? 'me' : 'login');
+
+function render() {
+  const v = $('view');
+  const T = (t, s) => { $('ttl').textContent = t; $('sub').textContent = s || ''; };
+  if (!me) { screen = 'login'; }
+  if (screen === 'login') { T('Sign in'); v.innerHTML = loginHTML(); wireLogin(); return; }
+  if (screen === 'home') {
+    T(myName || 'Guest', fmt(coins) + ' 🪙');
+    const sh = shift && shift.on;
+    v.innerHTML =
+      '<p class="dim">' + (career && career.place && career.place !== 'none' ? esc(roleName(career.role)) + ' · ' + esc(placeName(career.place)) : 'Unemployed') + (sh ? ' · <span class="gold">ON SHIFT</span>' : '') + '</p>' +
+      (news[0] ? '<p>✉ <span class="gold">' + esc(news[0].text) + '</span></p>' : '') +
+      '<div class="grid">' + APPS.map(([k, ic, n]) => '<button class="app" type="button" data-go="' + k + '"><b>' + ic + '</b>' + n + (dotFor(k) ? '<i class="dot"></i>' : '') + '</button>').join('') + '</div>' +
+      '<p class="dim center" style="margin-top:10px">' + Object.keys(online).length + ' in town right now</p>';
+    for (const b of v.querySelectorAll('[data-go]')) b.onclick = () => (b.dataset.go === 'pc' ? (location.href = 'index.html?full') : go(b.dataset.go));
+    return;
+  }
+  if (screen === 'work') { T('Work'); v.innerHTML = workHTML(); wireWork(); return; }
+  if (screen === 'pickups') { T('Pickups'); v.innerHTML = pickupsHTML(); wirePickups(); return; }
+  if (screen === 'market') { T('Market'); v.innerHTML = marketHTML(); wireMarket(); return; }
+  if (screen === 'news') { T('News'); v.innerHTML = newsHTML(); wireNews(); return; }
+  if (screen === 'chat') { T('Chat', 'town line'); v.innerHTML = chatHTML(); wireChat(); return; }
+  if (screen === 'friends') { T('Friends'); v.innerHTML = friendsHTML(); wireFriends(); return; }
+  if (screen === 'wallet') { T('Wallet'); v.innerHTML = walletHTML(); return; }
+  if (screen === 'me') { T('Me'); v.innerHTML = meHTML(); wireMe(); return; }
+}
+function dotFor(k) {
+  if (k === 'work') return !!(shift && shift.on && pendingTask);
+  if (k === 'pickups') return gifts.some((g) => !seenGift(g.id));
+  if (k === 'news') return news[0] && news[0].t > +(localStorage.getItem('sh1den-phone-news') || 0);
+  return false;
+}
+
+// ---------------------------------------------------------------- sign in (same accounts as the PC game)
+function loginHTML() {
+  return '<p>Log in with the account you made in the game on your computer (Me → Account).</p>' +
+    '<button class="btn g wide" type="button" id="lgG"><b style="color:#3a6fd8;font-family:Arial">G</b> Log in with Google</button>' +
+    '<label>Email</label><input id="lgE" type="email" autocomplete="email">' +
+    '<label>Password</label><input id="lgP" type="password" autocomplete="current-password">' +
+    '<div class="row" style="margin-top:10px"><button class="btn p" type="button" id="lgGo">Log in</button><button class="btn" type="button" id="lgF">Forgot?</button></div>' +
+    '<p class="dim" style="margin-top:14px">No account? Open the game on a computer, make your character, then Me → Account → Make an account.</p>' +
+    '<p><a href="#" id="lgGuest">Look around as a guest</a> · <a href="index.html?full">Full 3D game</a></p><p id="lgM" class="red"></p>';
+}
+function nice(e) { const c = (e && e.code) || ''; return /wrong-password|invalid-credential|invalid-login|user-not-found/.test(c) ? 'Wrong email or password.' : /too-many/.test(c) ? 'Too many tries. Wait a minute.' : /operation-not-allowed/.test(c) ? 'Login type not switched on yet (host: enable it in Firebase).' : /unauthorized-domain/.test(c) ? 'Google login not allowed on this site yet (host: add the domain in Firebase).' : 'Something went wrong (' + (c || 'error') + ').'; }
+function wireLogin() {
+  const a = firebase.auth();
+  $('lgGo').onclick = async () => { $('lgM').textContent = ''; try { await a.signInWithEmailAndPassword($('lgE').value.trim(), $('lgP').value); } catch (e) { $('lgM').textContent = nice(e); } };
+  $('lgP').onkeydown = (e) => { if (e.key === 'Enter') $('lgGo').click(); };
+  $('lgF').onclick = async () => { const em = $('lgE').value.trim(); if (!em) { $('lgM').textContent = 'Type your email first.'; return; } try { await a.sendPasswordResetEmail(em); toast('Reset link sent. Check your inbox.'); } catch (e) { $('lgM').textContent = nice(e); } };
+  $('lgG').onclick = async () => { const p = new firebase.auth.GoogleAuthProvider(); try { await a.signInWithPopup(p); } catch (e) { if (/popup-blocked|not-supported/.test(e.code || '')) a.signInWithRedirect(p); else $('lgM').textContent = nice(e); } };
+  $('lgGuest').onclick = (e) => { e.preventDefault(); a.signInAnonymously().catch((er) => { $('lgM').textContent = nice(er); }); };
+}
+
+// ---------------------------------------------------------------- work: clock in, little tasks pop up while you're on shift
+const TASKS = {
+  bank: ['Count the till', 'File the deposit slips', 'Refill the pens on the chains', 'Answer the phone at reception', 'Walk the vault corridor', 'Shred yesterday\'s paperwork'],
+  cardealer: ['Wash the coupe on the lot', 'Check the tyre pressure', 'Move a car to the showroom', 'Sweep the workshop', 'Call back a customer'],
+  clothes: ['Fold the sweaters', 'Steam the window display', 'Tag the new stock', 'Help someone find their size'],
+  realty: ['Post a listing photo', 'Unlock a show home', 'Call a landlord', 'File a lease'],
+  court: ['Carry files to courtroom 2', 'Swear in a witness', 'Stamp the docket', 'Check visitors at the door'],
+  bar: ['Wipe down the bar', 'Change a keg', 'Restock the whiskey shelf', 'Mop the dance floor'],
+  none: ['Look at the job boards', 'Ask around for work', 'Walk past the bank', 'Read the classifieds']
+};
+let pendingTask = null, taskTimer = null;
+function scheduleTask() {
+  clearTimeout(taskTimer);
+  if (!(shift && shift.on)) { pendingTask = null; return; }
+  taskTimer = setTimeout(() => {
+    const L = TASKS[(career && career.place) || 'none'] || TASKS.none;
+    pendingTask = L[Math.floor(Math.random() * L.length)];
+    if (navigator.vibrate) try { navigator.vibrate([60, 40, 60]); } catch (e) { }
+    if (screen === 'work' || screen === 'home') render();
+  }, (35 + Math.random() * 50) * 1000);
+}
+function workHTML() {
+  const hasJob = career && career.place && career.place !== 'none';
+  const sh = shift && shift.on;
+  let h = '<div class="card"><h3>' + (hasJob ? esc(roleName(career.role)) : 'Unemployed') + '</h3>' +
+    '<p>' + (hasJob ? esc(placeName(career.place)) + ' · level ' + (career.lvl || 1) : 'Visit a place in the PC game and talk to whoever\'s hiring to get your first job.') + '</p>' +
+    (hasJob ? '<div class="bar"><i style="width:' + Math.min(100, (career.xp || 0) % 100) + '%"></i></div><p class="dim">' + (career.xp || 0) + ' xp</p>' : '') + '</div>';
+  if (sh) {
+    const mins = Math.floor((now() - (shift.since || now())) / 60000);
+    h += '<p class="gold">On shift · ' + mins + ' min · ' + (shift.tasks || 0) + ' tasks done</p>';
+    h += pendingTask ? '<div class="task">▶ ' + esc(pendingTask) + '</div><button class="btn p wide" type="button" id="wDo">Do it</button>' : '<p class="dim">Nothing to do right now. Your phone buzzes when something comes up.</p>';
+    h += '<p><button class="btn" type="button" id="wOut">Clock out</button></p>';
+  } else {
+    h += '<p><button class="btn p wide" type="button" id="wIn">Clock in</button></p>';
+    if (shift && shift.last) h += '<p class="dim">Last shift: ' + shift.last + ' min, ' + (shift.lastTasks || 0) + ' tasks.</p>';
+  }
+  h += '<p class="dim" style="margin-top:12px">Pay switches on once ' + (hasJob ? esc(placeName(career.place)) : 'your workplace') + ' is fully built. Shifts and tasks are already being counted.</p>';
+  return h;
+}
+function wireWork() {
+  const r = db.ref('shifts/' + uid);
+  if ($('wIn')) $('wIn').onclick = () => r.set({ on: true, since: TS, tasks: 0, place: (career && career.place) || 'none' }).then(() => toast('Clocked in.')).catch(() => toast("Couldn't clock in (rules need updating?)."));
+  if ($('wOut')) $('wOut').onclick = () => { const m = Math.floor((now() - (shift.since || now())) / 60000); r.set({ on: false, since: shift.since || 0, tasks: shift.tasks || 0, place: shift.place || 'none', last: m, lastTasks: shift.tasks || 0 }).then(() => toast('Clocked out. ' + m + ' min.')); };
+  if ($('wDo')) $('wDo').onclick = () => { pendingTask = null; r.child('tasks').set((shift.tasks || 0) + 1).then(() => { toast('Done.'); scheduleTask(); }); };
+}
+
+// ---------------------------------------------------------------- pickups: coins people sent you, and what's in your pockets
+const seenGift = (id) => { try { return (JSON.parse(localStorage.getItem('sh1den-phone-gifts') || '[]')).includes(id); } catch (e) { return false; } };
+function pickupsHTML() {
+  let h = '<p class="dim">Deliveries waiting for you.</p><ul class="list">';
+  const g = gifts.slice().sort((a, b) => b.t - a.t).slice(0, 20);
+  if (!g.length) h += '<li class="dim">Nothing waiting.</li>';
+  for (const x of g) h += '<li>' + (seenGift(x.id) ? '✓ ' : '▤ ') + fmt(x.amt) + ' 🪙 from <span class="gold">' + esc((chars[x.from] && chars[x.from].name) || 'someone') + '</span> <span class="t">' + ago(x.t) + '</span>' + (seenGift(x.id) ? '' : ' <button class="btn" type="button" data-pick="' + esc(x.id) + '">Pick up</button>') + '</li>';
+  h += '</ul><div class="card"><h3>Your pockets</h3>';
+  const it = Object.entries(items).filter(([, n]) => n > 0);
+  h += it.length ? '<ul class="list">' + it.map(([k, n]) => '<li>' + esc(k.replace(/-/g, ' ')) + ' ×' + n + '</li>').join('') + '</ul>' : '<p class="dim">Empty.</p>';
+  return h + '</div>';
+}
+function wirePickups() {
+  for (const b of document.querySelectorAll('[data-pick]')) b.onclick = () => {
+    try { const a = JSON.parse(localStorage.getItem('sh1den-phone-gifts') || '[]'); a.push(b.dataset.pick); localStorage.setItem('sh1den-phone-gifts', JSON.stringify(a.slice(-200))); } catch (e) { }
+    toast('Picked up. It\'s in your wallet.'); render();
+  };
+}
+
+// ---------------------------------------------------------------- market: what's for sale and what sold
+let mTab = 'sale';
+function marketHTML() {
+  const sale = market.filter((m) => !m.sold), sold = market.filter((m) => m.sold);
+  let h = '<div class="tabs"><button type="button" data-t="sale" class="' + (mTab === 'sale' ? 'sel' : '') + '">For sale (' + sale.length + ')</button><button type="button" data-t="sold" class="' + (mTab === 'sold' ? 'sel' : '') + '">Sold</button><button type="button" data-t="mine" class="' + (mTab === 'mine' ? 'sel' : '') + '">Sell</button></div>';
+  if (mTab === 'sale' || mTab === 'sold') {
+    const L = (mTab === 'sale' ? sale : sold).sort((a, b) => b.t - a.t).slice(0, 40);
+    h += '<ul class="list">' + (L.length ? L.map((m) => '<li>' + esc(m.item.replace(/-/g, ' ')) + ' · <span class="gold">' + fmt(m.price) + ' 🪙</span><br><span class="t">' + esc(m.name) + ' · ' + ago(m.t) + (m.sold ? ' · sold to ' + esc((chars[m.sold] && chars[m.sold].name) || 'someone') : '') + '</span>' + (m.seller === uid && !m.sold ? ' <button class="btn" type="button" data-cancel="' + esc(m.id) + '">Take down</button>' : '') + '</li>').join('') : '<li class="dim">' + (mTab === 'sale' ? 'Nothing listed yet.' : 'Nothing sold yet.') + '</li>') + '</ul>';
+    if (mTab === 'sale') h += '<p class="dim">Buying opens with the market building in town.</p>';
+  } else {
+    const it = Object.entries(items).filter(([, n]) => n > 0);
+    h += it.length && myName
+      ? '<label>Item</label><select id="mI">' + it.map(([k, n]) => '<option value="' + esc(k) + '">' + esc(k.replace(/-/g, ' ')) + ' (×' + n + ')</option>').join('') + '</select><label>Price (🪙)</label><input id="mP" type="number" min="1" max="100000" inputmode="numeric"><p><button class="btn p wide" type="button" id="mGo">List it</button></p>'
+      : '<p class="dim">' + (myName ? 'You have nothing to sell yet.' : 'Make your character first.') + '</p>';
+  }
+  return h;
+}
+function wireMarket() {
+  for (const b of document.querySelectorAll('[data-t]')) b.onclick = () => { mTab = b.dataset.t; render(); };
+  for (const b of document.querySelectorAll('[data-cancel]')) b.onclick = () => db.ref('market/' + b.dataset.cancel).remove().then(() => toast('Taken down.'));
+  if ($('mGo')) $('mGo').onclick = () => {
+    const price = Math.round(+$('mP').value);
+    if (!(price >= 1 && price <= 100000)) { toast('Pick a price between 1 and 100,000.'); return; }
+    db.ref('market').push({ seller: uid, name: myName, item: $('mI').value, price, t: TS }).then(() => { mTab = 'sale'; toast('Listed.'); render(); }).catch(() => toast("Couldn't list it."));
+  };
+}
+
+// ---------------------------------------------------------------- news: headlines from the hosts, plus the town wire (who got hired where)
+function newsHTML() {
+  try { localStorage.setItem('sh1den-phone-news', String(now())); } catch (e) { }
+  let h = '';
+  if (isAdmin) h += '<div class="compose"><input id="nT" maxlength="200" placeholder="Post a headline (hosts)"><button class="btn p" type="button" id="nGo">Post</button></div>';
+  h += '<ul class="list">' + (news.length ? news.slice(0, 25).map((n) => '<li><span class="gold">' + esc(n.text) + '</span><br><span class="t">' + esc(n.by || 'the hosts') + ' · ' + ago(n.t) + '</span></li>').join('') : '<li class="dim">No headlines yet.</li>') + '</ul>';
+  const wire = Object.entries(careersAll).filter(([, c]) => c && c.since && now() - c.since < 3 * 86400000 && c.place && c.place !== 'none').sort((a, b) => b[1].since - a[1].since).slice(0, 12);
+  h += '<div class="card"><h3>Town wire</h3><ul class="list">' + (wire.length ? wire.map(([, c]) => '<li>' + esc(c.name || 'someone') + ' is now ' + esc(roleName(c.role)) + ' at ' + esc(placeName(c.place)) + ' <span class="t">' + ago(c.since) + '</span></li>').join('') : '<li class="dim">Quiet in town.</li>') + '</ul></div>';
+  return h;
+}
+function wireNews() {
+  if ($('nGo')) $('nGo').onclick = () => { const t = $('nT').value.trim(); if (!t) return; db.ref('news').push({ text: t.slice(0, 200), by: myName || 'host', t: TS }).then(() => toast('Posted.')).catch(() => toast("Couldn't post.")); };
+}
+
+// ---------------------------------------------------------------- chat: the same town chat as the game
+function chatHTML() {
+  let h = '<div id="chatList">' + chat.slice(-40).map((m) => '<p class="msg"><b class="gold">' + esc(m.name) + '</b>' + (online[m.uid] && online[m.uid].m ? '<span class="ph"></span>' : '') + ' ' + esc(m.text) + '</p>').join('') + '</div>';
+  h += myName ? '<div class="compose"><input id="cT" maxlength="200" placeholder="Say something" enterkeyhint="send"><button class="btn p" type="button" id="cGo">Send</button></div>' : '<p class="dim">Make your character in the PC game to talk here.</p>';
+  return h;
+}
+function wireChat() {
+  const v = $('view'); v.scrollTop = v.scrollHeight;
+  if (!$('cGo')) return;
+  const send = () => {
+    const t = $('cT').value.trim(); if (!t) return;
+    const wait = lastSend + 5200 - Date.now(); if (wait > 0 && !isAdmin) { toast('Slow down a sec (' + Math.ceil(wait / 1000) + 's).'); return; }
+    const key = db.ref('chat').push().key, upd = {};
+    upd['chat/' + key] = { uid, name: myName, text: t.slice(0, 200), t: TS };
+    upd['last/' + uid] = TS;
+    lastSend = Date.now();
+    db.ref().update(upd).then(() => { $('cT').value = ''; }).catch(() => toast("Couldn't send."));
+  };
+  $('cGo').onclick = send; $('cT').onkeydown = (e) => { if (e.key === 'Enter') send(); };
+  if (window._chatDraft) { $('cT').value = window._chatDraft; window._chatDraft = ''; $('cT').focus(); }
+}
+
+// ---------------------------------------------------------------- friends
+function friendsHTML() {
+  const L = Object.keys(friends).map((f) => ({ uid: f, name: (chars[f] && chars[f].name) || '?', on: online[f], car: careersAll[f] }));
+  L.sort((a, b) => (!!b.on - !!a.on) || a.name.localeCompare(b.name));
+  let h = '<div class="compose"><input id="fN" maxlength="25" placeholder="Add by name"><button class="btn p" type="button" id="fGo">Add</button></div><ul class="list">';
+  h += L.length ? L.map((f) => '<li><span class="' + (f.on ? 'on' : 'off') + '">' + (f.on ? '● ' : '○ ') + esc(f.name) + '</span>' + (f.on && f.on.m ? '<span class="ph"></span>' : '') +
+    '<br><span class="t">' + (f.on ? (f.on.m ? 'on the phone' : 'in town') : 'away') + (f.car && f.car.place !== 'none' ? ' · ' + esc(roleName(f.car.role)) + ' at ' + esc(placeName(f.car.place)) : '') + '</span> ' +
+    '<button class="btn" type="button" data-hi="' + esc(f.name) + '">Say hi</button> <button class="btn" type="button" data-rm="' + esc(f.uid) + '">✕</button></li>').join('') : '<li class="dim">No friends added yet.</li>';
+  return h + '</ul>';
+}
+function wireFriends() {
+  $('fGo').onclick = async () => {
+    const n = $('fN').value.trim().toLowerCase(); if (!n) return;
+    const s = await db.ref('names/' + n).once('value').catch(() => null);
+    const f = s && s.val();
+    if (!f) { toast('Nobody called that.'); return; }
+    if (f === uid) { toast("That's you."); return; }
+    db.ref('friends/' + uid + '/' + f).set(true).then(() => toast('Added.')).catch(() => toast("Couldn't add."));
+  };
+  for (const b of document.querySelectorAll('[data-rm]')) b.onclick = () => db.ref('friends/' + uid + '/' + b.dataset.rm).remove();
+  for (const b of document.querySelectorAll('[data-hi]')) b.onclick = () => { window._chatDraft = '@' + b.dataset.hi + ' '; go('chat'); };
+}
+
+// ---------------------------------------------------------------- wallet & me
+function walletHTML() {
+  return '<p class="center big">' + fmt(coins) + ' 🪙</p><p class="center dim">sh1den coins</p>' +
+    '<div class="card"><h3>Recent deliveries</h3><ul class="list">' + (gifts.slice().sort((a, b) => b.t - a.t).slice(0, 6).map((g) => '<li>+' + fmt(g.amt) + ' from ' + esc((chars[g.from] && chars[g.from].name) || 'someone') + ' <span class="t">' + ago(g.t) + '</span></li>').join('') || '<li class="dim">None yet.</li>') + '</ul></div>' +
+    '<p class="dim">Spend coins in the PC game: taxis, the shop, cars.</p>';
+}
+function meHTML() {
+  const g = me.isAnonymous;
+  return '<div class="card"><h3>' + esc(myName || 'No character yet') + '</h3><p>' + (career && career.place !== 'none' ? esc(roleName(career.role)) + ' · ' + esc(placeName(career.place)) : 'Unemployed') + '</p>' +
+    '<p class="dim">' + (g ? 'Guest on this phone' : esc(me.email || 'signed in')) + '</p></div>' +
+    '<p>People in town see a <span class="ph"></span> next to your name while you\'re here.</p>' +
+    '<p><a href="index.html?full">Open the full 3D game</a> <span class="dim">(heavy on phones)</span></p>' +
+    '<p><button class="btn" type="button" id="meOut">Log out</button></p>';
+}
+function wireMe() { $('meOut').onclick = () => { try { db.ref('presence/' + uid).remove(); } catch (e) { } firebase.auth().signOut(); }; }
+
+// ---------------------------------------------------------------- connecting
+const live = [];
+function listen(ref, ev, fn) { ref.on(ev, fn); live.push([ref, ev, fn]); }
+function stopAll() { for (const [r, e, f] of live.splice(0)) r.off(e, f); }
+function rerender() { if (screen !== 'login' && document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return; render(); }
+function start() {
+  if (!(cfg.firebase && window.firebase)) { $('view').innerHTML = '<p class="red">Can\'t reach the game right now.</p>'; return; }
+  try { firebase.initializeApp(cfg.firebase); } catch (e) { }
+  db = firebase.database(); TS = firebase.database.ServerValue.TIMESTAMP;
+  db.ref('.info/serverTimeOffset').on('value', (s) => { offset = s.val() || 0; });
+  db.ref('.info/connected').on('value', (s) => { $('sig').classList.toggle('off', !s.val()); });
+  firebase.auth().getRedirectResult().catch(() => { });
+  firebase.auth().onAuthStateChanged((u) => {
+    stopAll(); me = u; uid = u ? u.uid : null;
+    $('who').textContent = u ? (u.isAnonymous ? 'guest' : '') : '';
+    if (!u) { screen = 'login'; backTo = []; render(); return; }
+    screen = 'home'; backTo = []; render();
+    listen(db.ref('chars/' + uid), 'value', (s) => { const c = s.val(); myName = (c && c.name) || ''; rerender(); goOnline(); });
+    listen(db.ref('admins/' + uid), 'value', (s) => { isAdmin = s.exists(); });
+    listen(db.ref('coins/' + uid + '/n'), 'value', (s) => { coins = +s.val() || 0; rerender(); });
+    listen(db.ref('careers/' + uid), 'value', (s) => { career = s.val(); rerender(); });
+    listen(db.ref('careers'), 'value', (s) => { careersAll = s.val() || {}; });
+    listen(db.ref('shifts/' + uid), 'value', (s) => { shift = s.val(); if (shift && shift.on && !taskTimer) scheduleTask(); if (!(shift && shift.on)) { clearTimeout(taskTimer); taskTimer = null; pendingTask = null; } rerender(); });
+    listen(db.ref('items/' + uid), 'value', (s) => { items = s.val() || {}; });
+    listen(db.ref('presence'), 'value', (s) => { online = s.val() || {}; for (const k in online) if (online[k] === true) online[k] = {}; if (screen === 'friends' || screen === 'home') rerender(); });
+    listen(db.ref('chars'), 'value', (s) => { chars = s.val() || {}; });
+    listen(db.ref('friends/' + uid), 'value', (s) => { friends = s.val() || {}; if (screen === 'friends') rerender(); });
+    listen(db.ref('chat').limitToLast(40), 'value', (s) => { chat = []; s.forEach((c) => { chat.push(c.val()); }); if (screen === 'chat') { const inp = $('cT'); const keep = inp ? inp.value : ''; render(); if ($('cT')) $('cT').value = keep; } });
+    listen(db.ref('news').limitToLast(25), 'value', (s) => { news = []; s.forEach((c) => { news.unshift(Object.assign({ id: c.key }, c.val())); }); rerender(); });
+    listen(db.ref('market').limitToLast(80), 'value', (s) => { market = []; s.forEach((c) => { market.push(Object.assign({ id: c.key }, c.val())); }); if (screen === 'market') rerender(); });
+    listen(db.ref('gifts').orderByChild('to').equalTo(uid).limitToLast(30), 'value', (s) => { gifts = []; s.forEach((c) => { gifts.push(Object.assign({ id: c.key }, c.val())); }); rerender(); });
+  });
+}
+// your character shows up in town with the phone icon while this page is open
+let presRef = null;
+function goOnline() {
+  if (!uid || !myName) return;
+  presRef = db.ref('presence/' + uid);
+  presRef.onDisconnect().remove();
+  presRef.set({ s: '', d: '', t: TS, m: true }).catch(() => presRef.set(true).catch(() => { }));
+}
+setInterval(() => { if (presRef && myName) presRef.set({ s: '', d: '', t: TS, m: true }).catch(() => { }); }, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && presRef && myName) presRef.set({ s: '', d: '', t: TS, m: true }).catch(() => { }); });
+start();
+})();
+</script>
+</body>
+</html>

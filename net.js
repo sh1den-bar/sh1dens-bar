@@ -71,8 +71,8 @@ NET.sysChat = function (name, text) {
 // only people who have the bar open right now are shown (the bartender is always there)
 function pushCrowd() {
   const here = allChars.filter((e) => online.has(e.uid) || e.uid === NET.uid).slice(-80)
-    .map((e) => { const p = online.get(e.uid) || (e.uid === NET.uid ? { s: myAct.s, d: myAct.d, t: 0, k: myAct.k, e: myAct.e } : {}); return Object.assign({}, e, { s: p.s || '', d: p.d || '', t: p.t || 0, k: typeof p.k === 'string' ? p.k : '', e: +p.e || 0 }); });
-  const key = here.map((e) => e.uid + e.name + e.code + e.s + e.d + e.t + e.k + e.e).join('|');
+    .map((e) => { const p = online.get(e.uid) || (e.uid === NET.uid ? { s: myAct.s, d: myAct.d, t: 0, k: myAct.k, e: myAct.e } : {}); return Object.assign({}, e, { s: p.s || '', d: p.d || '', t: p.t || 0, k: typeof p.k === 'string' ? p.k : '', e: +p.e || 0, m: p.m === true }); });
+  const key = here.map((e) => e.uid + e.name + e.code + e.s + e.d + e.t + e.k + e.e + (e.m ? 'm' : '')).join('|');
   if (key === lastCrowdKey) return;
   lastCrowdKey = key;
   window.BAR.setRegulars(here);
@@ -123,11 +123,26 @@ NET.start = function () {
   db = firebase.database();
   TS = firebase.database.ServerValue.TIMESTAMP;
   status('Connecting…');
-  firebase.auth().onAuthStateChanged((u) => { if (u && !NET.uid) { NET.uid = u.uid; joined(); } });
-  firebase.auth().signInAnonymously().catch((e) => {
-    status('Room offline');
-    hint("Couldn't join the room (" + (e.code || 'error') + ').');
+  // a saved login (account or guest) comes back by itself; only brand-new visitors get a fresh guest id
+  let triedGuest = false;
+  firebase.auth().onAuthStateChanged((u) => {
+    if (u) {
+      if (!NET.uid) { NET.uid = u.uid; NET.guest = u.isAnonymous; joined(); }
+      else if (u.uid !== NET.uid) location.reload();      // switched to another player
+      NET.guest = u.isAnonymous;
+      if (window.ACCOUNT) window.ACCOUNT.changed();
+      return;
+    }
+    if (triedGuest) return;
+    triedGuest = true;
+    firebase.auth().signInAnonymously().catch((e) => {
+      status('Room offline');
+      hint("Couldn't join the room (" + (e.code || 'error') + ').');
+    });
   });
+  // belt and braces: if no saved login has reported back after a few seconds, come in as a guest
+  setTimeout(() => { if (!NET.uid && !triedGuest && !firebase.auth().currentUser) { triedGuest = true; firebase.auth().signInAnonymously().catch(() => { }); } }, 3500);
+  NET.onAccount = () => { const u = firebase.auth().currentUser; NET.guest = !u || u.isAnonymous; if (presRef) presRef.set(myPresence()).catch(() => { }); };
   loadYouTube();
 };
 

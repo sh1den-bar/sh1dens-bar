@@ -149,9 +149,32 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 .gatebox h1::after { content: ""; display: block; height: 2px; margin: 14px auto 0; width: 70%; background: linear-gradient(90deg, transparent, var(--neon), transparent); }
 .gatebox p { margin: 0; color: var(--dim); line-height: 1.6; }
 .gatebox .small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
-#loading { font-family: var(--display); font-size: 26px; color: var(--dim); background: var(--bg); z-index: 6; }
+#loading { background: var(--bg); z-index: 6; transition: background 1.2s; }
+#loading.tour { background: radial-gradient(ellipse at center, rgba(5,4,4,0.15) 0%, rgba(5,4,4,0.55) 60%, rgba(5,4,4,0.9) 100%); }
+.loadbox { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; width: min(420px, 100%); }
+.loadbox h1 { margin: 0 0 6px; font-family: var(--deco); font-weight: 400; font-size: clamp(44px, 11vw, 76px); line-height: 1; color: var(--neon); text-shadow: 0 0 18px rgba(226, 180, 103, 0.55); letter-spacing: 0.06em; }
+.lbar { width: 100%; height: 18px; padding: 3px; border: 2px solid var(--neon); background: #0a0806; box-shadow: 0 0 12px rgba(226,180,103,0.25); image-rendering: pixelated; }
+.lbar i { display: block; height: 100%; width: 0; transition: width 0.5s steps(8); background: repeating-linear-gradient(90deg, var(--neon) 0 10px, #b88a3e 10px 12px); }
+#lstage { font-family: var(--display); font-size: 22px; color: var(--neon); letter-spacing: 0.06em; min-height: 1.2em; }
+#ltip { font-size: 12px; color: var(--dim); min-height: 2.6em; line-height: 1.5; text-shadow: 0 1px 3px #000; }
+#gate.tour { background: radial-gradient(ellipse at center, rgba(5,4,4,0.62) 0%, rgba(5,4,4,0.5) 55%, rgba(5,4,4,0.85) 100%); }
 #poolPanel { background: #0c0b0d; box-shadow: 0 20px 60px rgba(0,0,0,0.7); left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(820px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; gap: 10px; padding: 14px 16px; z-index: 5; }
 #poolPanel[hidden] { display: none; }
+#acctPanel { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(400px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; z-index: 7; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
+#acctPanel[hidden] { display: none; }
+#acctPanel label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+#acctPanel input { font: inherit; font-size: 15px; padding: 8px; background: #0a0908; color: var(--ink, #eee); border: 1px solid var(--line); text-transform: none; letter-spacing: 0; }
+.acctTabs { display: flex; gap: 6px; } .acctTabs button { flex: 1; } .acctTabs button.on { border-color: var(--neon); color: var(--neon); }
+.acctGoogle { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: #f4f1ea; color: #222; border-color: #f4f1ea; }
+.acctGoogle .g { font-weight: 700; color: #3a6fd8; font-family: Arial, sans-serif; }
+.acctOr { text-align: center; font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.12em; }
+.acctCard { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); background: rgba(255,255,255,0.03); font-size: 13px; line-height: 1.45; }
+.acctCard b { font-family: var(--display); font-size: 20px; font-weight: 400; color: var(--neon); }
+.acctCard.guest { border-color: rgba(226, 120, 80, 0.5); } .acctCard.ok { border-color: rgba(120, 200, 140, 0.5); }
+.acctMsg { font-size: 13px; color: #9fd8a8 !important; } .acctMsg.bad { color: #f09a8a !important; }
+.nametag .ph { display: inline-block; width: 6px; height: 10px; margin-left: 5px; vertical-align: -1px; border: 2px solid #8fd0ff; border-radius: 1px; position: relative; box-shadow: 0 0 4px rgba(143,208,255,0.6); }
+.nametag .ph::after { content: ''; position: absolute; left: 1px; right: 1px; bottom: 1px; height: 2px; background: #8fd0ff; }
+#acctBtn.nudge { border-color: rgba(226, 120, 80, 0.7); }
 #poolPlayers { font-family: var(--display); font-size: 22px; color: var(--amber); }
 #poolStatus { min-height: 1.4em; color: var(--dim); }
 .poolwrap { width: 100%; display: flex; justify-content: center; }
@@ -677,31 +700,58 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
   <div class="cover" id="gate">
     <div class="gatebox">
       <h1>SH1DEN'S</h1>
-      <p>A late-night PS1 lounge for the sh1denfps community. Make your own regular, chat with whoever's inside and watch videos together on the TV.</p>
-      <button id="enter" class="primary" type="button">Enter the bar</button>
+      <p>A small city after midnight. Pick a trade, work your way up, own the place. Everyone you see is another player.</p>
+      <button id="enter" class="primary" type="button">Enter the city</button>
       <button id="enterQuiet" type="button">Enter without sound</button>
       <span class="small">Music and TV sound start once you enter</span>
     </div>
   </div>
-  <div class="cover" id="loading">LOADING THE BAR…</div>
+  <div class="cover" id="loading">
+    <div class="loadbox">
+      <h1>SH1DEN'S</h1>
+      <div class="lbar" aria-hidden="true"><i id="lfill"></i></div>
+      <div id="lstage">Opening the city…</div>
+      <div id="ltip"></div>
+    </div>
+  </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// phones go to the light phone version unless they asked for the full game (index.html?full)
+(function () { try {
+  var full = /[?&]full\b/.test(location.search);
+  if (full) sessionStorage.setItem('sh1den-full', '1');
+  var phone = /iPhone|iPod|Android.*Mobile|Windows Phone|Mobile Safari/i.test(navigator.userAgent) && !/iPad/.test(navigator.userAgent);
+  if (phone && !full && !sessionStorage.getItem('sh1den-full')) location.replace('phone.html' + location.hash);
+} catch (e) { } })();
+</script>
+<script>
+// the loading screen: a pixel bar that fills as each part of the game arrives, with a tip underneath
+window.LOAD = (function () {
+  var pct = 0, tips = ["Tip: a taxi waits outside every place. It's cheaper than fast travel.", 'Tip: every place in town is somebody\'s job, even the cleaner at the bank.', 'Tip: owners promote their staff. Work hard and get noticed.', "Tip: the staff floor at the bank is for employees only.", 'Tip: buy a car and it waits for you instead of the taxi.', 'Tip: click anyone in town to see their card.'];
+  function set(p, label) { pct = Math.max(pct, p); var f = document.getElementById('lfill'); if (f) f.style.width = pct + '%'; var s = document.getElementById('lstage'); if (s && label) s.textContent = label; }
+  function tip() { var t = document.getElementById('ltip'); if (t) t.textContent = tips[Math.floor(Math.random() * tips.length)]; }
+  tip(); var tipT = setInterval(tip, 4200);
+  return { set: set, step: function (p, l) { set(p, l); }, done: function () { clearInterval(tipT); } };
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onload="LOAD.step(18,'Loading the engine…')"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js" onload="LOAD.step(30,'Calling the switchboard…')"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=65"></script>
-<script src="net.js?v=65"></script>
-<script src="bar.js?v=65"></script>
-<script src="pool.js?v=65"></script>
-<script src="extras.js?v=65"></script>
-<script src="poker.js?v=65"></script>
-<script src="cursors.js?v=65"></script>
-<script src="social.js?v=65"></script>
-<script src="hotel.js?v=65"></script>
-<script src="careers.js?v=65"></script>
+<script src="config.js?v=66"></script>
+<script src="net.js?v=66" onload="LOAD.step(36,'Building the city…')"></script>
+<script src="bar.js?v=66" onload="LOAD.step(62,'Moving in the furniture…')"></script>
+<script src="pool.js?v=66"></script>
+<script src="extras.js?v=66"></script>
+<script src="poker.js?v=66"></script>
+<script src="cursors.js?v=66"></script>
+<script src="social.js?v=66"></script>
+<script src="hotel.js?v=66"></script>
+<script src="careers.js?v=66"></script>
+<script src="accounts.js?v=66"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);

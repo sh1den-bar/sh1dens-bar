@@ -216,7 +216,11 @@
       "$gid": {
         ".write": "auth != null && !data.exists() && !root.child('bans').child(auth.uid).exists() && root.child('chars').child(auth.uid).exists()",
         ".validate": "newData.hasChildren(['from', 'to', 'amt', 't']) && newData.child('from').val() == auth.uid && newData.child('to').isString() && newData.child('to').val() != auth.uid && newData.child('amt').isNumber() && newData.child('amt').val() >= 1 && newData.child('amt').val() <= 10000 && newData.child('t').val() == now && newData.parent().parent().child('coins').child(auth.uid).child('g').val() == $gid && newData.parent().parent().child('coins').child(newData.child('to').val()).child('g').val() == $gid"
-      }
+      },
+      ".read": "auth != null && query.orderByChild == 'to' && query.equalTo == auth.uid",
+      ".indexOn": [
+        "to"
+      ]
     },
     "spins": {
       "$uid": {
@@ -477,6 +481,54 @@
         ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
         "$item": {
           ".validate": "$item.matches(/^[a-z0-9-]{1,24}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999"
+        }
+      }
+    },
+    "shifts": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && auth.uid == $uid && !root.child('bans').child(auth.uid).exists()",
+        ".validate": "newData.hasChildren(['on','since','tasks','place']) && newData.child('on').isBoolean() && newData.child('since').isNumber() && newData.child('since').val() <= now && newData.child('tasks').isNumber() && newData.child('tasks').val() >= 0 && newData.child('tasks').val() <= 5000 && newData.child('place').isString() && newData.child('place').val().length <= 24",
+        "tasks": {
+          ".validate": "newData.isNumber() && (!data.exists() || newData.val() == data.val() || newData.val() == data.val() + 1 || newData.val() == 0)"
+        },
+        "last": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+        },
+        "lastTasks": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "friends": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid",
+        "$f": {
+          ".validate": "newData.isBoolean() && root.child('chars').child($f).exists()"
+        }
+      }
+    },
+    "news": {
+      ".read": true,
+      "$id": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+        ".validate": "newData.hasChildren(['text','by','t']) && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 200 && newData.child('by').isString() && newData.child('by').val().length <= 25 && newData.child('t').val() == now"
+      }
+    },
+    "market": {
+      ".read": true,
+      ".indexOn": [
+        "t"
+      ],
+      "$id": {
+        ".write": "auth != null && !root.child('bans').child(auth.uid).exists() && ((!data.exists() && newData.child('seller').val() == auth.uid) || (data.exists() && !newData.exists() && data.child('seller').val() == auth.uid) || root.child('admins').child(auth.uid).exists())",
+        ".validate": "newData.hasChildren(['seller','name','item','price','t']) && newData.child('item').isString() && newData.child('item').val().matches(/^[a-z0-9-]{1,24}$/) && root.child('items').child(newData.child('seller').val()).child(newData.child('item').val()).val() >= 1 && newData.child('price').isNumber() && newData.child('price').val() >= 1 && newData.child('price').val() <= 100000 && newData.child('name').isString() && newData.child('name').val().length <= 25 && (newData.child('t').val() == now || data.exists())",
+        "sold": {
+          ".validate": "newData.isString()"
         }
       }
     }

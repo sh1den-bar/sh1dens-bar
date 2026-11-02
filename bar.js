@@ -1293,7 +1293,16 @@ const swirlTex = canvasTex(64, 64, (x, w, h) => {
 const roomMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -3 }));
 const glowMat = new THREE.MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 });
 const decal = (opts) => new THREE.MeshBasicMaterial(Object.assign({ polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 }, opts));
-function addStatic(parts, mat) { const m = new THREE.Mesh(toGeometry(parts), mat || roomMat); scene.add(m); return m; }
+// which building/floor an x position belongs to (other floors are built far off to the side)
+function zoneAtX(x) { return x > 460 ? 'dev' : x > 390 ? 'bankb' : x > 340 ? 'bank2' : x > 280 ? 'bank' : x > 150 ? 'f2' : x > 80 ? 'base' : 'main'; }
+// merged static geometry is split per zone so whole buildings can be switched off when you're elsewhere
+function addStatic(parts, mat) {
+  const by = new Map();
+  for (const p of parts) { const v = p.tris[0] && p.tris[0][0]; let z = v ? zoneAtX(v[0]) : 'main'; const k = z === 'main' && v ? z + ':' + Math.floor(v[0] / 24) + ',' + Math.floor(v[2] / 24) : z; if (!by.has(k)) by.set(k, []); by.get(k).push(p); }
+  let last = null;
+  for (const [k, ps] of by) { const m = new THREE.Mesh(toGeometry(ps), mat || roomMat); m.userData.zone = k.split(':')[0]; scene.add(m); last = m; }
+  return last;
+}
 function scaleUV(geo, su, sv) { const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv); uv.needsUpdate = true; }
 
 // floors
@@ -5534,6 +5543,14 @@ function setCue(ch, on) {
   else if (!on && ch.cue) { ch.bones.spine.remove(ch.cue); ch.cue = null; }
 }
 
+// players online from the phone version get a little phone next to their name
+function phoneTag(ch, on) {
+  ch.onPhone = !!on;
+  if (!ch.label) return;
+  let ph = ch.label.querySelector('.ph');
+  if (on && !ph) { ph = document.createElement('span'); ph.className = 'ph'; ph.title = 'On the phone version'; ch.label.appendChild(ph); }
+  else if (!on && ph) ph.remove();
+}
 function dropLabel(ch) { if (!ch) return; if (ch.label) { ch.label.remove(); ch.label = null; } if (ch.bubbleEl) { ch.bubbleEl.remove(); ch.bubbleEl = null; } }
 function clearCrowd() { for (const ch of crowd) { scene.remove(ch.root); if (ch !== draftChar) dropLabel(ch); } crowd.length = 0; }
 function addChar(look, name, opts) {
@@ -5593,11 +5610,12 @@ function rebuild() {
   let haveMine = false;
   for (const e of roster.slice(-80)) {
     const key = e.name.toLowerCase();
-    if (key === HOST_NAME.toLowerCase()) { host.uid = e.uid; wantFrom(host, e); if (myUid && e.uid === myUid) { host.mine = true; haveMine = true; } continue; }
+    if (key === HOST_NAME.toLowerCase()) { host.uid = e.uid; wantFrom(host, e); phoneTag(host, e.m); if (myUid && e.uid === myUid) { host.mine = true; haveMine = true; } continue; }
     if (seen.has(key)) continue; seen.add(key);
     const mine = myUid ? e.uid === myUid : !!(myEntry && myEntry.name.toLowerCase() === key);
     if (mine) haveMine = true;
     const ch = addChar(withSmoke(codeToLook(e.code), e), e.name, { mine, uid: e.uid });
+    phoneTag(ch, e.m);
     ch.smokeUntil = ch.look.smoke ? e.e : 0;
     wantFrom(ch, e);
   }
@@ -6058,7 +6076,57 @@ window.addEventListener('keyup', (e) => {
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 const BIRD = { pitch: 1.3, d: 14, x0: -84, x1: 86, z0: -50, z1: 56 };
 // which floor the camera is on: the bar, the basement or the hotel, each with its own bounds for free looking
-const zoneOf = (x) => (x > 460 ? 'dev' : x > 390 ? 'bankb' : x > 340 ? 'bank2' : x > 280 ? 'bank' : x > 150 ? 'f2' : x > 80 ? 'base' : 'main');
+const zoneOf = zoneAtX;
+// ---------------------------------------------------------------- only draw the place you're in
+// every static thing in the world gets tagged with its zone once; when you change zones the others switch off.
+// lights: only the nearest few in your zone stay on (a fixed number, so phones never recompile shaders as you walk)
+const LITE = !/[?&]full\b/.test(location.search) && (/[?&]lite\b/.test(location.search) || /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform)));
+const LIGHT_BUDGET = LITE ? 6 : 12;
+let cullZone = null, cullTagged = false, lightTimer = 0;
+const _bb = new THREE.Box3();
+function tagZones() {
+  for (const o of scene.children) {
+    if (o.userData.zone || o.isLight || o.userData.anyZone) continue;
+    if (crowd.some((c) => c.root === o)) continue;
+    _bb.setFromObject(o);
+    if (_bb.isEmpty()) continue;
+    const a = zoneAtX(_bb.min.x), b = zoneAtX(_bb.max.x);
+    o.userData.zone = a === b ? a : 'any';
+    o.userData.cx = (_bb.min.x + _bb.max.x) / 2; o.userData.cz = (_bb.min.z + _bb.max.z) / 2;
+    o.userData.rad = Math.hypot(_bb.max.x - _bb.min.x, _bb.max.z - _bb.min.z) / 2;
+  }
+  cullTagged = true;
+}
+// anything past the fog is invisible anyway, so it isn't drawn at all
+const fogCut = () => (scene.fog ? scene.fog.far + 3 : 999);
+function applyZone(z) {
+  cullZone = z;
+  for (const o of scene.children) {
+    const t = o.userData.zone; if (!t || t === 'any' || o.isLight) continue;
+    o.visible = t === z && (o.userData.cx === undefined || Math.hypot(o.userData.cx - camera.position.x, o.userData.cz - camera.position.z) - o.userData.rad < fogCut());
+  }
+}
+
+const _lp = new THREE.Vector3();
+function pickLights(z) {
+  const cand = [];
+  for (const o of scene.children) {
+    if (!o.isPointLight && !o.isSpotLight) continue;
+    if (o.userData.always) { o.visible = true; continue; }
+    if (zoneAtX(o.position.x) !== z) { o.visible = false; continue; }
+    const d = Math.hypot(o.position.x - cam.tx, o.position.z - cam.tz) - (o.distance || 10) * 0.5 + (o.intensity > 0.05 ? 0 : 50);
+    cand.push([d, o]);
+  }
+  cand.sort((a, b) => a[0] - b[0]);
+  cand.forEach(([, o], i) => { o.visible = i < LIGHT_BUDGET; });
+}
+function zoneCullHook(dt) {
+  if (!cullTagged) tagZones();
+  const z = zoneOf(cam.tx);
+  if (z !== cullZone) { tagZones(); applyZone(z); lightTimer = 0; }
+  lightTimer -= dt;
+  if (lightTimer <= 0) { lightTimer = 0.25; pickLights(z); applyZone(z); }
+}
 function zoneBounds() {
   const z = zoneOf(camT.tx);
   if (z === 'bank') return { x0: 283.5, x1: 316.5, z0: -17.5, z1: 10.5 };
@@ -6640,6 +6708,8 @@ function toast(text) {
 
 // ================================================================ v42: restroom, VIP glass, Charon, card room, coins, lot, events
 const PRE_HOOKS = [], POST_HOOKS = [], REBUILD_HOOKS = [];
+PRE_HOOKS.push(zoneCullHook);
+PRE_HOOKS.push((dt) => tourHook(dt));
 REBUILD_HOOKS.push(placeNpcHook);
 REBUILD_HOOKS.push(bankNpcHook);
 POST_HOOKS.push(cinemaHook);
@@ -7442,7 +7512,7 @@ let pixels = true;
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   const scale = pixels ? Math.max(2, Math.round(Math.min(w, h) / 380)) : 1;
-  renderer.setPixelRatio(pixels ? 1 : Math.min(devicePixelRatio, 2));
+  renderer.setPixelRatio(pixels || LITE ? 1 : Math.min(devicePixelRatio, 2));
   renderer.setSize(Math.max(1, Math.round(w / scale)), Math.max(1, Math.round(h / scale)), false);
   snap.value.set(Math.round(w / scale / 1.5), Math.round(h / scale / 1.5));
   camera.aspect = w / h; camera.updateProjectionMatrix();
@@ -7459,7 +7529,7 @@ function tick() {
   // while you're editing your look, hide your old character (never the bartender) so only the preview shows
   const editing = !creatorEl.hidden && !formEl.hidden;
   for (const ch of crowd) {
-    ch.root.visible = !(editing && ch.mine && !ch.host && ch !== draftChar);
+    ch.root.visible = !(editing && ch.mine && !ch.host && ch !== draftChar) && (ch === draftChar || cullZone === null || zoneOf(ch.root.position.x) === cullZone && (ch.mine || Math.hypot(ch.root.position.x - camera.position.x, ch.root.position.z - camera.position.z) < fogCut()));
     pose(ch, ch.act, beat + (ch.act === 'dance' ? 0 : ch.phase), t);
     keepGlassUpright(ch);
     if (ch.pop !== undefined && ch.pop < 1) {
@@ -7727,7 +7797,7 @@ $('doneClose').onclick = closeCreator;
 $('createBtn').onclick = openCreator;
 
 function enterBar(withSound) {
-  $('gate').hidden = true;
+  $('gate').hidden = true; gateWanted = false; enteredGame = true; endTour();
   if (withSound) { startAudio(); setMuted(false); }
   else setMuted(true);
   $('mute').setAttribute('aria-pressed', muted ? 'true' : 'false'); $('mute').textContent = muted ? 'Sound off' : 'Sound on';
@@ -7849,10 +7919,43 @@ window.BAR = {
 myEntry = loadMine();
 if (myEntry) $('createBtn').textContent = 'Edit my character';
 updateTrackUI();
+// ---- the loading tour: once the city is built the loading screen thins out and the camera drifts through a few places,
+// which also gets every building's shaders ready before you walk in
+const TOUR = [['street', 'Lighting the street lamps…'], ['bar', 'Polishing the bar…'], ['bankA', 'Counting the vault…'], ['pool', 'Racking the pool table…'], ['downtown', 'Waking up the city…']];
+let touring = false, tourI = 0, tourT = 0;
+function tourShot(i) {
+  const [v, label] = TOUR[i % TOUR.length];
+  if (VIEWS[v]) { follow = null; cutTo(() => { Object.assign(camT, VIEWS[v]); camT.free = false; }); }
+  if (window.LOAD) window.LOAD.set(Math.min(100, 70 + i * 6), i >= TOUR.length - 1 ? 'Ready.' : label);
+}
+let gateWanted = false, enteredGame = false;
+function startTour() {
+  if (enteredGame) { $('loading').hidden = true; if (window.LOAD) window.LOAD.done(); return; }   // clicked in before the city finished loading
+  touring = true; tourI = 0; tourT = 0;
+  gateWanted = !$('gate').hidden; $('gate').hidden = true;   // the welcome card waits until the loading bar is done
+  $('loading').classList.add('tour'); $('gate').classList.add('tour');
+  tourShot(0);
+}
+function tourHook(dt) {
+  if (!touring) return;
+  camT.yaw += dt * 0.07;
+  const now = performance.now();
+  if (!tourT) tourT = now;
+  if (now - tourT > 2600) {
+    tourT = now; tourI++;
+    if (tourI === TOUR.length - 1 && !$('loading').hidden) { tourShot(tourI); setTimeout(() => { $('loading').hidden = true; $('gate').hidden = gateWanted ? false : $('gate').hidden; if (window.LOAD) window.LOAD.done(); }, 900); }
+    else tourShot(tourI);
+  }
+}
+function endTour() {
+  if (!touring) return;
+  touring = false; $('loading').hidden = true; $('gate').classList.remove('tour');
+  setView('downtown');
+}
 (document.fonts && document.fonts.load ? Promise.all([document.fonts.load('28px "VT323"'), document.fonts.load('46px "Limelight"')]).catch(() => { }) : Promise.resolve()).then(() => {
   drawNeon(true);
   rebuild();
-  $('loading').hidden = true;
+  startTour();
   if (window.NET && window.NET.start) window.NET.start();
 });
 tick();
