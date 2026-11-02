@@ -1133,7 +1133,8 @@ const ROOMS = {
   street: { x0: -84, x1: 36, z0: 4, z1: 17.4, name: 'Street', outside: true },
   alley: { x0: -14, x1: 15, z0: -35, z1: -11, name: 'Backstreet', outside: true },
   drive: { x0: 15, x1: 38, z0: -62, z1: 4, name: 'Valet drive', outside: true },
-  carpark: { x0: -88, x1: -14.2, z0: -72, z1: 4, name: 'Car park', outside: true }
+  carpark: { x0: -88, x1: -14.2, z0: -72, z1: 4, name: 'Car park', outside: true },
+  golf: { x0: -50, x1: 120, z0: -275, z1: -62, name: 'Golf club', outside: true }
 };
 function roomAt(x, z) {
   for (const k in ROOMS) { const r = ROOMS[k]; if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r; }
@@ -3756,7 +3757,7 @@ for (const R of HOTEL_ROOMS) {
 // ================================================================ OUTSIDE: the street turns the corner, the valet drive, and the big public car park
 // ---- the corner: past the dance room the street bends left and runs down the side of the building
 const CC = { x: ST.x1, z: 2.0 }, CRI = ST.curb0 - CC.z, CRO = ST.curb1 - CC.z;   // turn centre, inner and outer curb radius
-const SS = { x0: CC.x + CRI, x1: CC.x + CRO, z1: CC.z, z0: -60 };                  // the side street's road
+const SS = { x0: CC.x + CRI, x1: CC.x + CRO, z1: CC.z, z0: -66.2 };                  // the side street's road
 const groundAt = (x0, x1, z0, z1, mat, tile, y) => { const m = groundPlane(x0, x1, z0, z1, asphaltTex, tile, y); m.material = mat; return m; };
 const pavingMat = ps1(new THREE.MeshLambertMaterial({ map: pavingTex })), asphaltMat = ps1(new THREE.MeshLambertMaterial({ map: asphaltTex }));
 const lawnTex = canvasTex(16, 16, (x, w, h) => { noiseFill(x, w, h, [24, 44, 24], 9); for (let k = 0; k < 18; k++) { x.fillStyle = 'rgb(40,66,34)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 2); } });
@@ -3799,7 +3800,7 @@ groundAt(SS.x1 + 0.12, SS.x1 + 4.2, SS.z0, CC.z, pavingMat, 1.2, 0);
     const m = new THREE.Mesh(g, windowMat); m.position.set((p[0] + q[0]) / 2, h / 2, (p[1] + q[1]) / 2);
     m.rotation.y = Math.atan2(-(q[1] - p[1]), q[0] - p[0]) + Math.PI; scene.add(m);
   });
-  for (let z = CC.z, k = 0; z > SS.z0; k++) {
+  for (let z = CC.z, k = 0; z > -14; k++) {   // only the first block; further down it's trees towards the golf club
     const w = 7 + (k * 5) % 4, h = 7 + (k * 7) % 6;
     const g = new THREE.PlaneGeometry(w, h); scaleUV(g, w / 3.2, h / 6.4);
     const m = new THREE.Mesh(g, windowMat); m.position.set(SS.x1 + 4.3, h / 2, z - w / 2); m.rotation.y = -Math.PI / 2; scene.add(m);
@@ -3906,9 +3907,7 @@ for (let z = PK2.z0; z <= PK2.z1 - 2; z += 2.5) S.push(cyl(V(PK2.x0, 0, z), V(PK
   const m2 = new THREE.Mesh(g2, fm); m2.position.set(PK2.x0, 1.0, (PK2.z0 + PK2.z1 - 2) / 2); m2.rotation.y = Math.PI / 2; scene.add(m2);
   S.push(cyl(V(PK2.x0, 1.95, PK2.z0), V(PK2.x1, 1.95, PK2.z0), 0.02, 0.02, [70, 72, 76], { n: 4 }));
   S.push(cyl(V(PK2.x0, 1.95, PK2.z0), V(PK2.x0, 1.95, PK2.z1 - 2), 0.02, 0.02, [70, 72, 76], { n: 4 }));
-  // a warehouse behind the fence
-  const wg = new THREE.PlaneGeometry(w1 + 10, 9); scaleUV(wg, (w1 + 10) / 3.2, 9 / 6.4);
-  const wm = new THREE.Mesh(wg, windowMat); wm.position.set((PK2.x0 + PK2.x1) / 2, 4.5, PK2.z0 - 6); scene.add(wm);
+
 }
 // the bays: five rows of eighteen, painted white, a concrete wheel stop at the head of each
 const BAY_W = 2.6, BAY_D = 5.2, BX0 = -77, NB = 18, BX1 = BX0 + NB * BAY_W;
@@ -4026,6 +4025,272 @@ function walkersTick(dt) {
     w.ch.root.position.set(x, 0, z);
     w.ch.root.rotation.y = Math.atan2((sg[1][0] - sg[0][0]) * w.dir, (sg[1][1] - sg[0][1]) * w.dir);
   }
+}
+
+const GOLF_FLAGS = [], GOLF_TREES = [];
+// pieces of a ring (or ellipse) around any centre, as small boxes so faces point the right way
+function arcRing(cx, cz, r0, r1, y0, y1, col, n, sx, sz, a0, a1) {
+  sx = sx || 1; sz = sz || 1; a0 = a0 || 0; a1 = a1 === undefined ? Math.PI * 2 : a1;
+  const out = [], P = (r, a, y) => V(cx + Math.sin(a) * r * sx, y, cz - Math.cos(a) * r * sz);
+  for (let k = 0; k < n; k++) {
+    const u0 = a0 + (a1 - a0) * k / n, u1 = a0 + (a1 - a0) * (k + 1) / n;
+    out.push(loft([[P(r0, u0, y0), P(r0, u1, y0), P(r1, u1, y0), P(r1, u0, y0)], [P(r0, u0, y1), P(r0, u1, y1), P(r1, u1, y1), P(r1, u0, y1)]], col, { amt: 0.03 }));
+  }
+  return out;
+}
+const golfPoolMat = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, color: 0xb8c8ff, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -20 });
+// ================================================================ THE GOLF CLUB: down the side street, past the trees, six holes under floodlights
+// the course as data; golf.js plays on the same numbers (BAR.golfCourse)
+const GOLF = {
+  bounds: { x0: -10, x1: 80, z0: -232, z1: -72 },
+  holes: [
+    { par: 4, tee: [36, -82], pin: [48, -166], green: [48, -166, 7, 6], fw: [[37, -96], [46, -152]], fwr: 7.5, bunkers: [[55.5, -161, 2.6], [40, -152, 2.2]], water: [] },
+    { par: 3, tee: [58, -180], pin: [71, -126], green: [71, -126, 6.5, 6], fw: [[61, -166], [68, -142]], fwr: 5.5, bunkers: [[77.5, -129, 2.3]], water: [[64, -153, 6.5, 4.2]] },
+    { par: 3, tee: [74, -114], pin: [64, -84], green: [64, -84, 6, 5.5], fw: [], fwr: 0, bunkers: [[70.5, -92, 2.8]], water: [] },
+    { par: 4, tee: [20, -88], pin: [10, -152], green: [10, -152, 7, 6.5], fw: [[20, -102], [12, -142]], fwr: 7.5, bunkers: [[17, -158, 2.4]], water: [[3, -120, 4.6, 8]] },
+    { par: 3, tee: [4, -164], pin: [-2, -212], green: [-2, -212, 6.5, 6], fw: [[3, -176], [0, -200]], fwr: 5.5, bunkers: [[4.5, -208, 2.3], [-8, -214, 2]], water: [] },
+    { par: 3, tee: [8, -224], pin: [50, -214], green: [50, -214, 6.5, 6], fw: [[19, -222.5], [40, -216]], fwr: 6, bunkers: [[46, -207.5, 2.2]], water: [[30, -226.5, 6, 3.4]] }
+  ]
+};
+GOLF.holes.forEach((h, i) => { h.n = i + 1; h.len = Math.round(Math.hypot(h.pin[0] - h.tee[0], h.pin[1] - h.tee[1])); });
+const segDist = (x, z, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz; let u = l2 ? ((x - a[0]) * dx + (z - a[1]) * dz) / l2 : 0; u = Math.max(0, Math.min(1, u)); return Math.hypot(x - a[0] - dx * u, z - a[1] - dz * u); };
+const inEll = (x, z, e, pad) => { const rx = e[2] + (pad || 0), rz = e[3] + (pad || 0); return ((x - e[0]) / rx) ** 2 + ((z - e[1]) / rz) ** 2 <= 1; };
+// what the ball is sitting on at a point
+function golfSurface(x, z) {
+  const B = GOLF.bounds;
+  if (x < B.x0 || x > B.x1 || z < B.z0 || z > B.z1) return 'ob';
+  for (const h of GOLF.holes) {
+    for (const w of h.water) if (inEll(x, z, w)) return 'water';
+    for (const b of h.bunkers) if (Math.hypot(x - b[0], z - b[1]) <= b[2]) return 'bunker';
+    if (inEll(x, z, h.green)) return 'green';
+  }
+  for (const h of GOLF.holes) {
+    if (inEll(x, z, h.green, 1.6)) return 'fringe';
+    if (h.fw.length && segDist(x, z, h.fw[0], h.fw[1]) <= h.fwr) return 'fairway';
+    if (Math.abs(x - h.tee[0]) <= 2.6 && Math.abs(z - h.tee[1]) <= 2.6) return 'tee';
+  }
+  return 'rough';
+}
+{
+  // ---- ground: rough everywhere, then fairways, fringes, greens, bunkers and water laid on top
+  const flatShape = (pts) => { const s = new THREE.Shape(); pts.forEach(([x, z], i) => (i ? s.lineTo(x, -z) : s.moveTo(x, -z))); return s; };
+  const ellPts = (e, pad, n) => { const out = []; for (let k = 0; k < (n || 40); k++) { const a = (k / (n || 40)) * Math.PI * 2; out.push([e[0] + Math.cos(a) * (e[2] + pad), e[1] + Math.sin(a) * (e[3] + pad)]); } return out; };
+  const capPts = (a, b, r, n) => {
+    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), out = []; n = n || 14;
+    for (let k = 0; k <= n; k++) { const t = ang + Math.PI / 2 + (k / n) * Math.PI; out.push([a[0] + Math.cos(t) * r, a[1] + Math.sin(t) * r]); }
+    for (let k = 0; k <= n; k++) { const t = ang - Math.PI / 2 + (k / n) * Math.PI; out.push([b[0] + Math.cos(t) * r, b[1] + Math.sin(t) * r]); }
+    return out;
+  };
+  const lay = (pts, mat, y, uvs) => {
+    const g = new THREE.ShapeGeometry(flatShape(pts));
+    const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / uvs, uv.getY(i) / uvs);
+    const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.y = y; scene.add(m); return m;
+  };
+  const stripes = (a, b, c) => canvasTex(16, 16, (x, w, h) => { for (let j = 0; j < h; j++) { const k = Math.floor(j / 8) % 2; noiseFill; x.fillStyle = k ? a : b; x.fillRect(0, j, w, 1); } for (let n = 0; n < 30; n++) { x.fillStyle = c; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 1); } });
+  const gm = (tex, units, emi) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; return ps1(new THREE.MeshLambertMaterial({ map: tex, emissive: emi || 0x000000, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: units })); };
+  const roughTex = canvasTex(16, 16, (x, w, h) => { noiseFill(x, w, h, [20, 40, 20], 10); for (let k = 0; k < 24; k++) { x.fillStyle = 'rgb(34,58,28)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 2); } });
+  roughTex.wrapS = roughTex.wrapT = THREE.RepeatWrapping;
+  const roughMat = ps1(new THREE.MeshLambertMaterial({ map: roughTex, emissive: 0x040904 }));
+  const B = GOLF.bounds;
+  for (const [a, b, c, d] of [[B.x0 - 40, B.x1 + 40, B.z0 - 40, -80], [B.x0 - 40, 22, -80, -66.2], [35.2, B.x1 + 40, -80, -66.2], [22, 35.2, -80, -77.4], [34.4, B.x1 + 40, -66.2, 2]]) { const m = groundPlane(a, b, c, d, roughTex, 1.6, 0); m.material = roughMat; }
+  const fwMat = gm(stripes('rgb(52,104,46)', 'rgb(44,92,40)', 'rgb(60,116,52)'), -2, 0x081408);
+  const tee = gm(stripes('rgb(56,110,50)', 'rgb(48,98,44)', 'rgb(64,120,56)'), -2, 0x081408);
+  const fringeMat = gm(canvasTex(16, 16, (x, w, h) => noiseFill(x, w, h, [46, 96, 42], 6)), -3, 0x081408);
+  const greenMat = gm(stripes('rgb(86,172,72)', 'rgb(76,158,64)', 'rgb(98,184,82)'), -4, 0x123012);
+  const sandMat = gm(canvasTex(16, 16, (x, w, h) => noiseFill(x, w, h, [196, 178, 130], 12)), -5, 0x14100a);
+  const waterMat = new THREE.MeshBasicMaterial({ map: (() => { const t = canvasTex(32, 32, (x, w, h) => { noiseFill(x, w, h, [18, 46, 70], 8); for (let k = 0; k < 14; k++) { x.fillStyle = 'rgba(120,170,210,0.45)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 4 + Math.floor(rr() * 6), 1); } }); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })(), polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -5, fog: true });
+  GOLF.waterTex = waterMat.map;
+  for (const h of GOLF.holes) {
+    if (h.fw.length) lay(capPts(h.fw[0], h.fw[1], h.fwr), fwMat, 0.012, 6);
+    lay([[h.tee[0] - 2.6, h.tee[1] - 2.6], [h.tee[0] + 2.6, h.tee[1] - 2.6], [h.tee[0] + 2.6, h.tee[1] + 2.6], [h.tee[0] - 2.6, h.tee[1] + 2.6]], tee, 0.03, 2);
+    S.push(box(h.tee[0] - 2.7, h.tee[0] + 2.7, 0, 0.03, h.tee[1] - 2.7, h.tee[1] + 2.7, [40, 70, 36], 0.03));
+    lay(ellPts(h.green, 1.6), fringeMat, 0.016, 3);
+    lay(ellPts(h.green, 0), greenMat, 0.02, 3);
+    for (const b of h.bunkers) { lay(ellPts([b[0], b[1], b[2], b[2]], 0, 20), sandMat, 0.024, 2); S.push(...arcRing(b[0], b[1], b[2], b[2] + 0.18, 0, 0.06, [150, 136, 100], 20)); }
+    for (const w of h.water) { lay(ellPts(w, 0, 32), waterMat, 0.022, 4); S.push(...arcRing(w[0], w[1], Math.max(w[2], w[3]), Math.max(w[2], w[3]) + 0.3, 0, 0.12, [70, 66, 60], 24, w[2] / Math.max(w[2], w[3]), w[3] / Math.max(w[2], w[3]))); }
+    // the cup, the flag on its pole, and the tee markers and sign
+    const [px, pz] = h.pin;
+    const cup = new THREE.Mesh(new THREE.CircleGeometry(0.11, 12), new THREE.MeshBasicMaterial({ color: 0x050505, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -10 }));
+    cup.rotation.x = -Math.PI / 2; cup.position.set(px, 0.025, pz); scene.add(cup);
+    S.push(cyl(V(px, 0, pz), V(px, 2.3, pz), 0.018, 0.018, [236, 236, 230], { n: 5 }));
+    G.push(cyl(V(px, 2.3, pz), V(px, 2.36, pz), 0.03, 0.02, [255, 240, 200], { n: 6, amt: 0 }));
+    const fc = document.createElement('canvas'); fc.width = 64; fc.height = 40; const fx = fc.getContext('2d');
+    fx.fillStyle = '#c8142c'; fx.fillRect(0, 0, 64, 40); fx.fillStyle = '#fff4e0'; fx.font = 'bold 26px "IBM Plex Mono", monospace'; fx.textAlign = 'center'; fx.textBaseline = 'middle'; fx.fillText(String(h.n), 32, 21);
+    const ft = new THREE.CanvasTexture(fc); ft.magFilter = THREE.NearestFilter; ft.encoding = THREE.sRGBEncoding;
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.44), new THREE.MeshBasicMaterial({ map: ft, side: THREE.DoubleSide, fog: true }));
+    const fg = new THREE.Group(); fg.position.set(px, 2.05, pz); flag.position.set(0.36, 0, 0); fg.add(flag); scene.add(fg);
+    GOLF_FLAGS.push(fg);
+    for (const e of [-1, 1]) S.push(cyl(V(h.tee[0] + e * 1.4, 0.03, h.tee[1]), V(h.tee[0] + e * 1.4, 0.16, h.tee[1]), 0.07, 0.07, [30, 80, 200], { n: 8 }));
+    const ang = Math.atan2(h.pin[0] - h.tee[0], h.pin[1] - h.tee[1]), sx = h.tee[0] - Math.sin(ang) * 3.4 + Math.cos(ang) * 2.4, sz = h.tee[1] - Math.cos(ang) * 3.4 - Math.sin(ang) * 2.4;
+    S.push(cyl(V(sx, 0, sz), V(sx, 1.0, sz), 0.04, 0.04, [60, 44, 30], { n: 5 }));
+    const sc = document.createElement('canvas'); sc.width = 96; sc.height = 64; const sxx = sc.getContext('2d');
+    sxx.fillStyle = '#16241a'; sxx.fillRect(0, 0, 96, 64); sxx.strokeStyle = '#e2b467'; sxx.lineWidth = 2; sxx.strokeRect(2, 2, 92, 60);
+    sxx.fillStyle = '#e2b467'; sxx.textAlign = 'center'; sxx.font = 'bold 22px "IBM Plex Mono", monospace'; sxx.fillText('HOLE ' + h.n, 48, 26); sxx.font = '14px "IBM Plex Mono", monospace'; sxx.fillStyle = '#d8e8d0'; sxx.fillText('PAR ' + h.par + ' · ' + h.len + 'm', 48, 48);
+    const st = new THREE.CanvasTexture(sc); st.magFilter = THREE.NearestFilter; st.encoding = THREE.sRGBEncoding;
+    const sm = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.48), decal({ map: st, side: THREE.DoubleSide })); sm.position.set(sx, 1.18, sz); sm.rotation.y = ang + Math.PI; scene.add(sm);
+  }
+  // ---- trees: a belt round the course and copses between the holes, never on a hole's line of play
+  const treeOK = (x, z) => {
+    if (golfSurface(x, z) !== 'rough' && golfSurface(x, z) !== 'ob') return false;
+    for (const h of GOLF.holes) { if (segDist(x, z, h.tee, h.pin) < Math.max(9, h.fwr + 4)) return false; if (Math.hypot(x - h.tee[0], z - h.tee[1]) < 6) return false; }
+    if (Math.hypot(x - 28.6, z - -71) < 9 || (x > 22 && x < 35 && z > -80) || (x > 33 && x < 56 && z > -78)) return false;   // the turnaround and the clubhouse
+    return true;
+  };
+  const pine = (x, z, s) => {
+    S.push(cyl(V(x, 0, z), V(x, 1.2 * s, z), 0.14 * s, 0.1 * s, [50, 36, 26], { n: 6 }));
+    S.push(loft([rring(0.9 * s, 1.5 * s, 1.5 * s, x, z, 8, 2), rring(2.4 * s, 1.0 * s, 1.0 * s, x, z, 8, 2), rring(2.5 * s, 1.2 * s, 1.2 * s, x, z, 8, 2), rring(3.9 * s, 0.6 * s, 0.6 * s, x, z, 8, 2), rring(4.0 * s, 0.75 * s, 0.75 * s, x, z, 8, 2), rring(5.6 * s, 0.05, 0.05, x, z, 8, 2)], [22, 50, 30], { amt: 0.12 }));
+  };
+  const tr = rngFrom(31337);
+  const plant = (x, z, s) => (tr() < 0.55 ? pine(x, z, s) : tree(x, z, s));
+  for (let n = 0; n < 4000 && GOLF_TREES.length < 300; n++) {
+    const x = B.x0 - 30 + tr() * (B.x1 - B.x0 + 60), z = B.z0 - 30 + tr() * (B.z1 - B.z0 + 40);
+    const edge = x < B.x0 + 4 || x > B.x1 - 4 || z < B.z0 + 4;
+    if (!edge && tr() < 0.55) continue;
+    if (!treeOK(x, z)) continue;
+    if (GOLF_TREES.some(([a, b]) => Math.hypot(a - x, b - z) < 3.2)) continue;
+    const s = 0.8 + tr() * 0.6; plant(x, z, s); GOLF_TREES.push([x, z, s]);
+  }
+  // a tree line down the far side of the side street, where the buildings used to be, and a few up the lawn by the drive
+  for (let n = 0; n < 600 && GOLF_TREES.length < 380; n++) {
+    const x = 36.5 + tr() * 24, z = -15 - tr() * 48;
+    if (x > 33 && x < 56 && z < -60) continue;
+    if (GOLF_TREES.some(([a, b]) => Math.hypot(a - x, b - z) < 3)) continue;
+    const s = 0.8 + tr() * 0.6; plant(x, z, s); GOLF_TREES.push([x, z, s]);
+  }
+  // the strip behind the courtyard, between the car park and the drive: lawn and a copse
+  { const m = groundPlane(AL.x0 - 0.05, AL.x1 + 0.05, -66.2, AL.z0 - 0.05, roughTex, 1.6, 0); m.material = roughMat; }
+  for (let n = 0; n < 200 && GOLF_TREES.length < 420; n++) {
+    const x = AL.x0 + 1.5 + tr() * (AL.x1 - AL.x0 - 3), z = AL.z0 - 9 - tr() * 22;
+    if (GOLF_TREES.some(([a, b]) => Math.hypot(a - x, b - z) < 3)) continue;
+    const s = 0.8 + tr() * 0.6; plant(x, z, s); GOLF_TREES.push([x, z, s]);
+  }
+  // rolling hills beyond the trees
+  for (const [x, z, w, d, h] of [[-40, -150, 26, 60, 7], [-36, -230, 30, 34, 9], [110, -120, 34, 70, 10], [104, -210, 30, 40, 8], [30, -270, 60, 26, 11], [-30, -90, 18, 22, 5], [96, -60, 26, 22, 6]]) {
+    S.push(loft([rring(-0.2, w, d, x, z, 16, 2), rring(h * 0.4, w * 0.82, d * 0.82, x, z, 16, 2), rring(h * 0.8, w * 0.5, d * 0.5, x, z, 16, 2), rring(h, w * 0.18, d * 0.18, x, z, 16, 2)], [22, 42, 24], { smooth: true, amt: 0.08 }));
+  }
+  // a winding cart path
+  const pathPts = [[30, -76], [31.5, -95], [33, -120], [32, -150], [33, -180], [30, -205], [24, -230]];
+  for (let k = 0; k < pathPts.length - 1; k++) { const [a, b] = [pathPts[k], pathPts[k + 1]]; S.push(groundStrip(a[0], a[1], b[0], b[1], 1.6, 0.005, [70, 66, 58])); }
+
+  // ---- floodlights on tall masts at the corners, bathing the course in pale light
+  for (const [x, z, ax, az] of [[31, -110, 1, -1], [31, -190, -1, 1], [B.x1 + 2, -150, -1, 0], [B.x0 - 2, -125, 1, 0]]) {
+    S.push(cyl(V(x, 0, z), V(x, 13, z), 0.18, 0.12, [56, 58, 62], { n: 6 }));
+    S.push(box(x - 1.3, x + 1.3, 12.6, 13.0, z - 0.1, z + 0.1, [40, 42, 46], 0.02));
+    for (let k = -1; k <= 1; k++) { S.push(box(x + k * 0.85 - 0.36, x + k * 0.85 + 0.36, 13.0, 13.7, z - 0.25, z + 0.25, [30, 30, 34], 0.03)); G.push(box(x + k * 0.85 - 0.3, x + k * 0.85 + 0.3, 13.06, 13.64, z + az * 0.26 - 0.01, z + az * 0.26 + 0.01, [236, 244, 255], 0)); }
+    const pool = lightPool(x + ax * 14, z + az * 14, 26); pool.material = golfPoolMat;
+  }
+  pLight(0xdfe8ff, 1.3, 46, 31, 12, -110); pLight(0xdfe8ff, 1.3, 46, 52, 12, -190); pLight(0xdfe8ff, 1.2, 40, 8, 12, -150);
+
+  // ---- the turnaround at the end of the side street, and the clubhouse beside it
+  { const g = new THREE.CircleGeometry(6.2, 28); scaleUV(g, 12.4 / 3, 12.4 / 3); const m = new THREE.Mesh(g, asphaltMat); m.rotation.x = -Math.PI / 2; m.position.set(28.6, ROAD_Y + 0.002, -71); scene.add(m); }
+  S.push(...arcRing(28.6, -71, 6.2, 6.32, ROAD_Y, 0, [74, 74, 80], 36, 1, 1, Math.PI * 1.36, Math.PI * 2.64));
+  S.push(loft([rring(ROAD_Y, 2.2, 2.2, 28.6, -71, 14, 2), rring(0.3, 2.2, 2.2, 28.6, -71, 14, 2)], [86, 84, 80], { amt: 0.04 }));
+  tree(28.6, -71, 0.9);
+  {
+    const x0 = 37, x1 = 52, z0 = -70.5, z1 = -63, H = 3.4, wood = [70, 50, 34], trim = [214, 206, 188];
+    S.push(box(x0, x1, 0, 0.3, z0 - 1.2, z1, [96, 92, 86], 0.03));                       // a stone plinth and porch
+    S.push(box(x0, x1, 0.3, H, z0, z1, wood, 0.05));
+    S.push(box(x0 - 0.3, x1 + 0.3, H, H + 0.25, z0 - 0.3, z1 + 0.3, trim, 0.03));
+    S.push(loft([[V(x0 - 0.5, H + 0.25, z0 - 0.6), V(x1 + 0.5, H + 0.25, z0 - 0.6), V(x1 + 0.5, H + 0.25, z1 + 0.6), V(x0 - 0.5, H + 0.25, z1 + 0.6)], [V(x0 + 2, H + 2.4, (z0 + z1) / 2 - 0.2), V(x1 - 2, H + 2.4, (z0 + z1) / 2 - 0.2), V(x1 - 2, H + 2.4, (z0 + z1) / 2 + 0.2), V(x0 + 2, H + 2.4, (z0 + z1) / 2 + 0.2)]], [40, 54, 46], { amt: 0.05 }));
+    for (let x = x0 + 1.2; x < x1 - 1; x += 2.4) { G.push(box(x, x + 1.3, 1.0, 2.5, z0 - 0.02, z0 + 0.01, [255, 206, 140], 0)); S.push(box(x - 0.08, x + 1.38, 0.92, 1.0, z0 - 0.1, z0 + 0.02, trim, 0.03)); }
+    for (let x = x0 + 0.6; x <= x1; x += 3.6) S.push(cyl(V(x, 0.3, z0 - 1.05), V(x, H, z0 - 1.05), 0.09, 0.09, trim, { n: 8 }));
+    S.push(box(x0, x1, H - 0.2, H, z0 - 1.2, z0, trim, 0.03));
+    const c = document.createElement('canvas'); c.width = 320; c.height = 64; const cx = c.getContext('2d');
+    cx.fillStyle = '#122016'; cx.fillRect(0, 0, 320, 64); cx.strokeStyle = '#e2b467'; cx.lineWidth = 3; cx.strokeRect(3, 3, 314, 58);
+    cx.fillStyle = '#e7c98a'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.font = '30px "Limelight", Georgia, serif'; cx.fillText("SH1DEN'S GOLF CLUB", 160, 34);
+    const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.encoding = THREE.sRGBEncoding;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.2), decal({ map: t })); m.position.set((x0 + x1) / 2, H + 0.95, z0 - 0.62); m.rotation.y = Math.PI; scene.add(m);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { cx.fillStyle = '#122016'; cx.fillRect(6, 6, 308, 52); cx.fillStyle = '#e7c98a'; cx.font = '30px "Limelight", Georgia, serif'; cx.fillText("SH1DEN'S GOLF CLUB", 160, 34); t.needsUpdate = true; });
+    lightPool((x0 + x1) / 2, z0 - 3, 6);
+    // golf carts parked by the porch
+    for (const [gx, gz] of [[39.5, -74.5], [42.3, -74.5], [45.1, -74.5]]) {
+      S.push(box(gx - 0.62, gx + 0.62, 0.3, 0.75, gz - 1.1, gz + 1.1, [230, 228, 220], 0.05));
+      S.push(box(gx - 0.6, gx + 0.6, 0.75, 1.05, gz + 0.1, gz + 0.5, [40, 40, 44], 0.04));
+      for (const [ox, oz] of [[-0.55, -0.9], [0.55, -0.9], [-0.55, 0.9], [0.55, 0.9]]) { S.push(cyl(V(gx + ox, 0.75, gz + oz), V(gx + ox, 1.75, gz + oz), 0.025, 0.025, [30, 30, 34], { n: 4 })); S.push(cyl(V(gx + ox * 1.05 - 0.07, 0.22, gz + oz), V(gx + ox * 1.05 + 0.07, 0.22, gz + oz), 0.22, 0.22, [18, 18, 20], { n: 10 })); }
+      S.push(box(gx - 0.7, gx + 0.7, 1.75, 1.82, gz - 1.2, gz + 1.2, [36, 70, 50], 0.03));
+      S.push(box(gx - 0.18, gx + 0.18, 0.75, 1.3, gz + 0.85, gz + 1.05, [60, 50, 40], 0.05));   // a bag of clubs on the back
+    }
+  }
+  // Pan the starter, at his podium by the first tee
+  S.push(box(33.4, 34.2, 0, 1.05, -79.3, -78.7, [70, 50, 34], 0.04)); S.push(box(33.3, 34.3, 1.05, 1.12, -79.4, -78.6, [214, 206, 188], 0.03));
+  lampPost(30.5, -80, 1, 0, 4.4);
+}
+
+// ---- what golf.js needs from the world: balls, the aiming marker, golfers standing at their ball, the camera
+const golfBallMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x404040 });
+const golfBalls = new Map();   // uid -> { mesh, ring }
+const ringGeo = new THREE.RingGeometry(0.16, 0.24, 16);
+function golfSetBalls(list) {
+  const want = new Set((list || []).map((b) => b.uid));
+  for (const [uid, b] of golfBalls) if (!want.has(uid)) { scene.remove(b.g); golfBalls.delete(uid); }
+  for (const b of list || []) {
+    let o = golfBalls.get(b.uid);
+    if (!o) {
+      const g = new THREE.Group();
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), golfBallMat); g.add(mesh);
+      const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: b.color || 0xffc870, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide }));
+      ring.rotation.x = -Math.PI / 2; g.add(ring);
+      scene.add(g); o = { g, mesh, ring }; golfBalls.set(b.uid, o); g.userData.anyZone = true;
+    }
+    o.mesh.position.set(0, (b.y || 0) + 0.075, 0); o.ring.position.y = -((b.y || 0)) + 0.05; o.ring.visible = !b.y || b.y < 0.05;
+    o.g.position.set(b.x, 0, b.z); o.g.visible = b.visible !== false;
+  }
+}
+const golfMarker = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.62, 20), new THREE.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
+golfMarker.rotation.x = -Math.PI / 2; golfMarker.visible = false; golfMarker.userData.anyZone = true; scene.add(golfMarker);
+const golfAimLine = new THREE.Mesh(toGeometry([box(-0.04, 0.04, 0, 0.01, 0, 1, [255, 214, 120], 0)]), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false }));
+golfAimLine.visible = false; golfAimLine.userData.anyZone = true; scene.add(golfAimLine);
+function golfAim(o) {
+  if (!o) { golfMarker.visible = golfAimLine.visible = false; return; }
+  golfMarker.visible = true; golfMarker.position.set(o.tx, 0.06, o.tz);
+  const d = Math.hypot(o.tx - o.x, o.tz - o.z);
+  golfAimLine.visible = true; golfAimLine.position.set(o.x, 0.05, o.z); golfAimLine.rotation.y = Math.atan2(o.tx - o.x, o.tz - o.z); golfAimLine.scale.set(1, 1, Math.max(0.5, d));
+}
+// golfers: the players in a round leave their seat and stand at their ball, club in hand
+let golfers = {};
+function golfSetPlayers(map) {
+  const was = Object.keys(golfers).sort().join(','), now = Object.keys(map || {}).sort().join(',');
+  golfers = map || {};
+  // someone came off the course: put everybody back in their seats
+  if (was !== now && was.split(',').some((u) => u && !(map || {})[u])) rebuild();
+}
+const clubParts = () => [cyl(V(0, 0, 0), V(0, -0.95, 0.02), 0.009, 0.007, [190, 190, 196], { n: 4 }), box(-0.02, 0.05, -1.0, -0.94, -0.02, 0.06, [60, 60, 66], 0.02), cyl(V(0, 0.02, 0), V(0, -0.2, 0.004), 0.016, 0.014, [20, 20, 22], { n: 5 })];
+function golferOverride(ch, t) {
+  const gp = ch.uid && golfers[ch.uid];
+  if (!gp) { if (ch.golfClub) ch.golfClub.visible = false; return false; }
+  // stand side-on to the line of play, the ball just ahead of the feet
+  const h = gp.yaw, fx = -Math.cos(h), fz = Math.sin(h);
+  ch.root.position.set(gp.x - fx * 0.62, 0, gp.z - fz * 0.62);
+  ch.root.rotation.y = h - Math.PI / 2;
+  if (!ch.golfClub && ch.bones && ch.bones.elR) { ch.golfClub = new THREE.Mesh(toGeometry(clubParts()), charMat); ch.golfClub.position.set(0, -0.3, 0.02); ch.bones.elR.add(ch.golfClub); }
+  if (ch.golfClub) ch.golfClub.visible = true;
+  const u = gp.swingAt ? (performance.now() - gp.swingAt) / 1000 : -1;
+  golfPose(ch, u, t);
+  return true;
+}
+// address, backswing, strike and follow-through, from the swing's start time
+function golfPose(ch, u, t) {
+  const b = ch.bones;
+  b.spine.rotation.x = 0.42; b.head.rotation.x = 0.35;
+  b.thL.rotation.x = b.thR.rotation.x = -0.12; b.knL.rotation.x = b.knR.rotation.x = 0.22; b.hips.position.y = 0.95 - 0.04;
+  b.thL.rotation.z = 0.1; b.thR.rotation.z = -0.1;
+  let sw = 0;   // how far the arms have turned round: 0 at address, + back over the right shoulder, - through to the left
+  if (u >= 0 && u < 0.7) sw = 2.1 * Math.sin((u / 0.7) * Math.PI / 2);
+  else if (u >= 0.7 && u < 0.85) sw = 2.1 - 4.3 * ((u - 0.7) / 0.15);
+  else if (u >= 0.85 && u < 2.4) sw = -2.2;
+  else sw = 0.04 * Math.sin(t * 1.3 + (ch.phase || 0) * 9);   // a small waggle while lining up
+  b.shL.rotation.x = b.shR.rotation.x = -0.5 - Math.abs(sw) * 0.35;
+  b.shL.rotation.z = 0.32 + sw * 0.55; b.shR.rotation.z = -0.32 + sw * 0.55;
+  b.elL.rotation.x = b.elR.rotation.x = -0.15 - Math.max(0, Math.abs(sw) - 1) * 0.5;
+  b.spine.rotation.y = sw * 0.35; b.head.rotation.y = -sw * 0.25;
+}
+let golfCamFollow = null;
+function golfCam(o) {
+  golfCamFollow = o && o.follow ? o : null;
+  if (!o) return;
+  follow = null; velYaw = velPitch = 0;
+  const apply = () => Object.assign(camT, { free: false, tx: o.x, ty: o.ty || 0.9, tz: o.z, d: o.d || 6.5, yaw: o.yaw, pitch: o.pitch || 0.24 });
+  if (o.cut) cutTo(apply); else apply();
 }
 
 ROOMS.base = { x0: BASE.x0, x1: BASE.x1, z0: BASE.z0, z1: BASE.z1, name: 'Basement' };
@@ -4720,7 +4985,8 @@ const VIEWS = {
   alley: { tx: 2.0, ty: 0.9, tz: -21.5, d: 12, yaw: -0.25, pitch: 0.5 },
   drive: { tx: 20.5, ty: 1.0, tz: -22.5, d: 11, yaw: 1.25, pitch: 0.32 },
   carpark: { tx: -40, ty: 1.0, tz: -30, d: 14, yaw: 0.75, pitch: 0.38 },
-  map: { tx: -20, ty: 0, tz: -22, d: 62, yaw: 0, pitch: 1.3, free: true }
+  golf: { tx: 37, ty: 1.2, tz: -90, d: 13, yaw: 0.35, pitch: 0.3 },
+  map: { tx: -4, ty: 0, tz: -60, d: 75, yaw: 0, pitch: 1.3, free: true }
 };
 VIEWS.basement = { tx: 100, ty: 0.9, tz: 0, d: 6.5, yaw: 0.7, pitch: 0.6 };
 VIEWS.f2 = { tx: 208.5, ty: 0, tz: 0, d: 13, yaw: 0, pitch: 1.05, free: true };
@@ -4824,7 +5090,7 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'Shift') keys.fast = false;
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-const BIRD = { pitch: 1.3, d: 14, x0: -86, x1: 36, z0: -68, z1: 17 };
+const BIRD = { pitch: 1.3, d: 14, x0: -86, x1: 84, z0: -236, z1: 17 };
 // which floor the camera is on: the bar, the basement or the hotel, each with its own bounds for free looking
 const zoneOf = zoneAtX;
 // ---------------------------------------------------------------- only draw the floor you're on
@@ -4962,6 +5228,7 @@ function updateCamera(dt, t) {
   const outRoom = camT.free ? null : roomAt(cam.tx, cam.tz);
   const outside = !!(outRoom && outRoom.outside);
   scene.fog.near = camDist > 12 ? Math.max(30, camDist * 0.6) : outside ? 12 : 7; scene.fog.far = camDist > 12 ? Math.max(70, camDist * 2.2) : outside ? 42 : 17;
+  if (roomAt(cam.tx, cam.tz) === ROOMS.golf || golfCamFollow) { scene.fog.near = Math.max(scene.fog.near, 28); scene.fog.far = Math.max(scene.fog.far, 125); }   // you need to see the flag
   // the outside walls only show from street level outside the building
   const cx = camera.position.x, cz = camera.position.z;
   const inBuilding = (cx > -17 && cx < 14 && cz < 4 && cz > (cx > 5 ? -12 : -11)) || (cx >= 14 && cx < 23 && cz < 4 && cz > -4);
@@ -5180,6 +5447,7 @@ const NPC_TALK = {
   plutus: { name: 'Plutus', talk: () => bouncerTalk('back') },
   ben: { name: 'Ben', lines: ['Cameras see everything. I see the cameras.', 'Quiet night. Keep it that way.', "*doesn't look up from his phone*", "If it's on tape, it happened."] },
   valet: { name: 'Phlegyas', lines: ['Keys? I keep every car in town safe.', "Nice night for a drive. Shame you're drinking.", 'Bay one is the boss. Always.', 'I park it, I polish it, I never joyride it. Much.'] },
+  pan: { name: 'Pan', lines: ['Fresh greens tonight. Lights stay on till sunrise.', "Six holes, par twenty. Most people don't break thirty.", 'Mind the pond on the second. It eats balls.', 'Right-click me to start a round, or to join one.', 'Swing easy. The ball does the rest.'] },
   stranger: { name: '???', lines: ['…', "You shouldn't be looking at me.", 'I was never here.', 'Ask Charon about the basement. Or don\'t.'] }
 };
 const npcName = (tg) => (NPC_TALK[tg.key] && NPC_TALK[tg.key].name) || tg.ch.name || 'Someone';
@@ -5217,6 +5485,7 @@ function openActions(tg, x, y, touch) {
     if (tg.key === 'bartender') { drinkFrom = 'bar'; $('dmCig').hidden = false; openDrinkMenu(x, y); if (touch) npcTalk(tg); showHover(null); return; }
     if (tg.key === 'beggar') { ctxShow(name, [talk, ['See what he\'s got', () => window.SOCIAL && window.SOCIAL.openBeggar()]], x, y); return; }
     if (tg.key === 'dj') { ctxShow(name, [talk, ['Request a song', () => (window.HOTEL && window.HOTEL.openDjMenu ? window.HOTEL.openDjMenu(x, y) : changeMusic())]], x, y); return; }
+    if (tg.key === 'pan') { if (window.GOLF) window.GOLF.openMenu(x, y, talk); else ctxShow(name, [talk], x, y); return; }
     if (tg.key === 'minos') { ctxShow(name, [talk, ['Join the poker table', () => (window.POKER ? window.POKER.open() : setView('card'))]], x, y); return; }
     ctxShow(name, [talk], x, y); return;
   }
@@ -5386,6 +5655,14 @@ function toast(text) {
 
 // ================================================================ v42: restroom, VIP glass, Charon, card room, coins, lot, events
 const PRE_HOOKS = [], POST_HOOKS = [], REBUILD_HOOKS = [];
+// Pan, the starter at the golf club, and the flags waving on the greens
+const PAN_LOOK = { jacket: 1, pants: 1, skin: 2, head: 3, hair: 2, beard: 2, eyes: 0, smoke: 0, dance: 3, spot: 1, body: 0, top: 2, bottom: 1, shoes: 1 };
+REBUILD_HOOKS.push(() => { const p = addChar(PAN_LOOK, 'Pan', { npc: true, seedName: 'pan', staff: true }); p.act = 'stand'; p.root.position.set(34.75, 0, -79); p.root.rotation.y = -Math.PI / 2; });
+PRE_HOOKS.push((dt, t) => {
+  if (zoneOf(cam.tx) !== 'main' || cam.tz > -40) return;
+  GOLF_FLAGS.forEach((f, i) => { f.rotation.y = 0.5 * Math.sin(t * 0.7 + i) + 0.18 * Math.sin(t * 3.1 + i * 2); });
+  if (GOLF.waterTex) GOLF.waterTex.offset.set((t * 0.02) % 1, (t * 0.011) % 1);
+});
 PRE_HOOKS.push((dt) => walkersTick(dt));
 REBUILD_HOOKS.push(walkersRebuild);
 PRE_HOOKS.push(zoneCullHook);
@@ -6223,6 +6500,7 @@ function tick() {
   for (const ch of crowd) {
     ch.root.visible = !(editing && ch.mine && !ch.host && ch !== draftChar) && (ch === draftChar || cullZone === null || zoneOf(ch.root.position.x) === cullZone && (ch.mine || Math.hypot(ch.root.position.x - camera.position.x, ch.root.position.z - camera.position.z) < fogCut()));
     pose(ch, ch.act, beat + (ch.act === 'dance' ? 0 : ch.phase), t);
+    golferOverride(ch, t);
     if (ch.onPhone) phonePose(ch, t);
     keepGlassUpright(ch);
     if (ch.pop !== undefined && ch.pop < 1) {
@@ -6566,6 +6844,9 @@ window.BAR = {
   runEvent,
   setSpooky(on) { spooky = !!on; },
   setLotCars,
+  golfCourse: () => ({ holes: GOLF.holes, bounds: GOLF.bounds, surface: golfSurface }),
+  golfSetBalls, golfAim, golfSetPlayers, golfCam,
+  myUid: () => myUid,
   carStyles: () => CAR_STYLES.map((k) => [k, CAR_STYLE_NAMES[k]]),
   carColors: () => CAR_COLORS.map((c) => c[0]),
   setPokerState(st) { pokerState = st || null; },

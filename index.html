@@ -170,6 +170,21 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 #lstage { font-family: var(--display); font-size: 22px; color: var(--neon); letter-spacing: 0.06em; min-height: 1.2em; }
 #ltip { font-size: 12px; color: var(--dim); min-height: 2.6em; line-height: 1.5; text-shadow: 0 1px 3px #000; }
 #gate.tour { background: radial-gradient(ellipse at center, rgba(5,4,4,0.62) 0%, rgba(5,4,4,0.5) 55%, rgba(5,4,4,0.85) 100%); }
+#golfPanel { right: max(16px, env(safe-area-inset-right, 0px)); top: 70px; width: min(430px, calc(100vw - 32px)); }
+#golfPanel .row { align-items: center; margin: 4px 0; } #golfPanel .glabel { width: 70px; color: var(--dim); font-size: 12px; }
+.gcard { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+.gcard th, .gcard td { padding: 3px 4px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.gcard th.now { color: var(--neon); } .gcard tr.par td { color: var(--dim); } .gcard td.gname { text-align: left; white-space: nowrap; }
+.gcard td.under { color: #9be070; } .gcard td.over { color: #ff9a7a; } .gcard td.tot { font-weight: 600; }
+.gmsg { color: var(--fg) !important; }
+#golfHud { position: absolute; left: 50%; bottom: calc(66px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 4; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; width: min(560px, calc(100vw - 24px)); background: linear-gradient(180deg, #161a25, #10131b); }
+#golfHud .ghRow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; } #golfHud .ghInfo { font-size: 12px; color: var(--neon); }
+#golfHud .ghMeter { flex: 1; min-width: 140px; height: 18px; position: relative; background: #07080c; box-shadow: inset 2px 2px 0 0 #000, inset -2px -2px 0 0 #2b3040, 0 0 0 2px var(--edge, #3b4152); }
+#golfHud .ghMeter i { position: absolute; left: 2px; top: 2px; bottom: 2px; width: 0; background: repeating-linear-gradient(90deg, #e2b467 0 6px, #b88a3e 6px 8px); }
+#golfHud .ghMeter i.hot { background: repeating-linear-gradient(90deg, #ff7a5a 0 6px, #c84a30 6px 8px); }
+#golfHud .ghMeter b { position: absolute; top: -3px; bottom: -3px; left: 92%; width: 2px; background: #ff7a5a; }
+#golfHud button[aria-pressed="true"] { background: var(--gold, #e2b467); color: #1a1004; }
+#golfMenu { z-index: 6; }
 #acctPanel { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(400px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; z-index: 7; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
 #acctPanel[hidden] { display: none; }
 #acctPanel label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
@@ -425,7 +440,7 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
 }
 body { font-size: 13px; -webkit-font-smoothing: none; font-smooth: never; }
 /* a notched pixel frame: the outline is drawn on the four sides only, so the corners step in */
-.panel, .popmenu, #drinkMenu, #npcMenu, .dropup > .menu, #toast, .bigcard, #updBar, .gatebox, .loadbox, .lbar {
+.panel, .popmenu, #drinkMenu, #npcMenu, .dropup > .menu, #toast, .bigcard, #updBar, .gatebox, .loadbox, .lbar, #golfHud {
   border: 0 !important; border-radius: 0 !important;
   box-shadow: 0 -3px 0 0 var(--edge), 0 3px 0 0 var(--edge), -3px 0 0 0 var(--edge), 3px 0 0 0 var(--edge),
               inset 3px 3px 0 0 var(--hi), inset -3px -3px 0 0 var(--lo), 7px 10px 0 0 var(--drop) !important;
@@ -541,7 +556,7 @@ input[type=range] { box-shadow: none; background: transparent; }
       <option value="">Rooms ▾</option>
       <option value="bar">Bar</option><option value="lounge">Lounge</option><option value="dance">Dance</option><option value="swim">Pool lounge</option><option value="change">Changing</option>
       <option value="tv">Cinema</option><option value="pool">Billiards</option><option value="card">Casino Royale</option><option value="sec">Security</option><option value="vip" hidden disabled>VIP</option>
-      <option value="street">Street</option><option value="alley">Backstreet</option><option value="drive">Valet drive</option><option value="carpark">Car park</option><option value="map">Map</option>
+      <option value="street">Street</option><option value="alley">Backstreet</option><option value="drive">Valet drive</option><option value="carpark">Car park</option><option value="golf">Golf club</option><option value="map">Map</option>
     </select>
     <button id="floorBtn" type="button">⇡ Upstairs</button>
     <button id="exitBase" type="button" hidden>Exit basement</button>
@@ -779,13 +794,14 @@ window.LOAD = (function () {
 <!-- bump ?v= after each update so browsers load the new files right away -->
 <script src="config.js?v=70"></script>
 <script src="net.js?v=70" onload="LOAD.step(36,'Building the bar…')"></script>
-<script src="bar.js?v=72" onload="LOAD.step(62,'Stocking the shelves…')"></script>
+<script src="bar.js?v=74" onload="LOAD.step(62,'Stocking the shelves…')"></script>
 <script src="pool.js?v=70"></script>
 <script src="extras.js?v=70"></script>
 <script src="poker.js?v=70"></script>
 <script src="cursors.js?v=70"></script>
 <script src="social.js?v=70"></script>
 <script src="hotel.js?v=70"></script>
+<script src="golf.js?v=74"></script>
 <script src="accounts.js?v=70"></script>
 <script>
 (function () {
