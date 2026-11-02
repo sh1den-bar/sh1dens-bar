@@ -183,12 +183,13 @@ async function triggerEvent(k) {
 // ---------------------------------------------------------------- UI
 // ---------------------------------------------------------------- membership: hours in the bar earn tuxedos, shown on your business card
 const TIERS = [[0, '', 'Regular'], [100, 'silver', 'Silver'], [250, 'gold', 'Gold'], [500, 'platinum', 'Platinum'], [750, 'emerald', 'Emerald'], [1000, 'diamond', 'Diamond']];
-const TUX_NAMES = { silver: 'Silver tuxedo', gold: 'Gold tuxedo', platinum: 'Platinum tuxedo', emerald: 'Emerald tuxedo', diamond: 'Diamond tuxedo', ruby: 'Ruby tuxedo' };
+const TUX_NAMES = { silver: 'Silver tuxedo', gold: 'Gold tuxedo', platinum: 'Platinum tuxedo', emerald: 'Emerald tuxedo', diamond: 'Diamond tuxedo', ruby: 'Ruby tuxedo', midnight: 'Midnight tuxedo' };
 const hours = () => ((mine && +mine.m) || 0) / 60;
 const isOwner = () => (NET().myName && (NET().myName() || '').toLowerCase() === 'sh1denfps') && isAdmin();
+const isMatenro = () => (NET().myName && (NET().myName() || '').toLowerCase() === 'matenro') && isAdmin();
 function tierOf(h) { let t = TIERS[0]; for (const x of TIERS) if (h >= x[0]) t = x; return t; }
 function unlockedTux() {
-  if (isAdmin()) return Object.keys(TUX_NAMES).filter((k) => k !== 'ruby' || isOwner());
+  if (isAdmin()) return Object.keys(TUX_NAMES).filter((k) => (k !== 'ruby' || isOwner()) && (k !== 'midnight' || isMatenro()));
   const h = hours(), out = TIERS.filter((x) => x[1] && h >= x[0]).map((x) => x[1]);
   if (perks[myUid()] && perks[myUid()].gold && !out.includes('gold')) out.push('gold');
   return out;
@@ -210,10 +211,12 @@ function renderCard() {
   card.hidden = !named;
   if (!named) return;
   const h = hours(), tier = tierOf(h), next = TIERS.find((x) => x[0] > h);
-  const role = isOwner() ? 'Owner' : isAdmin() ? 'Co-owner · Diamond' : tier[1] ? 'Member: ' + tier[2] : 'Member';
+  const role = isOwner() ? 'Owner' : isMatenro() ? 'Co-owner · Midnight' : isAdmin() ? 'Co-owner · Diamond' : tier[1] ? 'Member: ' + tier[2] : 'Member';
   $('bizName').textContent = named;
   $('bizRole').textContent = role;
-  $('bizRole').className = 'bizrole ' + (isOwner() ? 'ruby' : isAdmin() ? 'co' : tier[1] || 'reg');
+  $('bizRole').className = 'bizrole ' + (isOwner() ? 'ruby' : isMatenro() ? 'midnight' : isAdmin() ? 'co' : tier[1] || 'reg');
+  // Matenro's suit is the midnight one, unless he's picked something else
+  if (isMatenro() && db && !(perks[myUid()] && perks[myUid()].wear)) { try { if (!localStorage.getItem('sh1den-midnight')) { localStorage.setItem('sh1den-midnight', '1'); db.ref('perks/' + myUid() + '/wear').set('midnight').catch(() => { }); } } catch (e) { } }
   $('bizHours').textContent = h >= 10 ? Math.floor(h).toLocaleString() + ' h' : h.toFixed(1) + ' h';
   $('bizCoins').textContent = ((mine && mine.n) || 0).toLocaleString() + ' 🪙';
   $('bizNext').textContent = isAdmin() ? 'Every tuxedo is yours to wear.' : next ? (next[0] - h).toFixed(1) + ' h to ' + next[2] : 'Top level reached.';
@@ -345,6 +348,13 @@ function wireRemove() {
 }
 // the owner's car: dark metallic red, set once
 function ownerCar() {
+  // Matenro's midnight-purple GT86-style coupe, parked in the valet lot whenever he's in
+  try {
+    if (isMatenro() && db && !cars[myUid()] && !localStorage.getItem('sh1den-car-gt86')) {
+      localStorage.setItem('sh1den-car-gt86', '1');
+      db.ref('cars/' + myUid()).set({ style: 'gt86', color: 0, name: NET().myName(), t: ts() }).catch(() => localStorage.removeItem('sh1den-car-gt86'));
+    }
+  } catch (e) { }
   try {
     if (!isAdmin() || (NET().myName() || '').toLowerCase() !== 'sh1denfps' || localStorage.getItem('sh1den-car-red') || !db) return;
     const c = cars[myUid()] || {};

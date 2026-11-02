@@ -237,7 +237,8 @@ const TUXES = {
   platinum: { jacket: [226, 228, 234], pants: [204, 206, 214], shirt: [28, 30, 36], tie: [180, 186, 200], lapel: [150, 154, 166], square: [200, 220, 255], glow: 0xe6f0ff, spark: 0xf4f8ff },
   emerald: { jacket: [22, 118, 70], pants: [16, 92, 54], shirt: [10, 14, 12], tie: [200, 170, 80], lapel: [10, 60, 36], square: [220, 196, 110], glow: 0x40ff9a, spark: 0xb0ffd8 },
   diamond: { jacket: [206, 236, 250], pants: [172, 212, 234], shirt: [18, 24, 32], tie: [240, 250, 255], lapel: [130, 180, 210], square: [255, 255, 255], glow: 0x9ae6ff, spark: 0xffffff },
-  ruby: { jacket: [156, 12, 46], pants: [112, 8, 34], shirt: [16, 6, 10], tie: [22, 4, 10], lapel: [70, 4, 24], square: [255, 130, 180], glow: 0xb0102c, spark: 0xff4466 }
+  ruby: { jacket: [156, 12, 46], pants: [112, 8, 34], shirt: [16, 6, 10], tie: [22, 4, 10], lapel: [70, 4, 24], square: [255, 130, 180], glow: 0xb0102c, spark: 0xff4466 },
+  midnight: { jacket: [52, 22, 104], pants: [36, 14, 76], shirt: [10, 8, 18], tie: [12, 6, 22], lapel: [24, 8, 52], square: [190, 150, 255], glow: 0x5020c0, spark: 0x9a6aff }
 };
 function costumeParts(k, C, P, O, F) {
   const hc = [0, 1.69, 0];
@@ -593,10 +594,10 @@ function buildParts(look, seed) {
           [V(sd * 0.018, 1.18, fz + 0.01), V(sd * 0.12, 1.38, fz - 0.014), V(sd * 0.165, 1.42, 0.076), V(sd * 0.1, 1.45, 0.091)]], LAP, { amt: 0.015 }));
       }
       O('spine', box(0.085, 0.14, 1.3, 1.34, fz - 0.012, fz + 0.004, TUXC.square, 0.02));
-      if (TUXK === 'ruby') {
-        // the owner's suit: a ruby brooch set in gold, a gold watch chain, satin piping and extra buttons
+      if (TUXK === 'ruby' || TUXK === 'midnight') {
+        // the owner's suit (and Matenro's in midnight purple): a gem brooch set in gold, a gold watch chain, satin piping and extra buttons
         O('spine', cyl(V(-0.1, 1.36, fz - 0.006), V(-0.1, 1.36, fz + 0.012), 0.022, 0.02, [176, 136, 52], { n: 10, amt: 0.02 }));
-        O('spine', cyl(V(-0.1, 1.36, fz + 0.006), V(-0.1, 1.36, fz + 0.02), 0.015, 0.008, [235, 30, 62], { n: 10, amt: 0.02 }));
+        O('spine', cyl(V(-0.1, 1.36, fz + 0.006), V(-0.1, 1.36, fz + 0.02), 0.015, 0.008, TUXK === 'midnight' ? [150, 96, 255] : [235, 30, 62], { n: 10, amt: 0.02 }));
         O('spine', tube([V(-0.1, 1.06, fz + 0.002), V(-0.05, 1.03, fz + 0.012), V(0, 1.05, fz + 0.012), V(0.06, 1.03, fz + 0.01), V(0.11, 1.06, fz + 0.002)], [0.004, 0.004, 0.004, 0.004, 0.004], [196, 154, 60], { n: 4, smooth: true }));
         for (const y of [1.02, 1.08, 1.14, 1.2]) O('spine', cyl(V(0.05, y, fz - 0.002), V(0.05, y, fz + 0.007), 0.007, 0.007, [12, 2, 4], { n: 8, amt: 0.02 }));
         for (const sd of [-1, 1]) O('spine', tube([V(sd * 0.2, 1.0, 0.12), V(sd * 0.23, 1.2, 0.09), V(sd * 0.21, 1.4, 0.06)], [0.004, 0.004, 0.004], TUXC.lapel, { n: 4, smooth: true }));
@@ -644,8 +645,8 @@ function buildParts(look, seed) {
     if (cuffCol) P(elK, cyl(cuff0, wr, 0.055 * (TOP === 'suit' || TOP === 'suitdark' ? 0.9 : 1) * lW, 0.05 * lW, cuffCol, { n: 10, smooth: true }));
     if (GOLDSUIT) {
       const cl = add(cuff0, V(s * 0.035, 0, 0.03));
-      P(elK, cyl(cl, add(cl, V(s * 0.012, 0, 0)), 0.011, 0.011, TUXK === 'ruby' ? [230, 28, 58] : [214, 176, 80], { n: 8, amt: 0.02 }));
-      for (let k = 0; k < (TUXK === 'ruby' ? 4 : 3); k++) { const b = add(cuff0, mul(sub(el, cuff0), 0.08 + k * 0.06)); P(elK, cyl(add(b, V(s * 0.055, 0, 0)), add(b, V(s * 0.064, 0, 0)), 0.007, 0.007, TUXC.lapel, { n: 6, amt: 0.02 })); }
+      P(elK, cyl(cl, add(cl, V(s * 0.012, 0, 0)), 0.011, 0.011, TUXK === 'ruby' ? [230, 28, 58] : TUXK === 'midnight' ? [140, 90, 240] : [214, 176, 80], { n: 8, amt: 0.02 }));
+      for (let k = 0; k < (TUXK === 'ruby' || TUXK === 'midnight' ? 4 : 3); k++) { const b = add(cuff0, mul(sub(el, cuff0), 0.08 + k * 0.06)); P(elK, cyl(add(b, V(s * 0.055, 0, 0)), add(b, V(s * 0.064, 0, 0)), 0.007, 0.007, TUXC.lapel, { n: 6, amt: 0.02 })); }
     }
     const hx = wr[0] + s * 0.004, hz = wr[2] + 0.008, hs = F ? 0.88 : 1;
     P(elK, loft([rring(0.895, 0.036 * hs, 0.074 * hs, hx, hz, 10), rring(0.845, 0.038 * hs, 0.086 * hs, hx, hz + 0.004, 10),
@@ -2739,6 +2740,8 @@ function xyRing(cx, cy, z, r, n) { const p = []; for (let k = 0; k < n; k++) { c
 // detailed wheels: tyre with rounded shoulders, a dished rim with spokes, brake disc and caliper; fronts can be steered
 function carWheelSet(K, o) {
   const r = o.r, w = o.w, n = 20, rimC = o.rim || RIM_C, cal = o.caliper || [150, 20, 24];
+  // the tyre's outer face sits just proud of the body side, so the bodywork never slices through the wheel
+  if (o.half) o.track = Math.max(o.track, 2 * (o.half + 0.014) - w);
   for (const [x, front] of [[o.xs[0], false], [o.xs[1], true]]) for (const e of [-1, 1]) {
     const W = [], C = [], zc = e * o.track / 2, zo = zc + e * w / 2, zi = zc - e * w / 2;
     W.push(loft([xyRing(x, r, zi, r * 0.8, n), xyRing(x, r, zi + e * w * 0.12, r * 0.98, n), xyRing(x, r, zc, r, n), xyRing(x, r, zo - e * w * 0.12, r * 0.98, n), xyRing(x, r, zo, r * 0.82, n)], RUBBER, { amt: 0.02, smooth: true, cap: false }));
@@ -2763,8 +2766,8 @@ function carWheelSet(K, o) {
     // a black arch liner around the top of each wheel, on the body side
     if (o.half) {
       const pts = [];
-      for (let k = 0; k <= 10; k++) { const a = Math.PI * (-0.08 + 1.16 * k / 10); pts.push(V(x + Math.cos(a) * (r + 0.05), r + Math.sin(a) * (r + 0.05), e * (o.half + 0.004))); }
-      K.P.push(tube(pts, pts.map(() => 0.028), CAR_BLK, { n: 4, amt: 0.02 }));
+      for (let k = 0; k <= 10; k++) { const a = Math.PI * (-0.08 + 1.16 * k / 10); pts.push(V(x + Math.cos(a) * (r + 0.05), r + Math.sin(a) * (r + 0.05), e * (o.half - 0.012))); }
+      K.P.push(tube(pts, pts.map(() => 0.02), CAR_BLK, { n: 4, amt: 0.02 }));
     }
   }
 }
@@ -2786,7 +2789,8 @@ function plates(K, xf, xr, y, yr) {
 }
 function mirrors(K, x, y, z, color) {
   for (const e of [-1, 1]) {
-    K.P.push(bar3(V(x + 0.05, y - 0.06, e * (z - 0.1)), V(x, y - 0.02, e * z), 0.014, CAR_BLK));
+    // the stalk reaches down and in to the door, so the mirror never floats off the body
+    K.P.push(bar3(V(x + 0.06, y - 0.13, e * (z - 0.17)), V(x, y - 0.02, e * z), 0.016, CAR_BLK));
     K.B.push(loft([yzRing(x - 0.07, y - 0.05, y + 0.05, 0.16, 10, 3).map((p) => V(p[0], p[1], p[2] + e * z)), yzRing(x + 0.03, y - 0.055, y + 0.055, 0.18, 10, 3).map((p) => V(p[0], p[1], p[2] + e * z)), yzRing(x + 0.08, y - 0.04, y + 0.04, 0.14, 10, 3).map((p) => V(p[0], p[1], p[2] + e * z))], color, { amt: 0.02, smooth: true }));
     K.L.push(box(x + 0.075, x + 0.085, y - 0.01, y + 0.005, e * z - 0.05, e * z + 0.05, [255, 170, 60], 0));
   }
@@ -2915,13 +2919,81 @@ function carParts(kind, color, opts) {
     plates(K, 2.34, -2.33, 0.48);
     carWheelSet(K, { xs: [-1.4, 1.4], track: 1.6, r: 0.34, w: 0.24, spokes: 5, rim: RIM_C, caliper: [40, 40, 44], half: 0.9 });
     shadeAll(0.88);
+  } else if (kind === 'gt86') {
+    // an original small 2+2 sports coupe in the spirit of a GT86: long low bonnet with raised front wings, the cabin set back,
+    // a fastback with a ducktail, swept headlamps, a wide trapezoid mouth, fender vents and twin round exhausts
+    const prof = [[-2.13, 0.38, 0.78, 1.3], [-2.08, 0.32, 0.84, 1.52], [-1.96, 0.27, 0.9, 1.66], [-1.76, 0.23, 0.93, 1.74], [-1.4, 0.21, 0.93, 1.78], [-1.0, 0.2, 0.92, 1.78],
+      [-0.5, 0.2, 0.9, 1.76], [0, 0.2, 0.88, 1.76], [0.4, 0.2, 0.86, 1.77], [0.8, 0.2, 0.82, 1.77], [1.2, 0.2, 0.79, 1.77], [1.6, 0.2, 0.76, 1.76], [1.9, 0.22, 0.72, 1.72], [2.05, 0.26, 0.66, 1.62], [2.12, 0.32, 0.57, 1.36]];
+    B.push(loft(yzBody(prof, 28, 3.6), color, { amt: 0.012, smooth: true }));
+    // raised front wings over the wheels and muscular rear haunches
+    for (const e of [-1, 1]) {
+      // (over each wheel the wing's underside clears the top of the tyre: wheel radius 0.33, wheels at x -1.26 and 1.31)
+      const clr = (x, y0) => (Math.min(Math.abs(x + 1.26), Math.abs(x - 1.31)) < 0.44 ? Math.max(y0, 0.71) : y0);
+      const fen = (st) => B.push(loft(st.map(([x, y0, y1, w, z]) => yzRing(x, clr(x, y0), Math.max(y1, clr(x, y0) + 0.08), w, 12, 2.6).map((p) => V(p[0], p[1], p[2] + e * z))), color, { amt: 0.012, smooth: true }));
+      fen([[0.72, 0.62, 0.8, 0.16, 0.7], [1.0, 0.6, 0.86, 0.3, 0.72], [1.35, 0.6, 0.87, 0.32, 0.72], [1.7, 0.58, 0.82, 0.28, 0.72], [1.98, 0.54, 0.7, 0.16, 0.7]]);
+      fen([[-0.8, 0.66, 0.86, 0.14, 0.74], [-1.05, 0.64, 0.95, 0.28, 0.75], [-1.45, 0.64, 0.96, 0.3, 0.75], [-1.8, 0.62, 0.92, 0.24, 0.73], [-2.0, 0.6, 0.84, 0.12, 0.7]]);
+      // the little vent behind each front wheel
+      P.push(slabXY([[0.62, 0.62], [0.42, 0.66], [0.42, 0.6], [0.62, 0.56]], e * 0.875, e * 0.89, [8, 8, 9]));
+      for (let k = 0; k < 3; k++) K.C.push(box(0.6 - k * 0.07, 0.62 - k * 0.07, 0.58, 0.64, e * 0.887 - 0.006, e * 0.887 + 0.006, [60, 60, 66], 0.02));
+      // side skirts
+      P.push(box(-1.0, 0.95, 0.19, 0.27, e * 0.88 - 0.035, e * 0.88 + 0.035, CAR_BLK, 0.02));
+    }
+    // the greenhouse: windscreen, roof, a long fastback rear screen
+    K.G.push(loft([yzRing(0.47, 0.84, 0.885, 1.5, 14, 3), yzRing(0.22, 0.84, 1.08, 1.42, 14, 3), yzRing(-0.08, 0.84, 1.245, 1.34, 14, 3), yzRing(-0.5, 0.86, 1.28, 1.3, 14, 3),
+      yzRing(-0.9, 0.88, 1.21, 1.3, 14, 3), yzRing(-1.25, 0.9, 1.04, 1.36, 14, 3), yzRing(-1.52, 0.92, 0.95, 1.44, 14, 3)], GLASS_D, { amt: 0.02, smooth: true }));
+    // body-coloured roof skin with a double bubble, and the fastback's sail panels
+    B.push(loft([yzRing(-0.02, 1.235, 1.262, 1.22, 14, 3), yzRing(-0.3, 1.262, 1.29, 1.22, 14, 3), yzRing(-0.62, 1.262, 1.29, 1.2, 14, 3), yzRing(-0.88, 1.21, 1.236, 1.18, 14, 3)], color, { amt: 0.012, smooth: true }));
+    for (const e of [-1, 1]) {
+      const lean = (poly, zo, zi, col) => loft([poly.map(([x, y]) => V(x, y, e * (zo - (y - 0.86) * 0.32))), poly.map(([x, y]) => V(x, y, e * (zi - (y - 0.86) * 0.32)))], col, { amt: 0.012 });
+      B.push(lean([[-0.86, 1.22], [-0.98, 1.2], [-1.6, 0.92], [-1.2, 0.9]], 0.7, 0.6, color));
+      B.push(lean([[0.47, 0.875], [0.43, 0.875], [-0.06, 1.245], [-0.02, 1.245]], 0.73, 0.69, color));
+      P.push(lean([[-0.36, 0.88], [-0.44, 0.88], [-0.44, 1.26], [-0.36, 1.26]], 0.69, 0.66, CAR_BLK));
+      P.push(bar3(V(0.45, 0.875, e * 0.76), V(-1.2, 0.905, e * 0.775), 0.008, [6, 6, 6]));
+    }
+    // ducktail and a small lip spoiler
+    B.push(loft([yzRing(-1.6, 0.9, 0.95, 1.5, 12, 3), yzRing(-1.95, 0.92, 0.97, 1.46, 12, 3), yzRing(-2.06, 0.93, 0.99, 1.34, 12, 3)], color, { amt: 0.012, smooth: true }));
+    // the face: a wide trapezoid mouth with a honeycomb mesh, fog-light pods, a slim splitter
+    P.push(slabXY([[2.14, 0.27], [2.1, 0.5], [2.07, 0.5], [2.1, 0.27]], -0.5, 0.5, [8, 8, 9]));
+    for (let j = 0; j < 4; j++) for (let k = 0; k < 9; k++) P.push(box(2.12, 2.13, 0.3 + j * 0.05, 0.325 + j * 0.05, -0.44 + k * 0.1 + (j % 2) * 0.05, -0.41 + k * 0.1 + (j % 2) * 0.05, [36, 36, 40], 0));
+    P.push(box(1.98, 2.18, 0.18, 0.21, -0.78, 0.78, CAR_BLK, 0.02));
+    for (const e of [-1, 1]) {
+      P.push(slabXY([[2.12, 0.3], [2.08, 0.42], [2.04, 0.42], [2.06, 0.3]], e * 0.58, e * 0.76, [8, 8, 9]));
+      L.push(box(2.08, 2.1, 0.33, 0.37, e * 0.62 - 0.05, e * 0.62 + 0.05, head, 0));
+      // swept headlamps: dark housing, two projectors, an L-shaped light strip
+      P.push(loft([[V(2.06, 0.6, e * 0.42), V(2.02, 0.66, e * 0.46), V(2.0, 0.66, e * 0.46), V(2.04, 0.59, e * 0.42)], [V(1.76, 0.71, e * 0.82), V(1.7, 0.75, e * 0.84), V(1.68, 0.74, e * 0.84), V(1.74, 0.7, e * 0.82)]], [14, 16, 20], { amt: 0.02 }));
+      for (const [x, z] of [[1.97, 0.53], [1.87, 0.64]]) L.push(cyl(V(x, 0.645 + (2 - x) * 0.25, e * z), V(x + 0.02, 0.645 + (2 - x) * 0.25, e * z), 0.03, 0.03, head, { n: 10, amt: 0 }));
+      L.push(bar3(V(2.04, 0.6, e * 0.43), V(1.74, 0.71, e * 0.82), 0.007, drl));
+      L.push(box(1.62, 1.68, 0.56, 0.59, e * 0.865 - 0.006, e * 0.865 + 0.006, amber, 0));
+      // wide rear clusters: red outer, a dark inner band, a white reverse lamp
+      P.push(loft([[V(-2.09, 0.74, e * 0.36), V(-2.07, 0.84, e * 0.38), V(-2.05, 0.84, e * 0.38), V(-2.07, 0.74, e * 0.36)], [V(-1.9, 0.74, e * 0.84), V(-1.86, 0.84, e * 0.84), V(-1.84, 0.84, e * 0.84), V(-1.88, 0.74, e * 0.84)]], [30, 4, 6], { amt: 0.02 }));
+      L.push(bar3(V(-2.085, 0.82, e * 0.38), V(-1.875, 0.82, e * 0.83), 0.012, tail));
+      L.push(bar3(V(-2.09, 0.77, e * 0.5), V(-1.93, 0.77, e * 0.8), 0.01, tailD));
+      L.push(box(-2.105, -2.095, 0.75, 0.78, e * 0.42 - 0.04, e * 0.42 + 0.04, [235, 235, 230], 0));
+      // twin round exhausts, one each side, and a black diffuser
+      K.C.push(cyl(V(-1.95, 0.27, e * 0.5), V(-2.16, 0.27, e * 0.5), 0.05, 0.054, CHROME_GRILLE, { n: 14, amt: 0.02 }));
+      P.push(cyl(V(-2.159, 0.27, e * 0.5), V(-2.162, 0.27, e * 0.5), 0.04, 0.04, [6, 6, 6], { n: 12, amt: 0 }));
+    }
+    P.push(box(-2.12, -1.92, 0.19, 0.32, -0.4, 0.4, CAR_BLK, 0.02));
+    for (const z of [-0.27, -0.09, 0.09, 0.27]) P.push(box(-2.13, -1.94, 0.19, 0.33, z - 0.01, z + 0.01, [26, 26, 28], 0.02));
+    P.push(box(-2.11, -2.09, 0.76, 0.82, -0.36, 0.36, CAR_BLK, 0.02));
+    // a peek of the interior: dash, two bucket seats, the wheel
+    P.push(box(0.18, 0.44, 0.7, 0.86, -0.66, 0.66, [12, 12, 13], 0.02));
+    for (const e of [-1, 1]) { P.push(box(-0.6, -0.18, 0.32, 0.5, e * 0.36 - 0.21, e * 0.36 + 0.21, [24, 20, 24], 0.04)); P.push(box(-0.66, -0.52, 0.48, 1.08, e * 0.36 - 0.2, e * 0.36 + 0.2, [24, 20, 24], 0.04)); }
+    { const ring = []; for (let k = 0; k <= 12; k++) { const a = 2 * Math.PI * k / 12; ring.push(V(0.1 + Math.sin(a) * 0.03, 0.88 + Math.cos(a) * 0.16, -0.36 + Math.sin(a) * 0.16)); } P.push(tube(ring, ring.map(() => 0.016), CAR_BLK, { n: 4 })); }
+    doorDetails(K, 0.89, [0.44, -0.8], 0.3, 0.86, [-0.62], 0.78);
+    mirrors(K, 0.35, 0.92, 0.94, color);
+    plates(K, 2.145, -2.12, 0.42, 0.6);
+    carWheelSet(K, { xs: [-1.26, 1.31], track: 1.54, r: 0.33, w: 0.23, spokes: 10, rim: [58, 56, 64], caliper: [214, 170, 50], half: 0.9 });
+    shadeAll(0.82);
   } else if (kind === 'roadster') {
     // an original small two-seat roadster with a fastback folding hardtop: long bonnet with fender peaks, the cabin
     // sitting back over the rear wheels, flying buttresses, slim swept lamps and round twin tail lights
     B.push(loft(yzBody([[-1.98, 0.32, 0.66, 1.46], [-1.9, 0.26, 0.73, 1.62], [-1.7, 0.22, 0.77, 1.72], [-1.3, 0.2, 0.79, 1.74], [-0.8, 0.19, 0.79, 1.72], [-0.2, 0.19, 0.775, 1.7], [0.45, 0.19, 0.765, 1.72], [0.95, 0.19, 0.745, 1.74], [1.4, 0.19, 0.725, 1.74], [1.72, 0.2, 0.69, 1.7], [1.88, 0.22, 0.62, 1.6], [1.96, 0.26, 0.55, 1.42], [1.99, 0.3, 0.5, 1.2]], 26, 3.4), color, { amt: 0.012, smooth: true }));
     // fender peaks over the front wheels and a rear haunch
     for (const e of [-1, 1]) {
-      const fen = (st) => B.push(loft(st.map(([x, y0, y1, w]) => yzRing(x, y0, y1, w, 10, 2.6).map((p) => V(p[0], p[1], p[2] + e * 0.66))), color, { amt: 0.012, smooth: true }));
+      // (over each wheel, clear of the tyre top: wheel radius 0.31, wheels at x -1.12 and 1.18)
+      const clr = (x, y0) => (Math.min(Math.abs(x + 1.12), Math.abs(x - 1.18)) < 0.42 ? Math.max(y0, 0.67) : y0);
+      const fen = (st) => B.push(loft(st.map(([x, y0, y1, w]) => yzRing(x, clr(x, y0), Math.max(y1, clr(x, y0) + 0.06), w, 10, 2.6).map((p) => V(p[0], p[1], p[2] + e * 0.66))), color, { amt: 0.012, smooth: true }));
       fen([[0.45, 0.6, 0.74, 0.18], [0.8, 0.6, 0.79, 0.3], [1.2, 0.6, 0.795, 0.32], [1.55, 0.58, 0.76, 0.28], [1.82, 0.52, 0.66, 0.18]]);
       fen([[-1.78, 0.6, 0.74, 0.18], [-1.4, 0.62, 0.825, 0.3], [-1.0, 0.62, 0.825, 0.3], [-0.6, 0.62, 0.79, 0.18]]);
     }
@@ -2964,7 +3036,7 @@ function carParts(kind, color, opts) {
     B.push(box(-1.95, -1.72, 0.77, 0.8, -0.6, 0.6, color, 0.01));
     P.push(box(-2.0, -1.84, 0.2, 0.3, -0.58, 0.58, CAR_BLK, 0.02));
     doorDetails(K, 0.865, [0.42, -0.66], 0.36, 0.74, [-0.5], 0.68);
-    mirrors(K, 0.32, 0.86, 0.88, color);
+    mirrors(K, 0.3, 0.86, 0.8, color);
     plates(K, 2.005, -1.99, 0.42);
     carWheelSet(K, { xs: [-1.12, 1.18], track: 1.5, r: 0.31, w: 0.21, spokes: 10, rim: [64, 66, 72], caliper: [190, 24, 30], half: 0.868, steer: opts.steer });
     shadeAll(0.74);
@@ -3021,11 +3093,29 @@ function carParts(kind, color, opts) {
   return K;
 }
 // one car as a group of meshes: plain parts, glowing lamps, glossy paint, glass and chrome
-function carGroup(K, extra) {
+function carGroup(K, extra, gem) {
   const g = new THREE.Group();
-  const add = (parts, mat) => { if (parts.length) g.add(new THREE.Mesh(toGeometry(parts), mat)); };
-  add(K.P.concat(extra || []), roomMat); add(K.L, glowMat); add(K.B, carPaintMat); add(K.G, carGlassMat); add(K.C, carChromeMat);
+  const add = (parts, mat) => { if (parts.length) { const m = new THREE.Mesh(toGeometry(parts), mat); g.add(m); return m; } return null; };
+  add(K.P.concat(extra || []), roomMat); add(K.L, glowMat); add(K.G, carGlassMat); add(K.C, carChromeMat);
+  // a gem paint job (the owner's ruby, Matenro's midnight purple): the same faceted, light-catching finish as their tuxedos
+  const body = add(K.B, gem ? gemPaintMat(gem) : carPaintMat);
+  if (gem && body) facetPaint(body.geometry, gem);
   return g;
+}
+const gemPaints = {};
+function gemPaintMat(kind) {
+  // the tuxedo's gem finish, a little calmer on big body panels so the colour stays deep instead of washing out
+  if (!gemPaints[kind]) gemPaints[kind] = ps1(new THREE.MeshPhongMaterial({ vertexColors: true, flatShading: true, shininess: 70, specular: GEM[kind][2], envMap: gemCube(kind), combine: THREE.AddOperation, reflectivity: 0.2 }));
+  return gemPaints[kind];
+}
+function facetPaint(geo, kind) {
+  const col = geo.attributes && geo.attributes.color; if (!col) return;
+  const a = col.array, r = rngFrom(hashStr('paint' + kind) + a.length);
+  for (let i = 0; i < a.length; i += 9) {
+    const k = 0.72 + r() * 0.62, warm = (r() - 0.5) * 0.2;
+    for (let j = 0; j < 9; j += 3) { a[i + j] = Math.min(1, a[i + j] * k * (1 + warm)); a[i + j + 1] = Math.min(1, a[i + j + 1] * k); a[i + j + 2] = Math.min(1, a[i + j + 2] * k * (1 - warm)); }
+  }
+  col.needsUpdate = true;
 }
 function parkCar(kind, color, x, z, yaw, y, opts) {
   const g = carGroup(carParts(kind, color, opts));
@@ -3370,19 +3460,24 @@ function setLotCars(list) {
   const want = new Map((list || []).map((c) => [c.uid, c]));
   for (const [uid, g] of lotCars) {
     const c = want.get(uid);
-    if (!c || g.userData.key !== c.style + c.color + c.bay) { scene.remove(g); lotCars.delete(uid); }
+    if (!c || g.userData.key !== c.style + c.color + c.bay + (c.name || '')) { scene.remove(g); lotCars.delete(uid); }
   }
   lotPlates.forEach((p, i) => { const c = (list || []).find((o) => o.bay === i); const nm = c ? c.name : ''; if (nm !== p.name) { p.name = nm; p.draw(nm); } });
   for (const c of list || []) {
     if (lotCars.has(c.uid) || c.bay < 0 || c.bay >= LOT_BAYS.length) continue;
-    const col = CAR_COLORS[c.color] || CAR_COLORS[0];
-    const g = carGroup(carParts(CAR_STYLES.includes(c.style) ? c.style : 'super', col[1]));
+    const col = CAR_COLORS[c.color] || CAR_COLORS[0], sig = signatureCar(c.name);
+    const g = sig ? carGroup(carParts(sig.style, TUXES[sig.gem].jacket.map((v) => Math.round(v * 0.78))), null, sig.gem) : carGroup(carParts(CAR_STYLES.includes(c.style) ? c.style : 'super', col[1]));
     const a = BAY_A[c.bay];
-    g.position.set(LOT_BAYS[c.bay][0], 0.02, LOT_BAYS[c.bay][1]); g.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); g.userData.key = c.style + c.color + c.bay;
+    g.position.set(LOT_BAYS[c.bay][0], 0.02, LOT_BAYS[c.bay][1]); g.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); g.userData.key = c.style + c.color + c.bay + (c.name || '');
     scene.add(g); lotCars.set(c.uid, g);
   }
 }
 const CAR_STYLES = ['roadster', 'coupe', 'super', 'saloon', 'suv'];
+// two cars are one of a kind: sh1den's roadster in ruby, and Matenro's GT86-style coupe in midnight purple
+function signatureCar(name) {
+  const n = (name || '').toLowerCase();
+  return n === 'sh1denfps' ? { style: 'roadster', gem: 'ruby' } : n === 'matenro' ? { style: 'gt86', gem: 'midnight' } : null;
+}
 const CAR_STYLE_NAMES = { roadster: 'Hardtop roadster', coupe: 'Open-top coupe', super: 'Wedge supercar', saloon: 'Luxury saloon', suv: 'Armoured SUV' };
 const CAR_COLORS = [['Racing red', [176, 18, 24]], ['Black', [14, 14, 16]], ['Midnight blue', [18, 26, 60]], ['Gunmetal', [62, 64, 70]], ['Pearl white', [222, 220, 212]], ['Royal purple', [70, 20, 90]], ['Emerald', [16, 80, 52]], ['Gold', [176, 140, 60]],
   ['Candy red', [150, 6, 22]], ['Liquid silver', [150, 154, 160]], ['Machine gray', [92, 94, 98]], ['Deep teal', [14, 66, 74]], ['Desert sand', [168, 150, 118]], ['Sky blue', [70, 120, 170]], ['Dark cherry metallic', [86, 8, 16]]];
@@ -5466,7 +5561,8 @@ const haloTex = (() => {
 // flashes of its own colour (ruby, gold, emerald...) as the wearer moves
 const GEM = {
   silver: [[226, 232, 246], [150, 160, 182], 0xb8c0d0], gold: [[255, 206, 96], [196, 140, 40], 0xd8a040], platinum: [[240, 244, 255], [180, 188, 210], 0xd0d8f0],
-  emerald: [[90, 255, 160], [20, 150, 80], 0x40c080], diamond: [[220, 240, 255], [150, 190, 230], 0xe0f0ff], ruby: [[255, 40, 110], [200, 10, 60], 0xff3070]
+  emerald: [[90, 255, 160], [20, 150, 80], 0x40c080], diamond: [[220, 240, 255], [150, 190, 230], 0xe0f0ff], ruby: [[255, 40, 110], [200, 10, 60], 0xff3070],
+  midnight: [[160, 100, 255], [60, 20, 150], 0x8050ff]
 };
 const gemMats = {};
 function gemCube(kind) {
@@ -5776,8 +5872,9 @@ function applyRanks() {
   for (const ch of crowd) {
     if (!ch.label || ch.host || ch.npc) continue;
     ch.label.classList.remove(...RANK_CLASSES);
+    ch.label.classList.toggle('midnight', (ch.name || '').toLowerCase() === 'matenro');
     const r = ch.uid && RANKS[ch.uid];
-    if (r) ch.label.classList.add('rank-' + r);
+    if (r && !ch.label.classList.contains('midnight')) ch.label.classList.add('rank-' + r);
   }
 }
 
