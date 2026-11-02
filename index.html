@@ -5,7 +5,9 @@
 // phones go to the light phone version unless they asked for the full bar (index.html?full)
 (function () { try {
   var full = /[?&]full\b/.test(location.search);
-  var phone = /iPhone|iPod|Android.*Mobile|Windows Phone|Mobile Safari/i.test(navigator.userAgent) && !/iPad/.test(navigator.userAgent);
+  // the browser name can lie ("Request Desktop Website"), so a small touch screen counts as a phone too
+  var small = navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 600;
+  var phone = (/iPhone|iPod|Android.*Mobile|Windows Phone|Mobile Safari/i.test(navigator.userAgent) && !/iPad/.test(navigator.userAgent)) || small;
   if (phone && !full) location.replace('phone.html' + location.hash);
 } catch (e) { } })();
 </script>
