@@ -192,7 +192,9 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 #poolCanvas.myturn { cursor: crosshair; box-shadow: 0 0 0 2px var(--neon); }
 /* player menu, cards, slots, shop, beggar */
 .popmenu { position: absolute; z-index: 4; min-width: 200px; display: flex; flex-direction: column; gap: 4px; padding: 10px; background: var(--panel); border: 1px solid rgba(226, 180, 103, 0.45); box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
-.popmenu .dmTitle { font-family: var(--deco); color: var(--neon); font-size: 18px; margin: 0 0 4px; }
+.popmenu .dmTitle, #drinkMenu .dmTitle { font-family: var(--deco); color: var(--neon); font-size: 18px; margin: 0 0 4px; cursor: move; user-select: none; }
+.popmenu .dmTitle::before, #drinkMenu .dmTitle::before { content: '⠿ '; color: var(--dim); font-family: var(--mono, monospace); font-size: 12px; }
+#ctxMenu { z-index: 6; } #ctxMenu button:disabled { opacity: 0.5; }
 .popmenu button { text-align: left; }
 .modal { position: absolute; inset: 0; z-index: 5; display: grid; place-content: center; gap: 12px; background: rgba(0,0,0,0.55); padding: 16px; }
 .modal > button { justify-self: center; }
@@ -706,16 +708,16 @@ window.LOAD = (function () {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js" onload="LOAD.step(30,'Calling the regulars…')"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=67"></script>
-<script src="net.js?v=67" onload="LOAD.step(36,'Building the bar…')"></script>
-<script src="bar.js?v=67" onload="LOAD.step(62,'Stocking the shelves…')"></script>
-<script src="pool.js?v=67"></script>
-<script src="extras.js?v=67"></script>
-<script src="poker.js?v=67"></script>
-<script src="cursors.js?v=67"></script>
-<script src="social.js?v=67"></script>
-<script src="hotel.js?v=67"></script>
-<script src="accounts.js?v=67"></script>
+<script src="config.js?v=68"></script>
+<script src="net.js?v=68" onload="LOAD.step(36,'Building the bar…')"></script>
+<script src="bar.js?v=68" onload="LOAD.step(62,'Stocking the shelves…')"></script>
+<script src="pool.js?v=68"></script>
+<script src="extras.js?v=68"></script>
+<script src="poker.js?v=68"></script>
+<script src="cursors.js?v=68"></script>
+<script src="social.js?v=68"></script>
+<script src="hotel.js?v=68"></script>
+<script src="accounts.js?v=68"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -763,25 +765,26 @@ window.LOAD = (function () {
     w.addEventListener('click', (e) => { if (e.target !== r) w.classList.toggle('open'); });
     document.addEventListener('pointerdown', (e) => { if (!w.contains(e.target)) w.classList.remove('open'); });
   })();
-  // windows float: drag one by its title bar (buttons in it still click normally)
+  // windows and pop-up menus float: drag a window by its title bar, a menu by its title (buttons still click normally)
   (function () {
     let drag = null;
     document.addEventListener('pointerdown', (e) => {
-      const bar = e.target.closest('.panel > header, #room .winbar');
+      const bar = e.target.closest('.panel > header, #room .winbar, .popmenu, #drinkMenu');
       if (!bar || e.button !== 0 || e.target.closest('button, input, select, a, textarea')) return;
-      const p = bar.closest('.panel'), st = $('stage'); if (!p || !st) return;
+      const p = bar.closest('.panel, .popmenu, #drinkMenu'), st = $('stage'); if (!p || !st) return;
       const pr = p.getBoundingClientRect(), sr = st.getBoundingClientRect();
-      p.classList.add('dragged');
-      p.style.setProperty('left', (pr.left - sr.left) + 'px', 'important'); p.style.setProperty('top', (pr.top - sr.top) + 'px', 'important');
-      drag = { p, dx: e.clientX - pr.left, dy: e.clientY - pr.top, sr, w: pr.width };
+      const imp = p.classList.contains('panel') ? 'important' : '';   // menus reopen where you click, so they move without !important
+      if (imp) p.classList.add('dragged');
+      p.style.setProperty('left', (pr.left - sr.left) + 'px', imp); p.style.setProperty('top', (pr.top - sr.top) + 'px', imp);
+      drag = { p, dx: e.clientX - pr.left, dy: e.clientY - pr.top, sr, w: pr.width, imp };
       try { bar.setPointerCapture(e.pointerId); } catch (er) { }
       e.preventDefault();
     });
     document.addEventListener('pointermove', (e) => {
       if (!drag) return;
-      const { p, dx, dy, sr, w } = drag;
+      const { p, dx, dy, sr, w, imp } = drag;
       const x = Math.max(-w + 80, Math.min(sr.width - 80, e.clientX - sr.left - dx)), y = Math.max(0, Math.min(sr.height - 40, e.clientY - sr.top - dy));
-      p.style.setProperty('left', x + 'px', 'important'); p.style.setProperty('top', y + 'px', 'important');
+      p.style.setProperty('left', x + 'px', imp); p.style.setProperty('top', y + 'px', imp);
     });
     const end = () => { drag = null; };
     document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
