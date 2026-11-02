@@ -3231,15 +3231,6 @@ const windowTex = canvasTex(32, 64, (x, w, h) => {
 });
 windowTex.wrapS = windowTex.wrapT = THREE.RepeatWrapping;
 const windowMat = new THREE.MeshBasicMaterial({ map: windowTex });
-for (let x = ST.x0, k = 0; x < ST.x1; k++) {
-  const w = 6 + (k * 7) % 5, h = 7 + (k * 5) % 6;
-  const g = new THREE.PlaneGeometry(w, h);
-  scaleUV(g, w / 3.2, h / 6.4);
-  const m = new THREE.Mesh(g, windowMat);
-  m.position.set(x + w / 2, h / 2, ST.walk1 + 0.3); m.rotation.y = Math.PI; scene.add(m);
-  S.push(box(x + 0.05, x + w - 0.05, 0, 0.5, ST.walk1 + 0.1, ST.walk1 + 0.28, [24, 24, 28], 0.03));
-  x += w;
-}
 
 // black SUVs parked along the curb (the entrance stays clear)
 const PARKED = [-10.5, -5.0, 5.0, 10.5];
@@ -3293,11 +3284,6 @@ const AL = { x0: -14, x1: 15, z0: -35, z1: -11 };
 groundPlane(AL.x0, 5, AL.z0, -11.02, wetTex, 3, 0);
 groundPlane(5, AL.x1, AL.z0, -12.02, wetTex, 3, 0);
 // the far side of the courtyard: the back of another building, and high walls left and right (an arch on the right for the drive)
-{
-  const w = AL.x1 - AL.x0, g = new THREE.PlaneGeometry(w, 7);
-  scaleUV(g, w / 3.2, 7 / 6.4);
-  const m = new THREE.Mesh(g, windowMat); m.position.set((AL.x0 + AL.x1) / 2, 3.5, AL.z0 - 0.02); scene.add(m);
-}
 facade(-14.01, AL.z0, -14.01, -11.0, 1, 0, [[1.5, 4.5]]);   // a gate through to the car park, by Old Tobias
 facade(-14.06, -11.0, -14.06, AL.z0, -1, 0, [[19.5, 22.5]]);
 facade(15.01, -12.0, 15.01, AL.z0, -1, 0, [[8.3, 12.2]]);   // the arch for the drive at z -24.2..-20.3
@@ -3910,23 +3896,6 @@ const SIDE_X = CC.x + (LANE_Z - CC.z);
 for (let z = SS.z1 - 1; z > SS.z0; z -= 3.2) S.push(box(SIDE_X - 0.06, SIDE_X + 0.06, ROAD_Y, ROAD_Y + 0.012, z - 1.6, z, [190, 166, 84], 0.03));
 groundAt(23.02, SS.x0 - 0.12, SS.z0, CC.z, pavingMat, 1.2, -0.02);
 groundAt(SS.x1 + 0.12, SS.x1 + 4.2, SS.z0, CC.z, pavingMat, 1.2, 0);
-// buildings round the outside of the bend and along the far side
-{
-  const segs = [[0, 0.55], [0.55, 1.05], [1.05, 1.5]], R = CRO + 4.25;
-  segs.forEach(([a0, a1], k) => {
-    const p = cAt(R, a0), q = cAt(R, a1), w = Math.hypot(q[0] - p[0], q[1] - p[1]), h = 8 + (k * 3) % 5;
-    const g = new THREE.PlaneGeometry(w, h); scaleUV(g, w / 3.2, h / 6.4);
-    const m = new THREE.Mesh(g, windowMat); m.position.set((p[0] + q[0]) / 2, h / 2, (p[1] + q[1]) / 2);
-    m.rotation.y = Math.atan2(-(q[1] - p[1]), q[0] - p[0]) + Math.PI; scene.add(m);
-  });
-  for (let z = CC.z, k = 0; z > -14; k++) {   // only the first block; further down it's trees towards the golf club
-    const w = 7 + (k * 5) % 4, h = 7 + (k * 7) % 6;
-    const g = new THREE.PlaneGeometry(w, h); scaleUV(g, w / 3.2, h / 6.4);
-    const m = new THREE.Mesh(g, windowMat); m.position.set(SS.x1 + 4.3, h / 2, z - w / 2); m.rotation.y = -Math.PI / 2; scene.add(m);
-    S.push(box(SS.x1 + 4.12, SS.x1 + 4.28, 0, 0.5, z - w + 0.05, z - 0.05, [24, 24, 28], 0.03));
-    z -= w;
-  }
-}
 // sodium street lamps: the same warm yellow as the dance floor's glow, these ones just don't pulse
 const SODIUM = [255, 196, 84], SODIUM_HEX = 0xffc454;
 // a soft pool of lamp light on the ground under each head (cheaper and more PS1 than real light for every lamp)
@@ -4158,6 +4127,243 @@ function arcRing(cx, cz, r0, r1, y0, y1, col, n, sx, sz, a0, a1) {
   return out;
 }
 const golfPoolMat = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, color: 0xb8c8ff, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -20 });
+// ================================================================ THE BLOCKS: real buildings across the street and round the corner
+// brick and stone walls with window bays, ledges and cornices, shops at street level, fire escapes,
+// and busy roofs (stair huts, AC units, vents breathing steam, water tanks, aerials, rubbish); windows light up and go dark through the night
+const facadeTex = (base, mortar, trim, seed) => {
+  const t = canvasTex(64, 64, (x, w, h) => {
+    const r = rngFrom(seed);
+    // brick courses (or stone blocks), a little uneven
+    x.fillStyle = `rgb(${mortar})`; x.fillRect(0, 0, w, h);
+    for (let j = 0; j < h; j += 4) for (let i = (j / 4) % 2 ? -4 : 0; i < w; i += 8) { const v = (r() - 0.5) * 26; x.fillStyle = `rgb(${base[0] + v},${base[1] + v * 0.8},${base[2] + v * 0.7})`; x.fillRect(i + 1, j + 1, 7, 3); }
+    // the window: stone surround, dark glass, a mullion, a sill and a lintel
+    x.fillStyle = `rgb(${trim})`; x.fillRect(16, 10, 32, 38); x.fillRect(13, 46, 38, 4); x.fillRect(14, 7, 36, 4);
+    x.fillStyle = 'rgb(14,16,22)'; x.fillRect(19, 13, 26, 32);
+    x.fillStyle = 'rgba(70,84,110,0.35)'; x.fillRect(20, 14, 5, 30);   // a glint on the glass
+    x.fillStyle = `rgb(${trim})`; x.fillRect(31, 13, 2, 32); x.fillRect(19, 27, 26, 2);
+    // grime streaks under the sill
+    for (let k = 0; k < 6; k++) { x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(16 + Math.floor(r() * 32), 50, 1, 4 + Math.floor(r() * 10)); }
+  });
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+};
+const FACADES_LIB = [
+  facadeTex([96, 44, 36], [46, 40, 38], [150, 140, 126], 1),     // red brick
+  facadeTex([70, 52, 42], [36, 32, 30], [120, 112, 100], 2),     // brown brick
+  facadeTex([88, 86, 82], [52, 50, 48], [150, 146, 138], 3),     // grey stone
+  facadeTex([112, 84, 58], [60, 50, 40], [170, 160, 140], 4)     // tan brick
+].map((t) => ps1(new THREE.MeshLambertMaterial({ map: t, emissiveMap: t, emissive: 0x3a3632 })));
+// a wall, as two triangles with the window grid lined up to its bottom-left corner
+function wallGeo(ax, az, bx, bz, y0, y1, nx, nz) {
+  // the triangles face (-dz, dx) for a wall running a -> b; flip the run if that points inward
+  if ((bx - ax) * nz - (bz - az) * nx < 0) { [ax, bx] = [bx, ax]; [az, bz] = [bz, az]; }
+  const len = Math.hypot(bx - ax, bz - az), g = new THREE.BufferGeometry();
+  const u1 = len / 3, v0 = y0 / 3.2, v1 = y1 / 3.2;
+  g.setAttribute('position', new THREE.Float32BufferAttribute([ax, y0, az, bx, y0, bz, bx, y1, bz, ax, y0, az, bx, y1, bz, ax, y1, az], 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute([0, v0, u1, v0, u1, v1, 0, v0, u1, v1, 0, v1], 2));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute([nx, 0, nz, nx, 0, nz, nx, 0, nz, nx, 0, nz, nx, 0, nz, nx, 0, nz], 3));
+  return g;
+}
+// the lit windows: one small glowing pane per window, switched on and off a few at a time
+const litMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: true });
+const litGeo = new THREE.PlaneGeometry(1.2, 1.45);
+const BLOCK_LIGHTS = [];
+const SMOKE_VENTS = [];
+const ROOF_SPOTS = [];
+function building(o) {
+  const { x0, x1, z0, z1, h, front, seed } = o, r = rngFrom(seed), mat = FACADES_LIB[seed % FACADES_LIB.length];
+  const sides = [[x0, z1, x1, z1, 0, 1], [x1, z0, x0, z0, 0, -1], [x0, z0, x0, z1, -1, 0], [x1, z1, x1, z0, 1, 0]];
+  const geos = [], wins = [];
+  for (const [ax, az, bx, bz, nx, nz] of sides) {
+    geos.push(wallGeo(ax, az, bx, bz, 0, h, nx, nz));
+    const len = Math.hypot(bx - ax, bz - az), cols = Math.floor(len / 3 + 1e-6), floors = Math.floor(h / 3.2);
+    for (let c = 0; c < cols; c++) for (let f = 1; f < floors; f++) {
+      const u = (c + 0.5) * 3, x = ax + (bx - ax) / len * u + nx * 0.03, z = az + (bz - az) / len * u + nz * 0.03, y = f * 3.2 + 1.75;
+      wins.push([x, y, z, Math.atan2(nx, nz)]);
+    }
+    // a ledge at every floor and a heavy cornice at the top
+    const ux = (bx - ax) / len, uz = (bz - az) / len;
+    for (let f = 1; f < floors; f++) S.push(groundStrip(ax - ux * 0.05 + nx * 0.06, az - uz * 0.05 + nz * 0.06, bx + ux * 0.05 + nx * 0.06, bz + uz * 0.05 + nz * 0.06, 0.14, f * 3.2 - 0.06, [60, 56, 52], 0.08));
+    S.push(groundStrip(ax - ux * 0.2 + nx * 0.18, az - uz * 0.2 + nz * 0.18, bx + ux * 0.2 + nx * 0.18, bz + uz * 0.2 + nz * 0.18, 0.4, h - 0.4, [56, 52, 48], 0.4));
+  }
+  const wm = new THREE.Mesh(mergeGeos(geos.map((g) => g)), mat); scene.add(wm);
+  // the windows' lights
+  const im = new THREE.InstancedMesh(litGeo, litMat, wins.length), dm = new THREE.Object3D(), col = new THREE.Color();
+  const on = [];
+  wins.forEach(([x, y, z, a], i) => {
+    dm.position.set(x, y, z); dm.rotation.set(0, a, 0); const lit = r() < 0.32; on.push(lit); dm.scale.setScalar(lit ? 1 : 0); dm.updateMatrix(); im.setMatrixAt(i, dm.matrix);
+    col.set([0xffcf8a, 0xffc070, 0xfff0c8, 0xa8c8ff, 0x9ff0d0, 0xff9ab0][Math.floor(r() * 6)]).multiplyScalar(0.8 + r() * 0.25); im.setColorAt(i, col);
+  });
+  im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
+  im.frustumCulled = false; Object.assign(im.userData, { zone: 'main', cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, rad: Math.hypot(x1 - x0, z1 - z0) / 2 + 1 });
+  scene.add(im); BLOCK_LIGHTS.push({ im, wins, on, r: rngFrom(seed * 7) });
+  // the roof: tar, a parapet round the edge
+  S.push(box(x0, x1, h - 0.02, h + 0.04, z0, z1, [34, 34, 38], 0.05));
+  for (const [a, b, c, d] of [[x0, x1, z1 - 0.3, z1], [x0, x1, z0, z0 + 0.3], [x0, x0 + 0.3, z0, z1], [x1 - 0.3, x1, z0, z1]]) { S.push(box(a, b, h, h + 0.85, c, d, [70, 66, 62], 0.05)); S.push(box(a - 0.04, b + 0.04, h + 0.85, h + 0.95, c - 0.04, d + 0.04, [96, 92, 88], 0.03)); }
+  const W = x1 - x0, D = z1 - z0, rp = (fx, fz) => [x0 + 0.8 + fx * (W - 1.6), z0 + 0.8 + fz * (D - 1.6)];
+  // the stair hut with its door and a bulb over it
+  { const [hx, hz] = rp(r() * 0.4 + 0.05, r() * 0.4 + 0.05); S.push(box(hx, hx + 2.4, h, h + 2.6, hz, hz + 2.2, [74, 70, 66], 0.05)); S.push(box(hx - 0.1, hx + 2.5, h + 2.6, h + 2.7, hz - 0.1, hz + 2.3, [44, 42, 40], 0.03)); S.push(box(hx + 0.7, hx + 1.6, h + 0.02, h + 2.1, hz + 2.2, hz + 2.24, [40, 50, 60], 0.05)); G.push(box(hx + 1.05, hx + 1.25, h + 2.25, h + 2.4, hz + 2.22, hz + 2.3, [255, 220, 150], 0)); lightPool(hx + 1.15, hz + 2.9, 1.6, h); }
+  // AC units, humming, with a fan grille on top and a pipe down into the roof
+  for (let k = 0, n = 1 + Math.floor(r() * 3); k < n; k++) {
+    const [ax, az] = rp(0.45 + r() * 0.5, r());
+    S.push(box(ax - 0.65, ax + 0.65, h, h + 1.0, az - 0.5, az + 0.5, [150, 150, 146], 0.06));
+    S.push(cyl(V(ax, h + 1.0, az), V(ax, h + 1.04, az), 0.38, 0.38, [30, 30, 32], { n: 12 }));
+    for (let g2 = -2; g2 <= 2; g2++) S.push(box(ax - 0.36, ax + 0.36, h + 1.04, h + 1.05, az + g2 * 0.14 - 0.015, az + g2 * 0.14 + 0.015, [120, 120, 118], 0));
+    S.push(cyl(V(ax + 0.65, h + 0.3, az), V(ax + 1.1, h + 0.3, az), 0.06, 0.06, [100, 100, 104], { n: 6 }));
+    S.push(cyl(V(ax + 1.1, h + 0.3, az), V(ax + 1.1, h, az), 0.06, 0.06, [100, 100, 104], { n: 6 }));
+  }
+  // vents and stacks, some breathing out steam
+  for (let k = 0, n = 2 + Math.floor(r() * 3); k < n; k++) {
+    const [vx, vz] = rp(r(), r()), vh = 0.7 + r() * 1.6, rad = 0.12 + r() * 0.14;
+    S.push(cyl(V(vx, h, vz), V(vx, h + vh, vz), rad, rad, [90, 88, 86], { n: 8 }));
+    S.push(cyl(V(vx, h + vh, vz), V(vx, h + vh + 0.12, vz), rad * 1.7, rad * 0.4, [70, 68, 66], { n: 8 }));
+    if (r() < 0.6) SMOKE_VENTS.push([vx, h + vh + 0.15, vz, rad]);
+  }
+  // roof hatches and skylights
+  for (let k = 0, n = Math.floor(r() * 3); k < n; k++) { const [sx, sz] = rp(r(), r()); S.push(box(sx - 0.5, sx + 0.5, h, h + 0.35, sz - 0.5, sz + 0.5, [80, 80, 84], 0.04)); G.push(box(sx - 0.42, sx + 0.42, h + 0.35, h + 0.37, sz - 0.42, sz + 0.42, r() < 0.5 ? [120, 140, 170] : [40, 44, 56], 0)); }
+  // a wooden water tank on the tall ones, an aerial or a dish on most
+  if (h > 13 && r() < 0.8) {
+    const [tx, tz] = rp(0.3 + r() * 0.4, 0.3 + r() * 0.4);
+    for (const [ox, oz] of [[-0.9, -0.9], [0.9, -0.9], [-0.9, 0.9], [0.9, 0.9]]) S.push(cyl(V(tx + ox, h, tz + oz), V(tx + ox * 0.8, h + 2.2, tz + oz * 0.8), 0.06, 0.06, [40, 40, 44], { n: 4 }));
+    S.push(cyl(V(tx, h + 2.2, tz), V(tx, h + 2.3, tz), 1.35, 1.35, [40, 40, 44], { n: 14 }));
+    S.push(cyl(V(tx, h + 2.3, tz), V(tx, h + 4.8, tz), 1.25, 1.3, [110, 80, 54], { n: 14 }));
+    for (const y of [2.8, 3.6, 4.4]) S.push(cyl(V(tx, h + y, tz), V(tx, h + y + 0.06, tz), 1.3, 1.3, [36, 36, 40], { n: 14 }));
+    S.push(loft([rring(h + 4.8, 1.32, 1.32, tx, tz, 14, 2), rring(h + 5.8, 0.05, 0.05, tx, tz, 14, 2)], [60, 52, 46], { amt: 0.05 }));
+  }
+  if (r() < 0.7) { const [ax, az] = rp(r(), r()); S.push(cyl(V(ax, h, az), V(ax, h + 3.5, az), 0.03, 0.02, [60, 60, 66], { n: 4 })); for (const y of [2.4, 2.9, 3.3]) S.push(cyl(V(ax - 0.4, h + y, az), V(ax + 0.4, h + y, az), 0.012, 0.012, [60, 60, 66], { n: 3 })); G.push(cyl(V(ax, h + 3.5, az), V(ax, h + 3.58, az), 0.05, 0.04, [255, 40, 40], { n: 5, amt: 0 })); }
+  if (r() < 0.5) { const [dx, dz] = rp(r(), r()); S.push(cyl(V(dx, h, dz), V(dx, h + 0.7, dz), 0.04, 0.04, [70, 70, 74], { n: 4 })); S.push(loft([rring(h + 0.7, 0.05, 0.05, dx + 0.1, dz, 10, 2), rring(h + 0.9, 0.42, 0.42, dx + 0.25, dz, 10, 2), rring(h + 0.95, 0.45, 0.45, dx + 0.28, dz, 10, 2)], [200, 200, 196], { amt: 0.04 })); }
+  // rubbish up here too: a crate, a bucket, bags, a broken chair, cans
+  for (let k = 0, n = 4 + Math.floor(r() * 6); k < n; k++) {
+    const [lx, lz] = rp(r(), r()), kind = r();
+    if (kind < 0.3) S.push(box(lx - 0.25, lx + 0.25, h, h + 0.4, lz - 0.2, lz + 0.2, [120, 92, 60], 0.12));
+    else if (kind < 0.5) S.push(loft([rring(h, 0.25, 0.22, lx, lz, 7, 2), rring(h + 0.3, 0.33, 0.3, lx, lz, 7, 2), rring(h + 0.5, 0.02, 0.02, lx, lz, 7, 2)], [16, 16, 18], { smooth: true, amt: 0.25 }));
+    else if (kind < 0.65) S.push(cyl(V(lx, h, lz), V(lx, h + 0.35, lz), 0.15, 0.17, [[180, 60, 40], [60, 90, 150], [200, 190, 160]][Math.floor(r() * 3)], { n: 8 }));
+    else { const a = r() * 6.28; S.push(cyl(V(lx, h + 0.035, lz), V(lx + Math.cos(a) * 0.12, h + 0.035, lz + Math.sin(a) * 0.12), 0.034, 0.034, [[180, 30, 30], [170, 170, 176], [40, 120, 50]][Math.floor(r() * 3)], { n: 6 })); }
+  }
+  ROOF_SPOTS.push({ x0, x1, z0, z1, h, rp });
+  // street level: shops along the front, with lit windows, awnings and a sign
+  if (front) {
+    const [ax, az, bx, bz, nx, nz] = sides[front === 'z1' ? 0 : front === 'z0' ? 1 : front === 'x0' ? 2 : 3], len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len;
+    const shops = Math.max(1, Math.floor(len / 5.5)), sw = len / shops;
+    for (let k = 0; k < shops; k++) {
+      const c = (k + 0.5) * sw, cx = ax + ux * c + nx * 0.05, cz = az + uz * c + nz * 0.05, hw = sw / 2 - 0.35, open = r() < 0.65;
+      const P = (u, y, out) => V(cx + ux * u + nx * out, y, cz + uz * u + nz * out);
+      const quad = (u0, u1, y0, y1, out, col, glow) => (glow ? G : S).push(loft([[P(u0, y0, out), P(u1, y0, out), P(u1, y0, out + 0.04), P(u0, y0, out + 0.04)], [P(u0, y1, out), P(u1, y1, out), P(u1, y1, out + 0.04), P(u0, y1, out + 0.04)]], col, { amt: glow ? 0 : 0.04 }));
+      quad(-hw - 0.2, hw + 0.2, 0, 3.4, 0, [30, 28, 28]);                                  // the shopfront frame
+      quad(-hw, hw - 1.2, 0.5, 2.6, 0.03, open ? [255, 214, 150] : [26, 30, 38], open);     // the window, lit if they're open
+      quad(hw - 1.0, hw - 0.1, 0.02, 2.4, 0.03, [44, 34, 28]);                              // the door
+      if (!open) for (let y = 0.6; y < 2.6; y += 0.18) quad(-hw, hw - 1.2, y, y + 0.06, 0.06, [74, 76, 80]);   // shutters down
+      const ac = [[150, 30, 40], [30, 90, 60], [40, 60, 130], [140, 110, 40], [80, 40, 100]][Math.floor(r() * 5)];
+      // a striped canvas awning sloping out over the window, with a scalloped valance
+      const nS = Math.max(4, Math.round((2 * hw + 0.2) / 0.45)), aw = (2 * hw + 0.2) / nS;
+      for (let s2 = 0; s2 < nS; s2++) {
+        const u0 = -hw - 0.1 + s2 * aw, u1 = u0 + aw, c2 = s2 % 2 ? [236, 230, 220] : ac;
+        S.push(loft([[P(u0, 2.9, 0.05), P(u1, 2.9, 0.05), P(u1, 2.42, 1.15), P(u0, 2.42, 1.15)], [P(u0, 2.94, 0.05), P(u1, 2.94, 0.05), P(u1, 2.46, 1.15), P(u0, 2.46, 1.15)]], c2, { amt: 0.04 }));
+        S.push(loft([[P(u0, 2.24, 1.15), P(u1, 2.24, 1.15), P(u1, 2.24, 1.18), P(u0, 2.24, 1.18)], [P(u0, 2.46, 1.15), P(u1, 2.46, 1.15), P(u1, 2.46, 1.18), P(u0, 2.46, 1.18)]], c2, { amt: 0.04 }));
+      }
+      // shelves and goods behind the glass
+      if (open) for (const y of [0.9, 1.4, 1.9]) { quad(-hw + 0.1, hw - 1.3, y, y + 0.05, 0.05, [90, 64, 40]); for (let u = -hw + 0.2; u < hw - 1.4; u += 0.22) quad(u, u + 0.14, y + 0.05, y + 0.22 + ((u * 7) % 0.12), 0.06, [[180, 60, 50], [60, 120, 170], [220, 200, 120], [90, 150, 80]][Math.floor(Math.abs(u * 13)) % 4]); }
+      quad(-hw + 0.3, hw - 0.3, 2.95, 3.3, 0.05, open ? [ac[0] + 60, ac[1] + 60, ac[2] + 60] : [50, 50, 54], open);   // the sign band
+      if (open) lightPool(cx + nx * 1.4, cz + nz * 1.4, 2.2, 0);
+    }
+  }
+  // a black iron fire escape zig-zagging down one side of the front
+  if (front && h > 8 && r() < 0.7) {
+    const [ax, az, bx, bz, nx, nz] = sides[front === 'z1' ? 0 : front === 'z0' ? 1 : front === 'x0' ? 2 : 3], len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len;
+    const u0 = Math.min(len - 4, 2 + Math.floor(r() * Math.max(1, len / 3 - 2)) * 3), floors = Math.floor(h / 3.2), IRON = [24, 24, 26];
+    const Q = (u, y, out) => V(ax + ux * u + nx * out, y, az + uz * u + nz * out);
+    for (let f = 1; f < floors; f++) {
+      const y = f * 3.2 - 0.05;
+      S.push(loft([[Q(u0, y, 0.05), Q(u0 + 3.2, y, 0.05), Q(u0 + 3.2, y, 1.0), Q(u0, y, 1.0)], [Q(u0, y + 0.05, 0.05), Q(u0 + 3.2, y + 0.05, 0.05), Q(u0 + 3.2, y + 0.05, 1.0), Q(u0, y + 0.05, 1.0)]], IRON, { amt: 0.03 }));
+      for (const uu of [u0, u0 + 3.2]) S.push(cyl(Q(uu, y, 1.0), Q(uu, y + 0.95, 1.0), 0.02, 0.02, IRON, { n: 3 }));
+      S.push(cyl(Q(u0, y + 0.95, 1.0), Q(u0 + 3.2, y + 0.95, 1.0), 0.02, 0.02, IRON, { n: 3 }));
+      for (let k = 1; k < 8; k++) S.push(cyl(Q(u0 + k * 0.4, y, 1.0), Q(u0 + k * 0.4, y + 0.95, 1.0), 0.008, 0.008, IRON, { n: 3 }));
+      if (f > 1) { const a = f % 2 ? u0 + 0.3 : u0 + 2.9, b = f % 2 ? u0 + 2.9 : u0 + 0.3; S.push(cyl(Q(a, y, 0.55), Q(b, y - 3.2, 0.55), 0.05, 0.05, IRON, { n: 4 })); }
+    }
+  }
+}
+// the blocks: across the main street from the bar, round the corner, along the side street, behind the courtyard
+{
+  const r = rngFrom(4040), fronts = [];
+  for (let x = ST.x0 + 1, k = 0; x < 20.2; k++) {
+    const w = Math.min(20.2 - x, 9 + Math.floor(r() * 3) * 3), h = [7.2, 10.4, 13.6, 16.8, 20.0, 23.2][Math.floor(r() * 6)];
+    if (w < 6) break;
+    fronts.push({ x0: x, x1: x + w, z0: 16.8, z1: 16.8 + 9 + r() * 6, h, front: 'z0', seed: 100 + k });
+    x += w;
+  }
+  // the bar's neighbour across the road is a squat two-storey, so its roof shows from the street
+  const mid = fronts.find((b) => b.x0 <= 2 && b.x1 >= -2) || fronts[Math.floor(fronts.length / 2)];
+  mid.h = 7.2; mid.stoner = true;
+  fronts.push({ x0: 21, x1: 34, z0: 17.8, z1: 30, h: 16.8, front: 'z0', seed: 160 });
+  fronts.push({ x0: 36.6, x1: 48.6, z0: 2.2, z1: 15.5, h: 20, front: 'x0', seed: 161 });
+  fronts.push({ x0: 36.6, x1: 46.2, z0: -13.6, z1: 1.6, h: 13.6, front: 'x0', seed: 162 });
+  fronts.push({ x0: AL.x0, x1: AL.x1, z0: -44.5, z1: -35.1, h: 10.4, front: null, seed: 163 });
+  for (const b of fronts) building(b);
+  ROOF_SPOTS.stoner = fronts.find((b) => b.stoner);
+}
+// paving across the corner plot where the old flat fronts stood
+groundPlane(20.6, 52, 2, 34, pavingTex, 1.2, -0.03);
+// steam out of the vents: a few dozen soft puffs rising and fading
+{
+  const per = 6, N = SMOKE_VENTS.length * per, pos = new Float32Array(N * 3), geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const puffTex = canvasTex(32, 32, (x, w, h) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const d = Math.hypot(i - 15.5, j - 15.5) / 16, a = Math.max(0, 1 - d); x.fillStyle = `rgba(200,200,204,${(a * a * 0.9).toFixed(3)})`; x.fillRect(i, j, 1, 1); } });
+  const pm = new THREE.PointsMaterial({ map: puffTex, size: 1.6, transparent: true, opacity: 0.38, depthWrite: false, color: 0xb8bcc4, fog: true });
+  const pts = new THREE.Points(geo, pm); pts.frustumCulled = false; pts.userData.anyZone = true; scene.add(pts);
+  BLOCK_LIGHTS.smoke = (t) => {
+    SMOKE_VENTS.forEach(([x, y, z, rad], v) => { for (let k = 0; k < per; k++) { const u = ((t * 0.22 + k / per + v * 0.37) % 1), i = (v * per + k) * 3; pos[i] = x + Math.sin(t * 0.7 + v + k) * 0.3 * u + u * 0.9; pos[i + 1] = y + u * 3.2; pos[i + 2] = z + Math.cos(t * 0.5 + k) * 0.25 * u; } });
+    geo.attributes.position.needsUpdate = true;
+  };
+}
+// every couple of seconds a few windows somewhere switch on or off
+let blockFlipT = 0;
+function blocksTick(dt, t) {
+  if (BLOCK_LIGHTS.smoke) BLOCK_LIGHTS.smoke(t);
+  blockFlipT -= dt; if (blockFlipT > 0) return; blockFlipT = 1.2;
+  const dm = new THREE.Object3D();
+  for (const b of BLOCK_LIGHTS) {
+    if (b.r() > 0.5 || !b.wins.length) continue;
+    const i = Math.floor(b.r() * b.wins.length), [x, y, z, a] = b.wins[i];
+    b.on[i] = !b.on[i]; dm.position.set(x, y, z); dm.rotation.set(0, a, 0); dm.scale.setScalar(b.on[i] ? 1 : 0); dm.updateMatrix();
+    b.im.setMatrixAt(i, dm.matrix); b.im.instanceMatrix.needsUpdate = true;
+  }
+}
+// the stoner on the roof across the road: a bench, a lamp, a radio, him
+{
+  const B = ROOF_SPOTS.stoner, h = B.h, bx = (B.x0 + B.x1) / 2 + 1.5, bz = B.z0 + 2.2;
+  S.push(box(bx - 0.9, bx + 0.9, h + 0.42, h + 0.48, bz - 0.22, bz + 0.22, [110, 80, 50], 0.06));
+  S.push(box(bx - 0.9, bx + 0.9, h + 0.55, h + 0.95, bz + 0.2, bz + 0.26, [110, 80, 50], 0.06));
+  for (const e of [-0.8, 0.8]) S.push(box(bx + e - 0.04, bx + e + 0.04, h, h + 0.45, bz - 0.2, bz + 0.2, [36, 36, 40], 0.03));
+  S.push(box(bx + 1.2, bx + 1.55, h, h + 0.22, bz - 0.15, bz + 0.1, [30, 30, 34], 0.04)); G.push(box(bx + 1.25, bx + 1.4, h + 0.08, h + 0.16, bz - 0.16, bz - 0.15, [120, 255, 140], 0));   // a little radio
+  for (let k = 0; k < 5; k++) S.push(cyl(V(bx - 1.3 + k * 0.08, h, bz + 0.3 - k * 0.05), V(bx - 1.3 + k * 0.08, h + 0.24, bz + 0.3 - k * 0.05), 0.033, 0.033, [40, 120, 50], { n: 6 }));   // empty cans
+  // a camping lantern on a crate, and a string of fairy lights along the parapet
+  S.push(box(bx - 1.55, bx - 1.05, h, h + 0.4, bz - 0.25, bz + 0.25, [120, 92, 60], 0.12));
+  S.push(cyl(V(bx - 1.3, h + 0.4, bz), V(bx - 1.3, h + 0.46, bz), 0.08, 0.08, [30, 30, 34], { n: 8 }));
+  G.push(cyl(V(bx - 1.3, h + 0.46, bz), V(bx - 1.3, h + 0.66, bz), 0.07, 0.07, [255, 200, 120], { n: 8, amt: 0 }));
+  lightPool(bx - 0.6, bz, 2.8, h);
+  for (let k = 0; k < 16; k++) { const x = B.x0 + 1 + k * ((B.x1 - B.x0 - 2) / 15); G.push(cyl(V(x, h + 0.92 - 0.12 * Math.sin((k % 4) / 4 * Math.PI), B.z0 + 0.15), V(x, h + 0.98 - 0.12 * Math.sin((k % 4) / 4 * Math.PI), B.z0 + 0.15), 0.04, 0.04, [[255, 120, 140], [255, 220, 120], [140, 220, 255], [180, 255, 160]][k % 4], { n: 5, amt: 0 })); }
+  ROOF_SPOTS.stonerSeat = [bx, h, bz];
+}
+// rubbish in the streets: wrappers and cans in the gutters, bags out by the shops, newspapers, a hydrant or two
+{
+  const tr = rngFrom(919), litter = (x, z, y) => {
+    const kind = tr(); y = y || 0;
+    if (kind < 0.4) { const s = 0.05 + tr() * 0.06, v = 150 + Math.floor(tr() * 90); S.push(box(x - s, x + s, y + 0.005, y + 0.03 + tr() * 0.04, z - s * 0.8, z + s * 0.8, [v, v, v - 10], 0.25)); }
+    else if (kind < 0.7) { const a = tr() * Math.PI, dx = Math.cos(a) * 0.06, dz = Math.sin(a) * 0.06; S.push(cyl(V(x - dx, y + 0.033, z - dz), V(x + dx, y + 0.033, z + dz), 0.033, 0.033, [[180, 30, 30], [170, 170, 176], [30, 70, 150], [40, 120, 50]][Math.floor(tr() * 4)], { n: 6 })); }
+    else if (kind < 0.85) { S.push(box(x - 0.22, x + 0.22, y + 0.004, y + 0.012, z - 0.16, z + 0.16, [200, 196, 180], 0.1)); }
+    else S.push(box(x - 0.1, x + 0.1, y + 0.004, y + 0.06, z - 0.07, z + 0.07, [150, 30, 30], 0.15));
+  };
+  for (let n = 0; n < 160; n++) { const x = ST.x0 + 2 + tr() * (ST.x1 - ST.x0 - 3), side = tr(); const z = side < 0.3 ? ST.curb0 + 0.15 + tr() * 0.25 : side < 0.6 ? ST.curb1 - 0.15 - tr() * 0.25 : side < 0.8 ? ST.walk0 + 0.4 + tr() * 2.0 : ST.curb1 + 0.4 + tr() * 2.6; if (Math.abs(x) < 3 && z < 7) continue; litter(x, z, z > ST.curb0 && z < ST.curb1 ? ROAD_Y : 0); }
+  for (let n = 0; n < 50; n++) { const z = -60 + tr() * 60, x = tr() < 0.5 ? SS.x0 + 0.2 + tr() * 0.3 : SS.x1 - 0.2 - tr() * 0.3; litter(x, z, ROAD_Y); }
+  // bin bags piled at the curb outside the shops across the road
+  for (let x = ST.x0 + 6; x < 18; x += 9 + tr() * 9) for (let k = 0, n = 2 + Math.floor(tr() * 3); k < n; k++) { const bx = x + (tr() - 0.5) * 1.2, bz = ST.curb1 + 0.45 + tr() * 0.4, r2 = 0.24 + tr() * 0.1; S.push(loft([rring(0, r2 * 0.7, r2 * 0.7, bx, bz, 8, 2), rring(r2 * 0.8, r2, r2, bx, bz, 8, 2), rring(r2 * 1.5, r2 * 0.7, r2 * 0.7, bx, bz, 8, 2), rring(r2 * 1.8, 0.04, 0.04, bx, bz, 8, 2)], [14, 14, 16], { smooth: true, amt: 0.25 })); }
+  // fire hydrants and newspaper boxes on the far sidewalk
+  for (const x of [-62, -31, -9, 13]) { S.push(cyl(V(x, 0, ST.curb1 + 0.5), V(x, 0.55, ST.curb1 + 0.5), 0.12, 0.12, [190, 30, 30], { n: 8 })); S.push(cyl(V(x, 0.55, ST.curb1 + 0.5), V(x, 0.68, ST.curb1 + 0.5), 0.1, 0.03, [190, 30, 30], { n: 8 })); S.push(cyl(V(x - 0.18, 0.4, ST.curb1 + 0.5), V(x + 0.18, 0.4, ST.curb1 + 0.5), 0.05, 0.05, [170, 26, 26], { n: 6 })); }
+  for (const [x, c] of [[-44, [30, 70, 150]], [-20, [200, 160, 30]], [-19.4, [40, 120, 60]], [6, [180, 40, 40]]]) { S.push(box(x - 0.25, x + 0.25, 0, 1.05, ST.curb1 + 1.0, ST.curb1 + 1.45, c, 0.05)); G.push(box(x - 0.18, x + 0.18, 0.75, 0.95, ST.curb1 + 0.98, ST.curb1 + 1.0, [220, 220, 200], 0)); }
+  // puddles shining under the lamps
+  const pud = new THREE.MeshBasicMaterial({ color: 0x1c2638, transparent: true, opacity: 0.7, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -12, fog: true });
+  for (let n = 0; n < 14; n++) { const g = new THREE.CircleGeometry(0.3 + tr() * 0.5, 10); const m = new THREE.Mesh(g, pud); m.rotation.x = -Math.PI / 2; m.scale.set(1.6, 0.8 + tr() * 0.5, 1); m.position.set(ST.x0 + 4 + tr() * (ST.x1 - ST.x0 - 6), ROAD_Y + 0.006, ST.curb0 + 0.6 + tr() * (ST.curb1 - ST.curb0 - 1.2)); scene.add(m); }
+}
+
 // ================================================================ THE GOLF CLUB: down the side street, past the trees, six holes under floodlights
 // the course as data; golf.js plays on the same numbers (BAR.golfCourse)
 const GOLF = {
@@ -4345,7 +4551,7 @@ function golfSurface(x, z) {
   // the strip behind the courtyard, between the car park and the drive: lawn and a copse
   { const m = groundPlane(AL.x0 - 0.05, AL.x1 + 0.05, -66.2, AL.z0 - 0.05, roughTex, 1.6, 0); m.material = roughMat; }
   for (let n = 0; n < 200 && GOLF_TREES.length < 420; n++) {
-    const x = AL.x0 + 1.5 + tr() * (AL.x1 - AL.x0 - 3), z = AL.z0 - 9 - tr() * 22;
+    const x = AL.x0 + 1.5 + tr() * (AL.x1 - AL.x0 - 3), z = AL.z0 - 12 - tr() * 19;
     if (GOLF_TREES.some(([a, b]) => Math.hypot(a - x, b - z) < 3)) continue;
     const s = 0.8 + tr() * 0.6; plant(x, z, s); GOLF_TREES.push([x, z, s]);
   }
@@ -5975,6 +6181,10 @@ function toast(text) {
 
 // ================================================================ v42: restroom, VIP glass, Charon, card room, coins, lot, events
 const PRE_HOOKS = [], POST_HOOKS = [], REBUILD_HOOKS = [];
+PRE_HOOKS.push((dt, t) => { if (zoneOf(cam.tx) === 'main') blocksTick(dt, t); });
+// the stoner on the roof across the road: not a talker, just there, slowly swaying to his radio
+const STONER_LOOK = { jacket: 3, pants: 0, skin: 3, head: 2, hair: 3, beard: 1, eyes: 1, smoke: 1, dance: 3, spot: 1, body: 0, top: 3, bottom: 0, shoes: 0 };
+REBUILD_HOOKS.push(() => { const [x, y, z] = ROOF_SPOTS.stonerSeat; const c = addChar(STONER_LOOK, '', { npc: true, seedName: 'stoner' }); c.act = 'sitlow'; c.root.position.set(x, y + 0.03, z); c.root.rotation.y = Math.PI; });
 // Pan, the starter at the golf club, and the flags waving on the greens
 const PAN_LOOK = { jacket: 1, pants: 1, skin: 2, head: 3, hair: 2, beard: 2, eyes: 0, smoke: 0, dance: 3, spot: 1, body: 0, top: 2, bottom: 1, shoes: 1 };
 REBUILD_HOOKS.push(() => { const p = addChar(PAN_LOOK, 'Pan', { npc: true, seedName: 'pan', staff: true }); p.act = 'stand'; p.root.position.set(34.75, 0, -79); p.root.rotation.y = -Math.PI / 2; });
@@ -6822,6 +7032,7 @@ function tick() {
     ch.root.visible = !(editing && ch.mine && !ch.host && ch !== draftChar) && (ch === draftChar || cullZone === null || zoneOf(ch.root.position.x) === cullZone && (ch.mine || Math.hypot(ch.root.position.x - camera.position.x, ch.root.position.z - camera.position.z) < fogCut()));
     pose(ch, ch.act, beat + (ch.act === 'dance' ? 0 : ch.phase), t);
     golferOverride(ch, t);
+    if (ch.npcKey === 'stoner') { ch.bones.head.rotation.z += 0.16 * Math.sin(t * 0.6); ch.bones.head.rotation.x += 0.12; ch.bones.spine.rotation.z += 0.05 * Math.sin(t * 0.45); ch.bones.spine.rotation.x -= 0.12; }
     if (ch.onPhone) phonePose(ch, t);
     keepGlassUpright(ch);
     if (ch.pop !== undefined && ch.pop < 1) {
