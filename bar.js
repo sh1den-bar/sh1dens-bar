@@ -4086,8 +4086,27 @@ function setCue(ch, on) {
 }
 
 // players online from the phone version get a little phone next to their name
+// on top of whatever they're doing (sitting, leaning...): both hands up holding the phone, head down, thumbs going
+function phonePose(ch, t) {
+  const b = ch.bones, ph = (ch.phase || 0) * 10, tap = Math.sin(t * 9 + ph) * 0.04, look = Math.max(0, Math.sin(t * 0.21 + ph)) > 0.92;
+  b.shR.rotation.x = -0.45; b.shR.rotation.z = -0.1; b.shR.rotation.y = 0.8;
+  b.elR.rotation.x = -1.5 + tap; b.elR.rotation.y = 0; b.elR.rotation.z = 0;
+  b.shL.rotation.x = -0.45; b.shL.rotation.z = 0.1; b.shL.rotation.y = -0.8;
+  b.elL.rotation.x = -1.55 - tap; b.elL.rotation.y = 0; b.elL.rotation.z = 0;
+  // every so often they glance up from the screen
+  b.head.rotation.x = look ? 0.05 : 0.5; b.head.rotation.y = 0;
+}
 function phoneTag(ch, on) {
   ch.onPhone = !!on;
+  // and the character itself stands there looking down at a phone, its screen glowing
+  if (on && !ch.phoneMesh && ch.bones && ch.bones.elR) {
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(toGeometry([box(-0.032, 0.032, -0.13, 0.0, -0.009, 0.009, [18, 18, 20], 0.02)]), charMat));
+    g.add(new THREE.Mesh(toGeometry([box(-0.027, 0.027, -0.122, -0.008, 0.009, 0.012, [120, 190, 255], 0)]), glowMat));
+    g.position.set(0.0, -0.27, 0.035); g.rotation.set(-0.35, 0, 0);
+    ch.bones.elR.add(g); ch.phoneMesh = g;
+  }
+  if (ch.phoneMesh) ch.phoneMesh.visible = !!on;
   if (!ch.label) return;
   let ph = ch.label.querySelector('.ph');
   if (on && !ph) { ph = document.createElement('span'); ph.className = 'ph'; ph.title = 'On the phone'; ch.label.appendChild(ph); }
@@ -4179,7 +4198,7 @@ function rebuild() {
     swapOutfit(ch, sp && (sp.cat === 5 || sp.cat === 8) ? 'swim' : tuxFor(ch));
     setGoldGlow(ch, (ch.outfit || '').startsWith('tux-') ? ch.outfit.slice(4) : '');
     dressExtras(ch);
-    setGlass(ch, ch.act === 'pool' ? null : ch.drink || (ch.act === 'club' ? (ch.phase > 0.5 ? 'whiskey' : 'martini') : null));
+    setGlass(ch, ch.act === 'pool' || ch.onPhone ? null : ch.drink || (ch.act === 'club' ? (ch.phase > 0.5 ? 'whiskey' : 'martini') : null));
     const pd = lastDrinks.get(key);
     if (ch.drink && pd !== undefined && pd !== ch.drink) bartenderSays(ch.drink, ch.name);
     lastDrinks.set(key, ch.drink || '');
@@ -5910,6 +5929,7 @@ function tick() {
   for (const ch of crowd) {
     ch.root.visible = !(editing && ch.mine && !ch.host && ch !== draftChar) && (ch === draftChar || cullZone === null || zoneOf(ch.root.position.x) === cullZone && (ch.mine || Math.hypot(ch.root.position.x - camera.position.x, ch.root.position.z - camera.position.z) < fogCut()));
     pose(ch, ch.act, beat + (ch.act === 'dance' ? 0 : ch.phase), t);
+    if (ch.onPhone) phonePose(ch, t);
     keepGlassUpright(ch);
     if (ch.pop !== undefined && ch.pop < 1) {
       ch.pop = Math.min(1, ch.pop + dt * 3.2);
