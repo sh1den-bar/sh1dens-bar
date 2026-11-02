@@ -4005,7 +4005,7 @@ function addChar(look, name, opts) {
   const seed = hashStr(name || opts.seedName || 'npc');
   const ch = makeCharacter(look, name, seed);
   ch.phase = (seed % 1000) / 1000;
-  ch.host = !!opts.host; ch.npc = !!opts.npc; ch.mine = !!opts.mine; ch.uid = opts.uid || null;
+  ch.host = !!opts.host; ch.npc = !!opts.npc; ch.npcKey = opts.seedName || ''; ch.mine = !!opts.mine; ch.uid = opts.uid || null;
   if (ch.label) { if (opts.mine) { ch.label.textContent = name + ' (you)'; ch.label.classList.add('mine'); } if (opts.host) ch.label.classList.add('host'); if (opts.staff) ch.label.classList.add('staff'); }
   scene.add(ch.root); crowd.push(ch);
   return ch;
@@ -4666,6 +4666,7 @@ function hasCharacter() { return !!crowd.find((c) => c.mine); }
 function myChar() { return crowd.find((c) => c.mine); }
 // what a target would do for you right now: { ok, text }
 function describe(tg) {
+  if (tg.kind === 'npc') return { ok: true, text: npcName(tg) };
   if (!hasCharacter()) return { ok: true, text: 'Create a character to hang out here', needChar: true };
   if (tg.kind === 'object') {
     if (tg.o.id === 'bartender') {
@@ -4700,17 +4701,36 @@ function pickTarget(clientX, clientY) {
       if (d < bestD) { bestD = d; best = tg; }
     }
   }
+  // the staff and regulars of the house can be clicked too (a box round each of them)
+  for (const ch of crowd) {
+    if (!ch.npc || !NPC_TALK[ch.npcKey] || !ch.root.visible) continue;
+    const p = ch.root.position;
+    if (here && roomAt(p.x, p.z) !== here) continue;
+    npcBox.min.set(p.x - 0.32, p.y, p.z - 0.32); npcBox.max.set(p.x + 0.32, p.y + 1.85, p.z + 0.32);
+    if (raycaster.ray.intersectBox(npcBox, hitPoint)) {
+      const d = hitPoint.distanceTo(raycaster.ray.origin) - 0.3;   // people win ties with the furniture they stand at
+      if (d < bestD) { bestD = d; best = { kind: 'npc', ch, key: ch.npcKey }; }
+    }
+  }
+  // furniture that IS a person (the bar counter is Charon, the cup is Old Tobias...) counts as that person
+  if (best && best.kind === 'object' && OBJ_NPC[best.o.id]) {
+    const key = OBJ_NPC[best.o.id], ch = crowd.find((c) => c.npc && c.npcKey === key);
+    if (ch) best = { kind: 'npc', ch, key, o: best.o };
+  }
   return best;
 }
+const npcBox = new THREE.Box3();
 function showHover(tg, x, y, touch) {
   hovered = tg;
   if (!tg) { ring.visible = false; hintEl.hidden = true; canvas.style.cursor = 'var(--cur, default)'; return; }
   const info = describe(tg);
   if (tg.kind === 'spot') { ring.position.set(tg.s.hit.x, 0.03, tg.s.hit.z); ring.scale.setScalar(Math.max(tg.s.hit.sx, tg.s.hit.sz) * 0.55); }
+  else if (tg.kind === 'npc') { const p = tg.ch.root.position; ring.position.set(p.x, p.y + 0.03, p.z); ring.scale.setScalar(0.5); }
   else { ring.position.set(tg.o.floor[0], 0.03, tg.o.floor[1]); ring.scale.setScalar(tg.o.size); }
   ring.visible = true;
   ringMat.color.setHex(info.ok ? 0xffc870 : 0x8a8a96);
-  hintEl.textContent = info.text + (touch && info.ok ? ' (tap again)' : '');
+  // the hint says which button does what: left click talks to people, right click opens the options
+  hintEl.textContent = info.text + (touch ? '' : tg.kind === 'npc' ? '  ·  click: talk  ·  right-click: options' : info.ok ? '  ·  right-click' : '');
   hintEl.classList.toggle('off', !info.ok);
   hintEl.hidden = false;
   const r = stage.getBoundingClientRect();
@@ -4725,19 +4745,82 @@ canvas.addEventListener('pointermove', (e) => {
 });
 canvas.addEventListener('pointerleave', () => { if (!armed) showHover(null); });
 canvas.addEventListener('pointerdown', () => { closeDrinkMenu(); });
+// the mouse: left click is for menus and for talking to people; RIGHT click is the action button,
+// it opens a little menu of what you can do with the thing under the cursor. Phones: a tap opens that menu.
 canvas.addEventListener('pointerup', (e) => {
   const d0 = upInfo; upInfo = null;
-  if (e.button !== 0) return; // only the left button picks a spot
+  if (e.button !== 0 && e.button !== 2) return;
   if (!d0 || Math.abs(e.clientX - d0.x0) > 6 || Math.abs(e.clientY - d0.y0) > 6 || performance.now() - d0.t0 > 600) return;
   const tg = pickTarget(e.clientX, e.clientY);
   if (e.pointerType === 'touch') {
-    // phones have no hover: the first tap shows what it is, the second does it
-    if (!tg) { armed = null; showHover(null); return; }
-    if (armed !== tg) { armed = tg; showHover(tg, e.clientX, e.clientY, true); return; }
     armed = null;
+    if (!tg) { showHover(null); closeCtx(); return; }
+    showHover(tg, e.clientX, e.clientY, true);
+    openActions(tg, e.clientX, e.clientY, true);
+    return;
   }
-  if (tg) activate(tg, e.clientX, e.clientY);
+  if (e.button === 2) { if (tg) openActions(tg, e.clientX, e.clientY, false); else closeCtx(); return; }
+  closeCtx();
+  if (tg && tg.kind === 'npc') npcTalk(tg);
 });
+// ---- people of the house: a line when you click them, their own menu on right click
+const OBJ_NPC = { bartender: 'bartender', beggar: 'beggar', dealer: 'minos', dj: 'dj', djbooth: 'dj', 'bouncer-front': 'cerberus', 'bouncer-back': 'plutus' };
+const NPC_TALK = {
+  bartender: { name: 'Charon', lines: ["What'll it be?", 'Every soul pays the ferryman. Five coins a glass.', "I've poured for worse crowds. Not many.", 'The ice is fresh. The gossip is fresher.', "Sit, drink, stay a while. Nobody's in a hurry down here.", "Looking for a room upstairs? Right-click me, I've got keys."] },
+  beggar: { name: 'Old Tobias', lines: ['Spare a coin for an old man?', "I wasn't always like this, you know. Had a bar once. Bigger than this one.", "*cough* Don't mind the smell. It's character.", 'Psst. I got things. Right-click if you want to see.', 'The rats round here know more than the cops.'] },
+  minos: { name: 'Minos', lines: ['Cards are honest. People less so.', 'Take a seat when you are ready to lose.', 'House rules: no crying at the table.', 'I judge every hand fairly. Mostly.'] },
+  dj: { name: 'The DJ', lines: ['You hear that bassline? Mine.', 'Requests go in the jar. Right-click me.', '*nods to the beat*', "Next one's a banger, trust."] },
+  cerberus: { name: 'Cerberus', talk: () => bouncerTalk('front') },
+  plutus: { name: 'Plutus', talk: () => bouncerTalk('back') },
+  ben: { name: 'Ben', lines: ['Cameras see everything. I see the cameras.', 'Quiet night. Keep it that way.', "*doesn't look up from his phone*", "If it's on tape, it happened."] },
+  valet: { name: 'Phlegyas', lines: ['Keys? I keep every car in town safe.', "Nice night for a drive. Shame you're drinking.", 'Bay one is the boss. Always.', 'I park it, I polish it, I never joyride it. Much.'] },
+  stranger: { name: '???', lines: ['…', "You shouldn't be looking at me.", 'I was never here.', 'Ask Charon about the basement. Or don\'t.'] }
+};
+const npcName = (tg) => (NPC_TALK[tg.key] && NPC_TALK[tg.key].name) || tg.ch.name || 'Someone';
+function npcTalk(tg) {
+  const n = NPC_TALK[tg.key]; if (!n) return;
+  if (n.talk) { n.talk(); return; }
+  if (tg.key === 'bartender' && Math.random() < 0.5 && typeof bartenderGreet === 'function') { bartenderGreet(); return; }
+  showBubbleOn(tg.ch, n.lines[Math.floor(Math.random() * n.lines.length)]);
+}
+// ---- the action menu
+const ctxMenu = document.createElement('div'); ctxMenu.className = 'popmenu'; ctxMenu.id = 'ctxMenu'; ctxMenu.hidden = true; ctxMenu.setAttribute('role', 'menu'); stage.appendChild(ctxMenu);
+function closeCtx() { ctxMenu.hidden = true; }
+document.addEventListener('pointerdown', (e) => { if (!ctxMenu.hidden && !ctxMenu.contains(e.target)) closeCtx(); }, true);
+function placeMenu(m, x, y) {
+  const r = stage.getBoundingClientRect(); m.hidden = false;
+  const w = m.offsetWidth || 200, h = m.offsetHeight || 120;
+  m.style.left = Math.max(12, Math.min(r.width - w - 12, x - r.left + 10)) + 'px';
+  m.style.top = Math.max(60, Math.min(r.height - h - 70, y - r.top - 10)) + 'px';
+}
+function ctxShow(title, opts, x, y) {
+  ctxMenu.textContent = '';
+  const h = document.createElement('div'); h.className = 'dmTitle'; h.textContent = title; ctxMenu.appendChild(h);
+  for (const [label, fn, off] of opts) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.disabled = !!off;
+    b.onclick = () => { closeCtx(); fn(); };
+    ctxMenu.appendChild(b);
+  }
+  placeMenu(ctxMenu, x, y);
+  showHover(null);
+}
+function openActions(tg, x, y, touch) {
+  closeDrinkMenu(); closeCtx();
+  if (tg.kind === 'npc') {
+    const n = NPC_TALK[tg.key] || {}, name = npcName(tg), talk = ['Talk', () => npcTalk(tg)];
+    if (tg.key === 'bartender') { drinkFrom = 'bar'; $('dmCig').hidden = false; openDrinkMenu(x, y); if (touch) npcTalk(tg); showHover(null); return; }
+    if (tg.key === 'beggar') { ctxShow(name, [talk, ['See what he\'s got', () => window.SOCIAL && window.SOCIAL.openBeggar()]], x, y); return; }
+    if (tg.key === 'dj') { ctxShow(name, [talk, ['Request a song', () => (window.HOTEL && window.HOTEL.openDjMenu ? window.HOTEL.openDjMenu(x, y) : changeMusic())]], x, y); return; }
+    if (tg.key === 'minos') { ctxShow(name, [talk, ['Join the poker table', () => (window.POKER ? window.POKER.open() : setView('card'))]], x, y); return; }
+    ctxShow(name, [talk], x, y); return;
+  }
+  const info = describe(tg);
+  if (info.player) { if (window.SOCIAL) window.SOCIAL.openPlayerMenu({ uid: info.player.uid, name: info.player.name }, x, y); showHover(null); return; }
+  if (info.needChar) { ctxShow('New here?', [['Create your character', () => openCreator()]], x, y); return; }
+  // one thing to do with most furniture, but the menu has room for more later
+  const title = tg.kind === 'spot' ? (CAT_ROOM[tg.s.cat] && CAT_ROOM[tg.s.cat].name) || 'Here' : 'Here';
+  ctxShow(title, [[info.ok ? info.text : info.text, () => activate(tg, x, y), !info.ok]], x, y);
+}
 let upInfo = null;
 canvas.addEventListener('pointerdown', (e) => { upInfo = { x0: e.clientX, y0: e.clientY, t0: performance.now() }; }, true);
 
