@@ -5719,7 +5719,7 @@ let lastFrameAt = 0, lastInputAt = performance.now();
 for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart']) addEventListener(ev, () => { lastInputAt = performance.now(); }, { passive: true, capture: true });
 function tick() {
   if (LITE) {
-    const n = performance.now(), idle = n - lastInputAt > 15000;
+    const n = performance.now(), idle = n - lastInputAt > 15000 || !enteredGame;   // the welcome card only needs a slow backdrop
     if (document.hidden || n - lastFrameAt < (idle ? 80 : 32)) { requestAnimationFrame(tick); return; }
     lastFrameAt = n;
   }
@@ -6096,6 +6096,8 @@ function tourShot(i) {
 }
 function startTour() {
   if (enteredGame) { $('loading').hidden = true; if (window.LOAD) window.LOAD.done(); return; }   // clicked in before the bar finished loading
+  // phones skip the tour: straight to the welcome card over a still view of the bar
+  if (LITE) { $('loading').hidden = true; if (window.LOAD) window.LOAD.done(); $('gate').classList.add('tour'); return; }
   touring = true; tourI = 0; tourT = 0;
   gateWanted = !$('gate').hidden; $('gate').hidden = true;   // the welcome card waits until the loading bar is done
   $('loading').classList.add('tour'); $('gate').classList.add('tour');
@@ -6108,12 +6110,13 @@ function tourHook(dt) {
   if (!tourT) tourT = now;
   if (now - tourT > 2600) {
     tourT = now; tourI++;
+    if (tourI >= TOUR.length) { touring = false; return; }   // one lap is enough; rest on the last shot
     if (tourI === TOUR.length - 1 && !$('loading').hidden) { tourShot(tourI); setTimeout(() => { $('loading').hidden = true; $('gate').hidden = gateWanted ? false : $('gate').hidden; if (window.LOAD) window.LOAD.done(); }, 900); }
     else tourShot(tourI);
   }
 }
 function endTour() {
-  if (!touring) return;
+  if (!touring && !$('gate').classList.contains('tour')) return;
   touring = false; $('loading').hidden = true; $('gate').classList.remove('tour');
   setView('bar');
 }
