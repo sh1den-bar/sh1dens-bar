@@ -51,6 +51,8 @@ canvas { position: relative; z-index: 1; width: 100%; height: 100%; display: blo
 .bubble::after { content: ""; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #efe7d8; }
 .nametag.mine { color: #ffd28a; border-color: rgba(255, 210, 138, 0.6); }
 .nametag.host { color: #ffd6de; border: 1px solid #c8143c; background: rgba(40, 4, 12, 0.85); box-shadow: 0 0 0 1px rgba(120, 6, 30, 0.9), 0 0 8px rgba(220, 20, 60, 0.6); }
+.nametag.midnight { color: #e6dcff; border: 1px solid #7a4aff; background: rgba(16, 6, 40, 0.88); box-shadow: 0 0 0 1px rgba(46, 16, 110, 0.95), 0 0 9px rgba(120, 70, 255, 0.65); }
+.bizrole.midnight { color: #b49aff; text-shadow: 0 0 8px rgba(120, 70, 255, 0.6); }
 #hint { position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none; font: 500 12px/1.2 var(--mono); color: #1a1206;
   background: var(--neon); padding: 5px 9px; border-radius: 3px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.5); }
 #hint.off { background: #2a2b30; color: #b9b4aa; }
@@ -470,6 +472,7 @@ input[type=range] { box-shadow: none; background: transparent; }
 .nametag { font-family: var(--mono); font-size: 12px; border: 0 !important; border-radius: 0 !important; padding: 2px 6px;
   box-shadow: 0 -2px 0 0 rgba(226,180,103,0.35), 0 2px 0 0 rgba(226,180,103,0.35), -2px 0 0 0 rgba(226,180,103,0.35), 2px 0 0 0 rgba(226,180,103,0.35); }
 .nametag.mine { box-shadow: 0 -2px 0 0 #ffd28a, 0 2px 0 0 #ffd28a, -2px 0 0 0 #ffd28a, 2px 0 0 0 #ffd28a; }
+.nametag.midnight { box-shadow: 0 -2px 0 0 #7a4aff, 0 2px 0 0 #7a4aff, -2px 0 0 0 #7a4aff, 2px 0 0 0 #7a4aff, 0 0 9px rgba(120, 70, 255, 0.65); }
 .nametag.host { box-shadow: 0 -2px 0 0 #c8143c, 0 2px 0 0 #c8143c, -2px 0 0 0 #c8143c, 2px 0 0 0 #c8143c, 0 0 8px rgba(220, 20, 60, 0.6); }
 .bubble { font-family: var(--mono); border-radius: 0 !important;
   box-shadow: 0 -2px 0 0 #2a2218, 0 2px 0 0 #2a2218, -2px 0 0 0 #2a2218, 2px 0 0 0 #2a2218, 4px 6px 0 0 var(--drop) !important; }
@@ -478,7 +481,6 @@ input[type=range] { box-shadow: none; background: transparent; }
 * { scrollbar-width: thin; scrollbar-color: var(--edge) var(--lo); }
 ::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-track { background: var(--lo); }
 ::-webkit-scrollbar-thumb { background: var(--edge); box-shadow: inset 2px 2px 0 0 var(--hi), inset -2px -2px 0 0 #1c2029; }
-.bigcard { cursor: move; }
 </style>
 </head>
 <body>
@@ -775,16 +777,16 @@ window.LOAD = (function () {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js" onload="LOAD.step(30,'Calling the regulars…')"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=69"></script>
-<script src="net.js?v=69" onload="LOAD.step(36,'Building the bar…')"></script>
-<script src="bar.js?v=69" onload="LOAD.step(62,'Stocking the shelves…')"></script>
-<script src="pool.js?v=69"></script>
-<script src="extras.js?v=69"></script>
-<script src="poker.js?v=69"></script>
-<script src="cursors.js?v=69"></script>
-<script src="social.js?v=69"></script>
-<script src="hotel.js?v=69"></script>
-<script src="accounts.js?v=69"></script>
+<script src="config.js?v=70"></script>
+<script src="net.js?v=70" onload="LOAD.step(36,'Building the bar…')"></script>
+<script src="bar.js?v=70" onload="LOAD.step(62,'Stocking the shelves…')"></script>
+<script src="pool.js?v=70"></script>
+<script src="extras.js?v=70"></script>
+<script src="poker.js?v=70"></script>
+<script src="cursors.js?v=70"></script>
+<script src="social.js?v=70"></script>
+<script src="hotel.js?v=70"></script>
+<script src="accounts.js?v=70"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -836,10 +838,9 @@ window.LOAD = (function () {
   (function () {
     let drag = null;
     document.addEventListener('pointerdown', (e) => {
-      const bar = e.target.closest('.panel > header, #room .winbar, .popmenu, #drinkMenu, #npcMenu, .bigcard');
+      const bar = e.target.closest('.panel > header, #room .winbar, .popmenu, #drinkMenu, #npcMenu');
       if (!bar || e.button !== 0 || e.target.closest('button, input, select, a, textarea')) return;
-      const p = bar.closest('.panel, .popmenu, #drinkMenu, #npcMenu, .bigcard'), st = $('stage'); if (!p || !st) return;
-      if (p.classList.contains('bigcard')) { const m = (p.style.transform.match(/-?[\d.]+/g) || [0, 0]).map(Number); drag = { card: p, x0: e.clientX - m[0], y0: e.clientY - m[1] }; e.preventDefault(); return; }
+      const p = bar.closest('.panel, .popmenu, #drinkMenu, #npcMenu'), st = $('stage'); if (!p || !st) return;
       const pr = p.getBoundingClientRect(), sr = st.getBoundingClientRect();
       const imp = p.classList.contains('panel') ? 'important' : '';   // menus reopen where you click, so they move without !important
       if (imp) p.classList.add('dragged');
@@ -850,7 +851,6 @@ window.LOAD = (function () {
     });
     document.addEventListener('pointermove', (e) => {
       if (!drag) return;
-      if (drag.card) { drag.card.style.transform = 'translate(' + (e.clientX - drag.x0) + 'px,' + (e.clientY - drag.y0) + 'px)'; return; }
       const { p, dx, dy, sr, w, imp } = drag;
       const x = Math.max(-w + 80, Math.min(sr.width - 80, e.clientX - sr.left - dx)), y = Math.max(0, Math.min(sr.height - 40, e.clientY - sr.top - dy));
       p.style.setProperty('left', x + 'px', imp); p.style.setProperty('top', y + 'px', imp);
