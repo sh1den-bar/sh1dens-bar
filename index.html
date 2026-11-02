@@ -17,7 +17,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><rect width='16' height='16' fill='%230b0907'/><rect x='2' y='2' width='12' height='1' fill='%23e8e2d6'/><rect x='3' y='3' width='10' height='1' fill='%23ff5ab4'/><rect x='4' y='4' width='8' height='1' fill='%23ff5ab4'/><rect x='5' y='5' width='6' height='1' fill='%23ff3a9a'/><rect x='6' y='6' width='4' height='1' fill='%23ff3a9a'/><rect x='2' y='3' width='1' height='1' fill='%23e8e2d6'/><rect x='13' y='3' width='1' height='1' fill='%23e8e2d6'/><rect x='3' y='4' width='1' height='1' fill='%23e8e2d6'/><rect x='12' y='4' width='1' height='1' fill='%23e8e2d6'/><rect x='4' y='5' width='1' height='1' fill='%23e8e2d6'/><rect x='11' y='5' width='1' height='1' fill='%23e8e2d6'/><rect x='5' y='6' width='1' height='1' fill='%23e8e2d6'/><rect x='10' y='6' width='1' height='1' fill='%23e8e2d6'/><rect x='6' y='7' width='4' height='1' fill='%23e8e2d6'/><rect x='7' y='8' width='2' height='5' fill='%23e8e2d6'/><rect x='5' y='13' width='6' height='1' fill='%23e8e2d6'/><rect x='10' y='1' width='1' height='4' fill='%23c8a040'/><rect x='9' y='4' width='3' height='2' fill='%2350a040'/></svg>">
 <meta name="description" content="A PS1-style bar for the sh1denfps community. Make your own character, chat and watch videos together.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=VT323&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=VT323&family=Pixelify+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: the bar fills the screen; HUD rows float top and bottom, the room panel docks right, other panels slide over the scene. */
 :root {
@@ -412,6 +412,73 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
 .curprev img { width: 64px; height: 64px; image-rendering: pixelated; }
 .betq { display: inline-flex; gap: 4px; flex-wrap: wrap; } .betq button { padding: 3px 7px; font-size: 11px; }
 #slotBet { font: inherit; font-size: 13px; color: var(--fg); background: var(--solid); border: 1px solid var(--line); padding: 5px 7px; }
+
+/* ================================================================ PIXEL SKIN
+   Every window, menu, button and field drawn like PS1-era UI: no rounded corners, chunky notched borders made of
+   hard shadows, a two-tone bevel, hard drop shadows and a pixel font. Windows are slate, menus are tight and small. */
+:root {
+  --mono: "Pixelify Sans", "VT323", ui-monospace, monospace;
+  --win: #10131b; --win2: #161a25; --edge: #3b4152; --hi: #59617a; --lo: #07080c; --drop: rgba(0, 0, 0, 0.6);
+  --gold: #e2b467; --gold-hi: #ffe1a3; --gold-lo: #8a6326;
+}
+body { font-size: 13px; -webkit-font-smoothing: none; font-smooth: never; }
+/* a notched pixel frame: the outline is drawn on the four sides only, so the corners step in */
+.panel, .popmenu, #drinkMenu, #npcMenu, .dropup > .menu, #toast, .bigcard, #updBar, .gatebox, .loadbox, .lbar {
+  border: 0 !important; border-radius: 0 !important;
+  box-shadow: 0 -3px 0 0 var(--edge), 0 3px 0 0 var(--edge), -3px 0 0 0 var(--edge), 3px 0 0 0 var(--edge),
+              inset 3px 3px 0 0 var(--hi), inset -3px -3px 0 0 var(--lo), 7px 10px 0 0 var(--drop) !important;
+}
+.panel, .popmenu, #drinkMenu, #npcMenu, .dropup > .menu, #toast { background: linear-gradient(180deg, var(--win2), var(--win)) !important; }
+.gatebox, .loadbox { background: rgba(12, 14, 20, 0.86); padding: 26px 28px; }
+.gatebox h1::after { height: 3px; background: repeating-linear-gradient(90deg, var(--gold) 0 6px, transparent 6px 9px); }
+/* window title bars: a darker strip with a dotted grip, like an old OS */
+.panel > header { background: repeating-linear-gradient(90deg, #232838 0 3px, #1d2130 3px 6px) !important; border-bottom: 3px solid var(--lo); cursor: move;
+  margin: 0 -16px 0 !important; padding: 10px 14px 8px !important; box-shadow: inset 0 3px 0 0 var(--hi); }
+.panel:has(> header) { padding-top: 0 !important; }
+.panel > header h2, .panel > header h3 { font-family: var(--display); }
+#room .winbar { cursor: move; }
+/* buttons: bevelled blocks that press in */
+button { font-family: var(--mono); border: 0 !important; border-radius: 0 !important; background: #1a1e29; color: var(--fg);
+  box-shadow: 0 -2px 0 0 var(--lo), 0 2px 0 0 var(--lo), -2px 0 0 0 var(--lo), 2px 0 0 0 var(--lo), inset 2px 2px 0 0 #3a4152, inset -2px -2px 0 0 #0c0e13; }
+button:hover:not(:disabled) { background: #242a3a; }
+button:active:not(:disabled) { transform: translate(1px, 1px); box-shadow: 0 -2px 0 0 var(--lo), 0 2px 0 0 var(--lo), -2px 0 0 0 var(--lo), 2px 0 0 0 var(--lo), inset 2px 2px 0 0 #0c0e13, inset -2px -2px 0 0 #3a4152; }
+button[aria-pressed="true"] { background: #2a3350; color: #fff; }
+button.primary { background: var(--gold); color: #1a1004;
+  box-shadow: 0 -2px 0 0 var(--lo), 0 2px 0 0 var(--lo), -2px 0 0 0 var(--lo), 2px 0 0 0 var(--lo), inset 2px 2px 0 0 var(--gold-hi), inset -2px -2px 0 0 var(--gold-lo); }
+button.primary:hover:not(:disabled) { background: #f0c67e; }
+button.danger { color: #ff8a7a; background: #2a1414; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px dashed var(--gold); outline-offset: 3px; }
+.chattabs button, .x.chattab { box-shadow: none; background: transparent; }
+.chattabs button.on { border-bottom: 3px solid var(--amber) !important; }
+/* fields: sunken boxes */
+input, select, textarea { font-family: var(--mono); border: 0 !important; border-radius: 0 !important; background: #07080c; color: var(--fg);
+  box-shadow: inset 2px 2px 0 0 #000, inset -2px -2px 0 0 #2b3040, 0 0 0 2px var(--edge); }
+input[type=range] { box-shadow: none; background: transparent; }
+/* menus: smaller and tighter, with a gold highlight bar under the item you point at (matches the cursor) */
+.popmenu, #drinkMenu, #npcMenu { min-width: 150px !important; padding: 8px !important; gap: 2px !important; }
+.popmenu .dmTitle, #drinkMenu .dmTitle, #npcMenu .dmTitle { font-family: var(--display) !important; font-size: 20px !important; line-height: 1; color: var(--gold) !important;
+  margin: -2px -2px 4px !important; padding: 3px 6px 4px; background: repeating-linear-gradient(90deg, #232838 0 3px, #1d2130 3px 6px); }
+.popmenu button, #drinkMenu button, #npcMenu button, .dropup > .menu button { font-size: 12px !important; padding: 4px 8px !important; background: transparent; box-shadow: none !important; text-align: left; }
+.popmenu button:hover:not(:disabled), #drinkMenu button:hover:not(:disabled), #npcMenu button:hover:not(:disabled), .dropup > .menu button:hover:not(:disabled),
+.popmenu button:focus-visible, #drinkMenu button:focus-visible, #npcMenu button:focus-visible { background: var(--gold); color: #1a1004; outline: 0; }
+.popmenu button:hover:not(:disabled)::before, #drinkMenu button:hover:not(:disabled)::before, #npcMenu button:hover:not(:disabled)::before { content: '▸ '; }
+#npcMenu { position: absolute; z-index: 4; display: flex; flex-direction: column; }
+/* small floating labels */
+#hint { border-radius: 0 !important; font-family: var(--mono); font-size: 12px; padding: 4px 8px;
+  box-shadow: 0 -2px 0 0 var(--gold-lo), 0 2px 0 0 var(--gold-lo), -2px 0 0 0 var(--gold-lo), 2px 0 0 0 var(--gold-lo), 4px 5px 0 0 var(--drop) !important; }
+#hint.off { box-shadow: 0 -2px 0 0 #111, 0 2px 0 0 #111, -2px 0 0 0 #111, 2px 0 0 0 #111, 4px 5px 0 0 var(--drop) !important; }
+.nametag { font-family: var(--mono); font-size: 12px; border: 0 !important; border-radius: 0 !important; padding: 2px 6px;
+  box-shadow: 0 -2px 0 0 rgba(226,180,103,0.35), 0 2px 0 0 rgba(226,180,103,0.35), -2px 0 0 0 rgba(226,180,103,0.35), 2px 0 0 0 rgba(226,180,103,0.35); }
+.nametag.mine { box-shadow: 0 -2px 0 0 #ffd28a, 0 2px 0 0 #ffd28a, -2px 0 0 0 #ffd28a, 2px 0 0 0 #ffd28a; }
+.nametag.host { box-shadow: 0 -2px 0 0 #c8143c, 0 2px 0 0 #c8143c, -2px 0 0 0 #c8143c, 2px 0 0 0 #c8143c, 0 0 8px rgba(220, 20, 60, 0.6); }
+.bubble { font-family: var(--mono); border-radius: 0 !important;
+  box-shadow: 0 -2px 0 0 #2a2218, 0 2px 0 0 #2a2218, -2px 0 0 0 #2a2218, 2px 0 0 0 #2a2218, 4px 6px 0 0 var(--drop) !important; }
+.bubble::after { border-width: 6px 6px 0; bottom: -8px; }
+/* scrollbars: square and chunky */
+* { scrollbar-width: thin; scrollbar-color: var(--edge) var(--lo); }
+::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-track { background: var(--lo); }
+::-webkit-scrollbar-thumb { background: var(--edge); box-shadow: inset 2px 2px 0 0 var(--hi), inset -2px -2px 0 0 #1c2029; }
+.bigcard { cursor: move; }
 </style>
 </head>
 <body>
@@ -708,16 +775,16 @@ window.LOAD = (function () {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js" onload="LOAD.step(30,'Calling the regulars…')"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=68"></script>
-<script src="net.js?v=68" onload="LOAD.step(36,'Building the bar…')"></script>
-<script src="bar.js?v=68" onload="LOAD.step(62,'Stocking the shelves…')"></script>
-<script src="pool.js?v=68"></script>
-<script src="extras.js?v=68"></script>
-<script src="poker.js?v=68"></script>
-<script src="cursors.js?v=68"></script>
-<script src="social.js?v=68"></script>
-<script src="hotel.js?v=68"></script>
-<script src="accounts.js?v=68"></script>
+<script src="config.js?v=69"></script>
+<script src="net.js?v=69" onload="LOAD.step(36,'Building the bar…')"></script>
+<script src="bar.js?v=69" onload="LOAD.step(62,'Stocking the shelves…')"></script>
+<script src="pool.js?v=69"></script>
+<script src="extras.js?v=69"></script>
+<script src="poker.js?v=69"></script>
+<script src="cursors.js?v=69"></script>
+<script src="social.js?v=69"></script>
+<script src="hotel.js?v=69"></script>
+<script src="accounts.js?v=69"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -769,9 +836,10 @@ window.LOAD = (function () {
   (function () {
     let drag = null;
     document.addEventListener('pointerdown', (e) => {
-      const bar = e.target.closest('.panel > header, #room .winbar, .popmenu, #drinkMenu');
+      const bar = e.target.closest('.panel > header, #room .winbar, .popmenu, #drinkMenu, #npcMenu, .bigcard');
       if (!bar || e.button !== 0 || e.target.closest('button, input, select, a, textarea')) return;
-      const p = bar.closest('.panel, .popmenu, #drinkMenu'), st = $('stage'); if (!p || !st) return;
+      const p = bar.closest('.panel, .popmenu, #drinkMenu, #npcMenu, .bigcard'), st = $('stage'); if (!p || !st) return;
+      if (p.classList.contains('bigcard')) { const m = (p.style.transform.match(/-?[\d.]+/g) || [0, 0]).map(Number); drag = { card: p, x0: e.clientX - m[0], y0: e.clientY - m[1] }; e.preventDefault(); return; }
       const pr = p.getBoundingClientRect(), sr = st.getBoundingClientRect();
       const imp = p.classList.contains('panel') ? 'important' : '';   // menus reopen where you click, so they move without !important
       if (imp) p.classList.add('dragged');
@@ -782,6 +850,7 @@ window.LOAD = (function () {
     });
     document.addEventListener('pointermove', (e) => {
       if (!drag) return;
+      if (drag.card) { drag.card.style.transform = 'translate(' + (e.clientX - drag.x0) + 'px,' + (e.clientY - drag.y0) + 'px)'; return; }
       const { p, dx, dy, sr, w, imp } = drag;
       const x = Math.max(-w + 80, Math.min(sr.width - 80, e.clientX - sr.left - dx)), y = Math.max(0, Math.min(sr.height - 40, e.clientY - sr.top - dy));
       p.style.setProperty('left', x + 'px', imp); p.style.setProperty('top', y + 'px', imp);
