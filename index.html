@@ -177,6 +177,11 @@ input, textarea { font: inherit; font-size: 14px; color: var(--fg); background: 
 .gcard th.now { color: var(--neon); } .gcard tr.par td { color: var(--dim); } .gcard td.gname { text-align: left; white-space: nowrap; }
 .gcard td.under { color: #9be070; } .gcard td.over { color: #ff9a7a; } .gcard td.tot { font-weight: 600; }
 .gmsg { color: var(--fg) !important; }
+.gbet { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: rgba(226,180,103,0.06); box-shadow: inset 0 0 0 2px rgba(226,180,103,0.25); }
+.gbetTitle { font-family: var(--display); font-size: 20px; color: var(--neon); }
+.gbids { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; } .gbids li { display: flex; gap: 8px; font-size: 12px; } .gbids li span { flex: 1; } .gbids li i { color: var(--dim); font-style: normal; }
+.gbetNow { color: var(--fg) !important; font-size: 12px; }
+#golfPanel input[type=number] { padding: 5px 6px; }
 #golfHud { position: absolute; left: 50%; bottom: calc(66px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 4; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; width: min(560px, calc(100vw - 24px)); background: linear-gradient(180deg, #161a25, #10131b); }
 #golfHud .ghRow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; } #golfHud .ghInfo { font-size: 12px; color: var(--neon); }
 #golfHud .ghMeter { flex: 1; min-width: 140px; height: 18px; position: relative; background: #07080c; box-shadow: inset 2px 2px 0 0 #000, inset -2px -2px 0 0 #2b3040, 0 0 0 2px var(--edge, #3b4152); }
@@ -794,14 +799,14 @@ window.LOAD = (function () {
 <!-- bump ?v= after each update so browsers load the new files right away -->
 <script src="config.js?v=70"></script>
 <script src="net.js?v=70" onload="LOAD.step(36,'Building the bar…')"></script>
-<script src="bar.js?v=74" onload="LOAD.step(62,'Stocking the shelves…')"></script>
+<script src="bar.js?v=75" onload="LOAD.step(62,'Stocking the shelves…')"></script>
 <script src="pool.js?v=70"></script>
 <script src="extras.js?v=70"></script>
 <script src="poker.js?v=70"></script>
 <script src="cursors.js?v=70"></script>
 <script src="social.js?v=70"></script>
 <script src="hotel.js?v=70"></script>
-<script src="golf.js?v=74"></script>
+<script src="golf.js?v=75"></script>
 <script src="accounts.js?v=70"></script>
 <script>
 (function () {

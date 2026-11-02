@@ -3754,6 +3754,125 @@ for (const R of HOTEL_ROOMS) {
   rug.rotation.x = -Math.PI / 2; rug.position.set(x0 + 2.0, 0.012, side * (1.2 + 3.0)); scene.add(rug);
 }
 
+// ================================================================ THE FOREST: textured trees in four kinds, merged into chunks so far ones can be skipped
+// pines (stacked drooping tiers of needles), oaks (a forked trunk under clumps of leaves), birches (white bark, airy crowns), bushes
+function hash32(n) { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 9); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return n >>> 0; }
+const FOREST = [];
+function tree(x, z, s) { FOREST.push({ k: 'oak', x, z, s }); }
+function pineTree(x, z, s) { FOREST.push({ k: 'pine', x, z, s }); }
+function birch(x, z, s) { FOREST.push({ k: 'birch', x, z, s }); }
+function bush(x, z, s) { FOREST.push({ k: 'bush', x, z, s }); }
+const leafTex = canvasTex(64, 64, (x, w, h) => {
+  const r = rngFrom(77); x.fillStyle = 'rgb(118,128,104)'; x.fillRect(0, 0, w, h);
+  for (let k = 0; k < 520; k++) {   // overlapping leaves, lighter on top, dark gaps between
+    const px = r() * w, py = r() * h, s = 1.5 + r() * 2.6, v = 70 + Math.floor(r() * 120);
+    x.fillStyle = `rgb(${v},${Math.min(255, v + 20)},${Math.floor(v * 0.75)})`; x.beginPath(); x.ellipse(px, py, s, s * 0.6, r() * 3, 0, 7); x.fill();
+  }
+  for (let k = 0; k < 60; k++) { x.fillStyle = 'rgba(20,24,16,0.7)'; x.fillRect(Math.floor(r() * w), Math.floor(r() * h), 2, 2); }
+});
+const needleTex = canvasTex(64, 64, (x, w, h) => {
+  const r = rngFrom(78); x.fillStyle = 'rgb(70,86,70)'; x.fillRect(0, 0, w, h);
+  for (let k = 0; k < 900; k++) { const px = Math.floor(r() * w), py = Math.floor(r() * h), v = 50 + Math.floor(r() * 110); x.fillStyle = `rgb(${Math.floor(v * 0.8)},${v},${Math.floor(v * 0.8)})`; x.fillRect(px, py, 1, 2 + Math.floor(r() * 3)); }
+  for (let j = 6; j < h; j += 9) { x.fillStyle = 'rgba(16,22,16,0.55)'; x.fillRect(0, j, w, 1); }   // layered branch shadows
+});
+const barkTex = canvasTex(32, 64, (x, w, h) => {
+  const r = rngFrom(79); x.fillStyle = 'rgb(150,150,150)'; x.fillRect(0, 0, w, h);
+  for (let k = 0; k < 140; k++) { const px = Math.floor(r() * w), v = 60 + Math.floor(r() * 120); x.fillStyle = `rgb(${v},${v},${v})`; x.fillRect(px, Math.floor(r() * h), 1, 3 + Math.floor(r() * 10)); }
+});
+const birchTex = canvasTex(32, 64, (x, w, h) => {
+  const r = rngFrom(80); x.fillStyle = 'rgb(230,228,220)'; x.fillRect(0, 0, w, h);
+  for (let k = 0; k < 40; k++) { x.fillStyle = 'rgb(30,30,32)'; x.fillRect(Math.floor(r() * w), Math.floor(r() * h), 3 + Math.floor(r() * 9), 1 + Math.floor(r() * 2)); }
+  for (let k = 0; k < 120; k++) { x.fillStyle = 'rgba(160,156,146,0.6)'; x.fillRect(Math.floor(r() * w), Math.floor(r() * h), 1, 1); }
+});
+for (const t of [leafTex, needleTex, barkTex, birchTex]) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+const FOREST_MATS = {
+  leaf: ps1(new THREE.MeshLambertMaterial({ map: leafTex, vertexColors: true, flatShading: true })),
+  needle: ps1(new THREE.MeshLambertMaterial({ map: needleTex, vertexColors: true, flatShading: true })),
+  bark: ps1(new THREE.MeshLambertMaterial({ map: barkTex, vertexColors: true })),
+  birch: ps1(new THREE.MeshLambertMaterial({ map: birchTex, vertexColors: true }))
+};
+// a piece of a tree: any three.js shape, made rough (each corner nudged by a fixed amount, so faces still meet), tinted and placed
+const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _sc = new THREE.Vector3();
+function forestPiece(bucket, mat, geo, pos, rot, scl, tint, rough, seed, shade) {
+  const g = geo.index ? geo.toNonIndexed() : geo;
+  const p = g.attributes.position;
+  if (rough) for (let i = 0; i < p.count; i++) {
+    const kx = Math.round(p.getX(i) * 100), ky = Math.round(p.getY(i) * 100), kz = Math.round(p.getZ(i) * 100), hsh = hash32(kx * 73856093 ^ ky * 19349663 ^ kz * 83492791 ^ seed);
+    p.setXYZ(i, p.getX(i) + ((hsh & 255) / 255 - 0.5) * rough, p.getY(i) + (((hsh >> 8) & 255) / 255 - 0.5) * rough, p.getZ(i) + (((hsh >> 16) & 255) / 255 - 0.5) * rough);
+  }
+  _e.set(rot[0], rot[1], rot[2]); _q.setFromEuler(_e); _v.set(pos[0], pos[1], pos[2]); _sc.set(scl[0], scl[1], scl[2]);
+  _m4.compose(_v, _q, _sc); g.applyMatrix4(_m4);
+  g.computeVertexNormals();
+  // colour: the tint, darker toward the bottom of each piece (self-shadow) and a little noisy
+  const n = p.count, col = new Float32Array(n * 3);
+  let y0 = Infinity, y1 = -Infinity; for (let i = 0; i < n; i++) { y0 = Math.min(y0, p.getY(i)); y1 = Math.max(y1, p.getY(i)); }
+  for (let i = 0; i < n; i++) {
+    const u = y1 > y0 ? (p.getY(i) - y0) / (y1 - y0) : 1, k = (shade === undefined ? 0.62 : shade) + (1 - (shade === undefined ? 0.62 : shade)) * u, jit = 0.92 + ((hash32(i * 2654435761 ^ seed) & 255) / 255) * 0.16;
+    col[i * 3] = tint[0] / 255 * k * jit; col[i * 3 + 1] = tint[1] / 255 * k * jit; col[i * 3 + 2] = tint[2] / 255 * k * jit;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  (bucket[mat] = bucket[mat] || []).push(g);
+}
+function mergeGeos(list) {
+  let n = 0; for (const g of list) n += g.attributes.position.count;
+  const out = new THREE.BufferGeometry(), keys = ['position', 'normal', 'uv', 'color'], sizes = [3, 3, 2, 3];
+  keys.forEach((k, ki) => {
+    const arr = new Float32Array(n * sizes[ki]); let o = 0;
+    for (const g of list) { const a = g.attributes[k]; if (a) arr.set(a.array, o); o += g.attributes.position.count * sizes[ki]; }
+    out.setAttribute(k, new THREE.BufferAttribute(arr, sizes[ki]));
+  });
+  return out;
+}
+function buildForest() {
+  const cells = new Map();
+  for (const t of FOREST) {
+    const key = Math.floor(t.x / 30) + ',' + Math.floor(t.z / 30);
+    if (!cells.has(key)) cells.set(key, {});
+    const B = cells.get(key), s = t.s, seed = hash32(Math.round(t.x * 100) ^ Math.round(t.z * 100) * 31), r = rngFrom(seed), yaw = r() * 6.28;
+    if (t.k === 'pine') {
+      const tint = [[60, 96, 66], [52, 86, 62], [70, 104, 70], [58, 90, 74]][Math.floor(r() * 4)];
+      forestPiece(B, 'bark', new THREE.CylinderGeometry(0.1 * s, 0.17 * s, 2.0 * s, 6, 2), [t.x, 1.0 * s, t.z], [0, yaw, 0], [1, 1, 1], [120, 88, 64], 0.03 * s, seed, 0.7);
+      const tiers = 4 + Math.floor(r() * 2);
+      for (let k = 0; k < tiers; k++) {
+        const u = k / tiers, rad = (1.9 - 1.45 * u) * s, hgt = (1.9 - 0.5 * u) * s, y = (1.1 + k * 1.05) * s + hgt / 2;
+        forestPiece(B, 'needle', new THREE.ConeGeometry(rad, hgt, 9, 2, false), [t.x + (r() - 0.5) * 0.15, y, t.z + (r() - 0.5) * 0.15], [(r() - 0.5) * 0.12, yaw + k * 0.7, (r() - 0.5) * 0.12], [1, 1, 1], tint, 0.22 * s, seed + k, 0.5);
+      }
+      forestPiece(B, 'needle', new THREE.ConeGeometry(0.35 * s, 1.1 * s, 6, 1), [t.x, (1.1 + tiers * 1.05 + 0.3) * s, t.z], [0, yaw, 0], [1, 1, 1], tint, 0.05, seed + 9, 0.6);
+    } else if (t.k === 'oak') {
+      const tint = [[74, 112, 58], [86, 120, 60], [66, 104, 56], [104, 118, 58], [120, 104, 52]][Math.floor(r() * 5)];
+      const lean = (r() - 0.5) * 0.12;
+      forestPiece(B, 'bark', new THREE.CylinderGeometry(0.14 * s, 0.24 * s, 2.4 * s, 7, 3), [t.x, 1.2 * s, t.z], [lean, yaw, lean], [1, 1, 1], [110, 86, 64], 0.06 * s, seed, 0.65);
+      // two or three limbs fork out of the trunk
+      const limbs = 2 + Math.floor(r() * 2);
+      for (let k = 0; k < limbs; k++) {
+        const a = yaw + k * (6.28 / limbs), tilt = 0.6 + r() * 0.3;
+        forestPiece(B, 'bark', new THREE.CylinderGeometry(0.06 * s, 0.11 * s, 1.5 * s, 5, 1), [t.x + Math.sin(a) * 0.35 * s, 2.6 * s, t.z + Math.cos(a) * 0.35 * s], [Math.cos(a) * tilt, 0, -Math.sin(a) * tilt], [1, 1, 1], [104, 82, 62], 0.03 * s, seed + 20 + k, 0.7);
+      }
+      // the crown: a big clump in the middle and smaller ones around it
+      const blobs = 6 + Math.floor(r() * 3);
+      for (let k = 0; k < blobs; k++) {
+        const a = r() * 6.28, d = k === 0 ? 0 : (0.7 + r() * 0.7) * s, rad = (k === 0 ? 1.45 : 0.85 + r() * 0.45) * s;
+        forestPiece(B, 'leaf', new THREE.IcosahedronGeometry(rad, 1), [t.x + Math.sin(a) * d, (3.3 + (k === 0 ? 0.3 : (r() - 0.3) * 1.0)) * s, t.z + Math.cos(a) * d], [r() * 3, r() * 3, 0], [1, 0.78 + r() * 0.15, 1], tint, 0.3 * s, seed + 40 + k, 0.55);
+      }
+    } else if (t.k === 'birch') {
+      const tint = [[120, 150, 70], [104, 140, 66], [140, 150, 74]][Math.floor(r() * 3)];
+      const lean = (r() - 0.5) * 0.2;
+      forestPiece(B, 'birch', new THREE.CylinderGeometry(0.07 * s, 0.11 * s, 3.8 * s, 6, 3), [t.x, 1.9 * s, t.z], [lean, yaw, -lean * 0.5], [1, 1, 1], [236, 234, 226], 0.03 * s, seed, 0.8);
+      for (let k = 0; k < 4; k++) {
+        const a = r() * 6.28, d = (0.2 + r() * 0.5) * s;
+        forestPiece(B, 'leaf', new THREE.IcosahedronGeometry((0.6 + r() * 0.35) * s, 1), [t.x + Math.sin(a) * d + lean * 2.5 * s, (3.1 + r() * 1.3) * s, t.z + Math.cos(a) * d], [r() * 3, r() * 3, 0], [0.85, 1.15, 0.85], tint, 0.22 * s, seed + 60 + k, 0.6);
+      }
+    } else {
+      const tint = [[52, 92, 46], [60, 100, 50], [46, 82, 44], [70, 96, 48]][Math.floor(r() * 4)];
+      const n = 2 + Math.floor(r() * 3);
+      for (let k = 0; k < n; k++) { const a = r() * 6.28, d = (k ? 0.35 : 0) * s; forestPiece(B, 'leaf', new THREE.IcosahedronGeometry((0.45 + r() * 0.3) * s, 1), [t.x + Math.sin(a) * d, (0.32 + r() * 0.15) * s, t.z + Math.cos(a) * d], [r() * 3, r() * 3, 0], [1.1, 0.75, 1.1], tint, 0.16 * s, seed + 80 + k, 0.45); }
+      if (r() < 0.35) for (let k = 0; k < 6; k++) { const a = r() * 6.28, d = 0.3 * s; G.push(cyl(V(t.x + Math.sin(a) * d * 1.4, 0.55 * s, t.z + Math.cos(a) * d * 1.4), V(t.x + Math.sin(a) * d * 1.4, 0.6 * s, t.z + Math.cos(a) * d * 1.4), 0.04, 0.03, [[255, 240, 220], [255, 214, 90], [230, 150, 220]][Math.floor(r() * 3)], { n: 5, amt: 0 })); }
+    }
+  }
+  for (const [, B] of cells) for (const mat in B) { const m = new THREE.Mesh(mergeGeos(B[mat]), FOREST_MATS[mat]); scene.add(m); }
+  FOREST.length = 0;
+}
+
 // ================================================================ OUTSIDE: the street turns the corner, the valet drive, and the big public car park
 // ---- the corner: past the dance room the street bends left and runs down the side of the building
 const CC = { x: ST.x1, z: 2.0 }, CRI = ST.curb0 - CC.z, CRO = ST.curb1 - CC.z;   // turn centre, inner and outer curb radius
@@ -3859,10 +3978,6 @@ for (const e of [-1, 1]) {
 // a low hedge along the sidewalk, broken for the drive
 for (const [z0, z1] of [[LOT.z + 3.4, -4.4], [SS.z0 + 0.5, LOT.z - 3.4]]) S.push(box(22.55, 22.95, 0, 0.55, z0, z1, HEDGE, 0.12));
 // a few trees on the lawns
-function tree(x, z, s) {
-  S.push(cyl(V(x, 0, z), V(x, 2.0 * s, z), 0.13 * s, 0.09 * s, [58, 42, 30], { n: 7 }));
-  S.push(loft([rring(1.6 * s, 0.3 * s, 0.3 * s, x, z, 10, 2), rring(2.2 * s, 1.2 * s, 1.1 * s, x, z, 10, 2), rring(3.1 * s, 1.35 * s, 1.3 * s, x + 0.1, z, 10, 2), rring(3.9 * s, 0.9 * s, 0.95 * s, x, z, 10, 2), rring(4.4 * s, 0.1, 0.1, x, z, 10, 2)], [34, 66, 36], { smooth: true, amt: 0.14 }));
-}
 for (const [x, z, s] of [[19.2, -8.5, 0.95], [18.6, -14.8, 1.1], [19.4, -29.5, 1.05], [18.8, -37.5, 0.9], [19.6, -46, 1.0], [18.7, -54, 0.95]]) tree(x, z, s);
 // a stone sign on the lawn by the entrance, lit from below
 {
@@ -4010,8 +4125,12 @@ const WALKERS = [
   let L = 0; for (let k = 0; k < pts.length - 1; k++) { const d = Math.hypot(pts[k + 1][0] - pts[k][0], pts[k + 1][1] - pts[k][1]); segs.push([pts[k], pts[k + 1], L, d]); L += d; }
   return { segs, L, loop: w.path.length > 2, speed: w.speed, s: (i * 13.7) % L, dir: 1, look: randomLook(rngFrom(900 + i * 17)), ch: null };
 });
+const bagParts = () => [cyl(V(0, -0.45, -0.2), V(0, 0.35, -0.24), 0.12, 0.12, [40, 70, 50], { n: 8 }), cyl(V(0, 0.35, -0.24), V(0, 0.42, -0.24), 0.13, 0.13, [200, 196, 186], { n: 8 }), cyl(V(-0.04, 0.4, -0.22), V(-0.06, 0.62, -0.2), 0.02, 0.02, [190, 190, 196], { n: 4 }), cyl(V(0.05, 0.4, -0.25), V(0.07, 0.66, -0.27), 0.02, 0.02, [190, 190, 196], { n: 4 }), box(-0.06, 0.1, 0.62, 0.7, -0.28, -0.18, [60, 60, 66], 0.02)];
 function walkersRebuild() {
-  for (const w of WALKERS) { w.ch = addChar(w.look, '', { npc: true, seedName: 'walker' }); w.ch.act = 'walk'; }
+  for (const w of WALKERS) {
+    w.ch = addChar(w.look, '', { npc: true, seedName: 'walker' }); w.ch.act = 'walk';
+    if (w.bag && w.ch.bones && w.ch.bones.spine) { const m = new THREE.Mesh(toGeometry(bagParts()), charMat); m.rotation.z = 0.35; w.ch.bones.spine.add(m); }
+  }
   walkersTick(0);
 }
 function walkersTick(dt) {
@@ -4045,16 +4164,32 @@ const GOLF = {
   bounds: { x0: -10, x1: 80, z0: -232, z1: -72 },
   holes: [
     { par: 4, tee: [36, -82], pin: [48, -166], green: [48, -166, 7, 6], fw: [[37, -96], [46, -152]], fwr: 7.5, bunkers: [[55.5, -161, 2.6], [40, -152, 2.2]], water: [] },
-    { par: 3, tee: [58, -180], pin: [71, -126], green: [71, -126, 6.5, 6], fw: [[61, -166], [68, -142]], fwr: 5.5, bunkers: [[77.5, -129, 2.3]], water: [[64, -153, 6.5, 4.2]] },
+    { par: 3, tee: [58, -180], pin: [71, -126], green: [71, -126, 6.5, 6], fw: [[67, -143], [69.5, -137]], fwr: 5.5, bunkers: [[77.5, -129, 2.3]], water: [[64, -153, 6.5, 4.2]] },
     { par: 3, tee: [74, -114], pin: [64, -84], green: [64, -84, 6, 5.5], fw: [], fwr: 0, bunkers: [[70.5, -92, 2.8]], water: [] },
     { par: 4, tee: [20, -88], pin: [10, -152], green: [10, -152, 7, 6.5], fw: [[20, -102], [12, -142]], fwr: 7.5, bunkers: [[17, -158, 2.4]], water: [[3, -120, 4.6, 8]] },
     { par: 3, tee: [4, -164], pin: [-2, -212], green: [-2, -212, 6.5, 6], fw: [[3, -176], [0, -200]], fwr: 5.5, bunkers: [[4.5, -208, 2.3], [-8, -214, 2]], water: [] },
-    { par: 3, tee: [8, -224], pin: [50, -214], green: [50, -214, 6.5, 6], fw: [[19, -222.5], [40, -216]], fwr: 6, bunkers: [[46, -207.5, 2.2]], water: [[30, -226.5, 6, 3.4]] }
+    { par: 3, tee: [8, -224], pin: [50, -214], green: [50, -214, 6.5, 6], fw: [[19, -222.5], [40, -216]], fwr: 6, bunkers: [[46, -207.5, 2.2]], water: [[30, -228.8, 6, 2.6]] }
   ]
 };
 GOLF.holes.forEach((h, i) => { h.n = i + 1; h.len = Math.round(Math.hypot(h.pin[0] - h.tee[0], h.pin[1] - h.tee[1])); });
+// how far each playing surface sits above the ground (the ball and the golfer stand on it)
+const LIFT = { tee: 0.14, green: 0.085, fringe: 0.065, fairway: 0.05 };
+const golfLift = (x, z) => LIFT[golfSurface(x, z)] || 0;
 const segDist = (x, z, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz; let u = l2 ? ((x - a[0]) * dx + (z - a[1]) * dz) / l2 : 0; u = Math.max(0, Math.min(1, u)); return Math.hypot(x - a[0] - dx * u, z - a[1] - dz * u); };
+// bunkers sit cleanly in the rough: nudge any that clip a fairway or a green's fringe out until they don't
+function nudgeBunkers() {
+  for (const h of GOLF.holes) for (const b of h.bunkers) for (let it = 0; it < 80; it++) {
+    let mx = 0, mz = 0;
+    for (const o of GOLF.holes) {
+      if (o.fw.length) { const d = segDist(b[0], b[1], o.fw[0], o.fw[1]); if (d < o.fwr + b[2] + 0.5) { const dx = o.fw[1][0] - o.fw[0][0], dz = o.fw[1][1] - o.fw[0][1], l2 = dx * dx + dz * dz; let u = ((b[0] - o.fw[0][0]) * dx + (b[1] - o.fw[0][1]) * dz) / l2; u = Math.max(0, Math.min(1, u)); const cx = o.fw[0][0] + dx * u, cz = o.fw[0][1] + dz * u, n = Math.hypot(b[0] - cx, b[1] - cz) || 1; mx += (b[0] - cx) / n; mz += (b[1] - cz) / n; } }
+      if (inEll(b[0], b[1], o.green, 1.6 + b[2] + 0.4)) { const n = Math.hypot(b[0] - o.green[0], b[1] - o.green[1]) || 1; mx += (b[0] - o.green[0]) / n; mz += (b[1] - o.green[1]) / n; }
+    }
+    if (!mx && !mz) break;
+    b[0] += mx * 0.25; b[1] += mz * 0.25;
+  }
+}
 const inEll = (x, z, e, pad) => { const rx = e[2] + (pad || 0), rz = e[3] + (pad || 0); return ((x - e[0]) / rx) ** 2 + ((z - e[1]) / rz) ** 2 <= 1; };
+nudgeBunkers();
 // what the ball is sitting on at a point
 function golfSurface(x, z) {
   const B = GOLF.bounds;
@@ -4081,38 +4216,92 @@ function golfSurface(x, z) {
     for (let k = 0; k <= n; k++) { const t = ang - Math.PI / 2 + (k / n) * Math.PI; out.push([b[0] + Math.cos(t) * r, b[1] + Math.sin(t) * r]); }
     return out;
   };
+  // flat pieces for things that lie on the ground, and raised ones (a gentle bevelled lip) for the playing surfaces
   const lay = (pts, mat, y, uvs) => {
     const g = new THREE.ShapeGeometry(flatShape(pts));
     const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / uvs, uv.getY(i) / uvs);
     const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.y = y; scene.add(m); return m;
   };
-  const stripes = (a, b, c) => canvasTex(16, 16, (x, w, h) => { for (let j = 0; j < h; j++) { const k = Math.floor(j / 8) % 2; noiseFill; x.fillStyle = k ? a : b; x.fillRect(0, j, w, 1); } for (let n = 0; n < 30; n++) { x.fillStyle = c; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 1); } });
+  const raise = (pts, mat, top, uvs, bevel) => {
+    const bt = Math.min(0.03, top * 0.45), depth = Math.max(0.005, top - bt * 2 + 0.02);
+    const g = new THREE.ExtrudeGeometry(flatShape(pts), { depth, bevelEnabled: true, bevelThickness: bt, bevelSize: bevel, bevelSegments: 2, steps: 1, curveSegments: 12 });
+    const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / uvs, uv.getY(i) / uvs);
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.y = top - depth - bt; scene.add(m); return m;
+  };
+  // grass textures with real blades, clover, worn patches; mown stripes on fairways, a checkerboard cut on the greens
+  const grass = (base, opts) => canvasTex(64, 64, (x, w, h) => {
+    const o = opts || {}, r = rngFrom(hashStr(base.join(',') + (o.seed || '')));
+    x.fillStyle = `rgb(${base})`; x.fillRect(0, 0, w, h);
+    if (o.stripe) for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const band = o.stripe === 'check' ? (Math.floor(i / 16) + Math.floor(j / 16)) % 2 : Math.floor((i + j) / 16) % 2;
+      if (band) { x.fillStyle = `rgba(255,255,255,${o.amt || 0.07})`; x.fillRect(i, j, 1, 1); }
+    }
+    for (let k = 0; k < (o.blades || 900); k++) {
+      const v = (r() - 0.5) * (o.var || 40), px = Math.floor(r() * w), py = Math.floor(r() * h), len = 1 + Math.floor(r() * (o.len || 3));
+      x.fillStyle = `rgb(${Math.max(0, base[0] + v * 0.7)},${Math.max(0, base[1] + v)},${Math.max(0, base[2] + v * 0.6)})`;
+      x.fillRect(px, py, 1, len);
+    }
+    for (let k = 0; k < (o.clover || 0); k++) { x.fillStyle = `rgba(${base[0] + 18},${base[1] + 34},${base[2] + 14},0.8)`; const px = Math.floor(r() * w), py = Math.floor(r() * h); x.fillRect(px, py, 2, 2); }
+    for (let k = 0; k < (o.patches || 0); k++) { x.fillStyle = `rgba(${o.patchCol || '70,60,30'},0.35)`; x.beginPath(); x.arc(r() * w, r() * h, 2 + r() * 5, 0, 7); x.fill(); }
+    for (let k = 0; k < (o.flowers || 0); k++) { x.fillStyle = ['#e8e4d0', '#e8d24a', '#c8a0e8'][Math.floor(r() * 3)]; x.fillRect(Math.floor(r() * w), Math.floor(r() * h), 1, 1); }
+  });
   const gm = (tex, units, emi) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; return ps1(new THREE.MeshLambertMaterial({ map: tex, emissive: emi || 0x000000, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: units })); };
-  const roughTex = canvasTex(16, 16, (x, w, h) => { noiseFill(x, w, h, [20, 40, 20], 10); for (let k = 0; k < 24; k++) { x.fillStyle = 'rgb(34,58,28)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 2); } });
+  const roughTex = grass([22, 42, 21], { blades: 1400, var: 46, len: 4, clover: 40, patches: 6, patchCol: '60,52,26', flowers: 10, seed: 'r' });
   roughTex.wrapS = roughTex.wrapT = THREE.RepeatWrapping;
   const roughMat = ps1(new THREE.MeshLambertMaterial({ map: roughTex, emissive: 0x040904 }));
+  GOLF.roughMat = roughMat; GOLF.roughTex = roughTex;
   const B = GOLF.bounds;
-  for (const [a, b, c, d] of [[B.x0 - 40, B.x1 + 40, B.z0 - 40, -80], [B.x0 - 40, 22, -80, -66.2], [35.2, B.x1 + 40, -80, -66.2], [22, 35.2, -80, -77.4], [34.4, B.x1 + 40, -66.2, 2]]) { const m = groundPlane(a, b, c, d, roughTex, 1.6, 0); m.material = roughMat; }
-  const fwMat = gm(stripes('rgb(52,104,46)', 'rgb(44,92,40)', 'rgb(60,116,52)'), -2, 0x081408);
-  const tee = gm(stripes('rgb(56,110,50)', 'rgb(48,98,44)', 'rgb(64,120,56)'), -2, 0x081408);
-  const fringeMat = gm(canvasTex(16, 16, (x, w, h) => noiseFill(x, w, h, [46, 96, 42], 6)), -3, 0x081408);
-  const greenMat = gm(stripes('rgb(86,172,72)', 'rgb(76,158,64)', 'rgb(98,184,82)'), -4, 0x123012);
-  const sandMat = gm(canvasTex(16, 16, (x, w, h) => noiseFill(x, w, h, [196, 178, 130], 12)), -5, 0x14100a);
-  const waterMat = new THREE.MeshBasicMaterial({ map: (() => { const t = canvasTex(32, 32, (x, w, h) => { noiseFill(x, w, h, [18, 46, 70], 8); for (let k = 0; k < 14; k++) { x.fillStyle = 'rgba(120,170,210,0.45)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 4 + Math.floor(rr() * 6), 1); } }); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })(), polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -5, fog: true });
+  for (const [a, b, c, d] of [[B.x0 - 40, B.x1 + 40, B.z0 - 40, -80], [B.x0 - 40, 22, -80, -66.2], [35.2, B.x1 + 40, -80, -66.2], [22, 35.2, -80, -77.4], [34.4, B.x1 + 40, -66.2, 2]]) { const m = groundPlane(a, b, c, d, roughTex, 2.4, 0); m.material = roughMat; }
+  const firstCut = gm(grass([30, 60, 28], { blades: 1100, var: 34, len: 3, clover: 20, seed: 'c' }), -1, 0x060c06);
+  const fwMat = gm(grass([46, 96, 40], { stripe: 'diag', amt: 0.09, blades: 900, var: 24, len: 2, seed: 'f' }), -2, 0x081408);
+  const teeMat = gm(grass([52, 104, 46], { stripe: 'diag', amt: 0.06, blades: 800, var: 20, len: 2, seed: 't' }), -2, 0x081408);
+  const fringeMat = gm(grass([50, 104, 44], { blades: 900, var: 22, len: 2, seed: 'g' }), -3, 0x0a180a);
+  const greenMat = gm(grass([78, 160, 64], { stripe: 'check', amt: 0.08, blades: 700, var: 16, len: 1, seed: 'p' }), -4, 0x123012);
+  const sandMat = gm(canvasTex(64, 64, (x, w, h) => {
+    noiseFill(x, w, h, [196, 178, 130], 14);
+    for (let j = 2; j < h; j += 5) { x.fillStyle = 'rgba(120,100,64,0.35)'; for (let i = 0; i < w; i++) x.fillRect(i, j + Math.round(Math.sin(i / 7) * 1.2), 1, 1); }   // rake lines
+    for (let k = 0; k < 40; k++) { x.fillStyle = 'rgba(255,248,220,0.5)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 1); }
+  }), -5, 0x14100a);
+  const mudMat = gm(canvasTex(32, 32, (x, w, h) => noiseFill(x, w, h, [44, 38, 28], 12)), -2, 0x000000);
+  const waterMat = new THREE.MeshBasicMaterial({ map: (() => { const t = canvasTex(64, 64, (x, w, h) => { noiseFill(x, w, h, [16, 40, 62], 6); for (let k = 0; k < 40; k++) { x.fillStyle = `rgba(${120 + Math.floor(rr() * 60)},${170 + Math.floor(rr() * 50)},230,${0.25 + rr() * 0.3})`; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 3 + Math.floor(rr() * 8), 1); } }); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })(), polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -5, fog: true });
   GOLF.waterTex = waterMat.map;
+  const fwEdge = (h) => capPts(h.fw[0], h.fw[1], h.fwr + 1.8);
   for (const h of GOLF.holes) {
-    if (h.fw.length) lay(capPts(h.fw[0], h.fw[1], h.fwr), fwMat, 0.012, 6);
-    lay([[h.tee[0] - 2.6, h.tee[1] - 2.6], [h.tee[0] + 2.6, h.tee[1] - 2.6], [h.tee[0] + 2.6, h.tee[1] + 2.6], [h.tee[0] - 2.6, h.tee[1] + 2.6]], tee, 0.03, 2);
-    S.push(box(h.tee[0] - 2.7, h.tee[0] + 2.7, 0, 0.03, h.tee[1] - 2.7, h.tee[1] + 2.7, [40, 70, 36], 0.03));
-    lay(ellPts(h.green, 1.6), fringeMat, 0.016, 3);
-    lay(ellPts(h.green, 0), greenMat, 0.02, 3);
-    for (const b of h.bunkers) { lay(ellPts([b[0], b[1], b[2], b[2]], 0, 20), sandMat, 0.024, 2); S.push(...arcRing(b[0], b[1], b[2], b[2] + 0.18, 0, 0.06, [150, 136, 100], 20)); }
-    for (const w of h.water) { lay(ellPts(w, 0, 32), waterMat, 0.022, 4); S.push(...arcRing(w[0], w[1], Math.max(w[2], w[3]), Math.max(w[2], w[3]) + 0.3, 0, 0.12, [70, 66, 60], 24, w[2] / Math.max(w[2], w[3]), w[3] / Math.max(w[2], w[3]))); }
+    // the first cut of rough hugs the fairway, then the fairway itself sits a few centimetres proud
+    if (h.fw.length) { lay(fwEdge(h), firstCut, 0.008, 6); raise(capPts(h.fw[0], h.fw[1], h.fwr), fwMat, LIFT.fairway, 8, 0.5); }
+    raise([[h.tee[0] - 2.6, h.tee[1] - 2.6], [h.tee[0] + 2.6, h.tee[1] - 2.6], [h.tee[0] + 2.6, h.tee[1] + 2.6], [h.tee[0] - 2.6, h.tee[1] + 2.6]], teeMat, LIFT.tee, 3, 0.35);
+    raise(ellPts(h.green, 1.6, 48), fringeMat, LIFT.fringe, 4, 0.45);
+    raise(ellPts(h.green, 0, 48), greenMat, LIFT.green, 4, 0.3);
+    for (const b of h.bunkers) {
+      lay(ellPts([b[0], b[1], b[2], b[2]], 0.05, 24), sandMat, 0.012, 3);
+      S.push(...arcRing(b[0], b[1], b[2] - 0.05, b[2] + 0.12, 0, 0.11, [196, 178, 130], 24));     // the sand banks up to the lip
+      S.push(...arcRing(b[0], b[1], b[2] + 0.12, b[2] + 0.42, 0, 0.13, [34, 70, 30], 24));       // and a grassy lip round the outside
+      // a rake left in the sand
+      const ra = hashStr('rake' + b[0]) % 628 / 100, rx = b[0] + Math.cos(ra) * b[2] * 0.4, rz = b[1] + Math.sin(ra) * b[2] * 0.4;
+      S.push(cyl(V(rx, 0.03, rz), V(rx + Math.cos(ra) * 1.5, 0.12, rz + Math.sin(ra) * 1.5), 0.015, 0.015, [150, 120, 80], { n: 4 }));
+      S.push(box(rx - 0.2, rx + 0.2, 0.01, 0.05, rz - 0.04, rz + 0.04, [60, 60, 66], 0.03));
+    }
+    for (const w of h.water) {
+      const m = Math.max(w[2], w[3]), sx = w[2] / m, sz = w[3] / m;
+      lay(ellPts(w, 0.9, 40), mudMat, 0.01, 3);
+      lay(ellPts(w, 0, 40), waterMat, 0.016, 5);
+      // stones round the bank, and reeds and lily pads
+      const wr = rngFrom(hashStr('pond' + w[0]));
+      for (let k = 0; k < 46; k++) { const a = (k / 46) * Math.PI * 2 + wr() * 0.1, rr2 = 1 + 0.06 + wr() * 0.08; const x = w[0] + Math.cos(a) * w[2] * rr2, z = w[1] + Math.sin(a) * w[3] * rr2, s = 0.12 + wr() * 0.16, g = 70 + Math.floor(wr() * 40); S.push(loft([rring(0, s, s * 0.8, x, z, 6, 2), rring(s * 0.7, s * 0.9, s * 0.7, x, z, 6, 2), rring(s * 1.1, 0.02, 0.02, x, z, 6, 2)], [g, g - 4, g - 10], { amt: 0.25 })); }
+      for (let k = 0; k < 60; k++) {
+        const a = wr() * Math.PI * 2, rr2 = 0.8 + wr() * 0.28, x = w[0] + Math.cos(a) * w[2] * rr2, z = w[1] + Math.sin(a) * w[3] * rr2, hgt = 0.5 + wr() * 0.8, lean = (wr() - 0.5) * 0.25;
+        S.push(cyl(V(x, 0, z), V(x + lean, hgt, z + lean * 0.5), 0.012, 0.006, [46 + Math.floor(wr() * 30), 80 + Math.floor(wr() * 40), 36], { n: 3 }));
+        if (wr() < 0.25) S.push(cyl(V(x + lean, hgt * 0.8, z + lean * 0.5), V(x + lean * 1.1, hgt * 0.95, z + lean * 0.55), 0.03, 0.028, [70, 46, 26], { n: 5 }));   // a cattail
+      }
+      for (let k = 0; k < 9; k++) { const a = wr() * Math.PI * 2, rr2 = 0.3 + wr() * 0.5, x = w[0] + Math.cos(a) * w[2] * rr2, z = w[1] + Math.sin(a) * w[3] * rr2, s = 0.18 + wr() * 0.14; S.push(cyl(V(x, 0.03, z), V(x, 0.045, z), s, s, [40, 96, 46], { n: 9 })); if (wr() < 0.4) G.push(cyl(V(x + s * 0.3, 0.045, z), V(x + s * 0.3, 0.09, z), 0.05, 0.03, [255, 200, 230], { n: 6, amt: 0 })); }
+      void sx; void sz;
+    }
     // the cup, the flag on its pole, and the tee markers and sign
     const [px, pz] = h.pin;
     const cup = new THREE.Mesh(new THREE.CircleGeometry(0.11, 12), new THREE.MeshBasicMaterial({ color: 0x050505, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -10 }));
-    cup.rotation.x = -Math.PI / 2; cup.position.set(px, 0.025, pz); scene.add(cup);
-    S.push(cyl(V(px, 0, pz), V(px, 2.3, pz), 0.018, 0.018, [236, 236, 230], { n: 5 }));
+    cup.rotation.x = -Math.PI / 2; cup.position.set(px, LIFT.green + 0.004, pz); scene.add(cup);
+    S.push(cyl(V(px, LIFT.green, pz), V(px, 2.3, pz), 0.018, 0.018, [236, 236, 230], { n: 5 }));
     G.push(cyl(V(px, 2.3, pz), V(px, 2.36, pz), 0.03, 0.02, [255, 240, 200], { n: 6, amt: 0 }));
     const fc = document.createElement('canvas'); fc.width = 64; fc.height = 40; const fx = fc.getContext('2d');
     fx.fillStyle = '#c8142c'; fx.fillRect(0, 0, 64, 40); fx.fillStyle = '#fff4e0'; fx.font = 'bold 26px "IBM Plex Mono", monospace'; fx.textAlign = 'center'; fx.textBaseline = 'middle'; fx.fillText(String(h.n), 32, 21);
@@ -4120,7 +4309,7 @@ function golfSurface(x, z) {
     const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.44), new THREE.MeshBasicMaterial({ map: ft, side: THREE.DoubleSide, fog: true }));
     const fg = new THREE.Group(); fg.position.set(px, 2.05, pz); flag.position.set(0.36, 0, 0); fg.add(flag); scene.add(fg);
     GOLF_FLAGS.push(fg);
-    for (const e of [-1, 1]) S.push(cyl(V(h.tee[0] + e * 1.4, 0.03, h.tee[1]), V(h.tee[0] + e * 1.4, 0.16, h.tee[1]), 0.07, 0.07, [30, 80, 200], { n: 8 }));
+    for (const e of [-1, 1]) { const ta = Math.atan2(h.pin[0] - h.tee[0], h.pin[1] - h.tee[1]), tx = h.tee[0] + Math.cos(ta) * e * 1.4, tz = h.tee[1] - Math.sin(ta) * e * 1.4; S.push(loft([rring(LIFT.tee, 0.07, 0.07, tx, tz, 8, 2), rring(LIFT.tee + 0.1, 0.09, 0.09, tx, tz, 8, 2), rring(LIFT.tee + 0.17, 0.02, 0.02, tx, tz, 8, 2)], [30, 80, 200], { smooth: true, amt: 0.05 })); }
     const ang = Math.atan2(h.pin[0] - h.tee[0], h.pin[1] - h.tee[1]), sx = h.tee[0] - Math.sin(ang) * 3.4 + Math.cos(ang) * 2.4, sz = h.tee[1] - Math.cos(ang) * 3.4 - Math.sin(ang) * 2.4;
     S.push(cyl(V(sx, 0, sz), V(sx, 1.0, sz), 0.04, 0.04, [60, 44, 30], { n: 5 }));
     const sc = document.createElement('canvas'); sc.width = 96; sc.height = 64; const sxx = sc.getContext('2d');
@@ -4136,12 +4325,8 @@ function golfSurface(x, z) {
     if (Math.hypot(x - 28.6, z - -71) < 9 || (x > 22 && x < 35 && z > -80) || (x > 33 && x < 56 && z > -78)) return false;   // the turnaround and the clubhouse
     return true;
   };
-  const pine = (x, z, s) => {
-    S.push(cyl(V(x, 0, z), V(x, 1.2 * s, z), 0.14 * s, 0.1 * s, [50, 36, 26], { n: 6 }));
-    S.push(loft([rring(0.9 * s, 1.5 * s, 1.5 * s, x, z, 8, 2), rring(2.4 * s, 1.0 * s, 1.0 * s, x, z, 8, 2), rring(2.5 * s, 1.2 * s, 1.2 * s, x, z, 8, 2), rring(3.9 * s, 0.6 * s, 0.6 * s, x, z, 8, 2), rring(4.0 * s, 0.75 * s, 0.75 * s, x, z, 8, 2), rring(5.6 * s, 0.05, 0.05, x, z, 8, 2)], [22, 50, 30], { amt: 0.12 }));
-  };
   const tr = rngFrom(31337);
-  const plant = (x, z, s) => (tr() < 0.55 ? pine(x, z, s) : tree(x, z, s));
+  const plant = (x, z, s) => { const k = tr(); if (k < 0.45) pineTree(x, z, s); else if (k < 0.8) tree(x, z, s); else birch(x, z, s * 0.95); };
   for (let n = 0; n < 4000 && GOLF_TREES.length < 300; n++) {
     const x = B.x0 - 30 + tr() * (B.x1 - B.x0 + 60), z = B.z0 - 30 + tr() * (B.z1 - B.z0 + 40);
     const edge = x < B.x0 + 4 || x > B.x1 - 4 || z < B.z0 + 4;
@@ -4211,6 +4396,141 @@ function golfSurface(x, z) {
       S.push(box(gx - 0.18, gx + 0.18, 0.75, 1.3, gz + 0.85, gz + 1.05, [60, 50, 40], 0.05));   // a bag of clubs on the back
     }
   }
+  // ---- the details that make it feel lived in
+  // bushes along the edges of the fairways and round the greens, and in clumps under the trees
+  {
+    const br = rngFrom(4711);
+    for (const h of GOLF.holes) {
+      if (h.fw.length) for (let k = 0; k < 7; k++) {
+        const u = br(), side = br() < 0.5 ? -1 : 1, ax = h.fw[0][0] + (h.fw[1][0] - h.fw[0][0]) * u, az = h.fw[0][1] + (h.fw[1][1] - h.fw[0][1]) * u;
+        const ang = Math.atan2(h.fw[1][1] - h.fw[0][1], h.fw[1][0] - h.fw[0][0]), d = h.fwr + 3.2 + br() * 3;
+        const x = ax - Math.sin(ang) * d * side, z = az + Math.cos(ang) * d * side;
+        if (golfSurface(x, z) === 'rough') bush(x, z, 0.8 + br() * 0.6);
+      }
+      for (let k = 0; k < 5; k++) { const a = br() * 6.28, x = h.green[0] + Math.cos(a) * (h.green[2] + 4.5 + br() * 2), z = h.green[1] + Math.sin(a) * (h.green[3] + 4.5 + br() * 2); if (golfSurface(x, z) === 'rough' && segDist(x, z, h.tee, h.pin) > 6) bush(x, z, 0.7 + br() * 0.5); }
+    }
+    for (const [x, z] of GOLF_TREES) if (br() < 0.4) { const a = br() * 6.28; bush(x + Math.cos(a) * 2.2, z + Math.sin(a) * 2.2, 0.7 + br() * 0.6); }
+    for (const [x, z] of [[36, -76.5], [40, -76.8], [47.5, -76.8], [51.5, -76.5], [33, -77.5]]) bush(x, z, 0.9);   // in front of the clubhouse
+  }
+  // grass tufts and wild flowers everywhere the ball isn't meant to be: crossed cards, thousands of them, one draw per patch
+  {
+    const tuftTex = canvasTex(32, 32, (x, w, h) => {
+      x.clearRect(0, 0, w, h); const r = rngFrom(99);
+      for (let k = 0; k < 16; k++) { const bx = 3 + r() * 26, top = 2 + r() * 14, lean = (r() - 0.5) * 8, v = 90 + Math.floor(r() * 120); x.strokeStyle = `rgb(${Math.floor(v * 0.6)},${v},${Math.floor(v * 0.45)})`; x.lineWidth = 1 + (r() < 0.4 ? 1 : 0); x.beginPath(); x.moveTo(bx, h); x.quadraticCurveTo(bx + lean * 0.3, (h + top) / 2, bx + lean, top); x.stroke(); }
+    });
+    const flowerTex = canvasTex(32, 32, (x, w, h) => {
+      x.clearRect(0, 0, w, h); const r = rngFrom(98);
+      for (let k = 0; k < 9; k++) { const bx = 4 + r() * 24, top = 6 + r() * 14; x.strokeStyle = 'rgb(60,110,50)'; x.lineWidth = 1; x.beginPath(); x.moveTo(bx, h); x.lineTo(bx + (r() - 0.5) * 4, top); x.stroke(); x.fillStyle = '#ffffff'; x.fillRect(bx - 1.5, top - 1.5, 3, 3); }
+    });
+    for (const t of [tuftTex, flowerTex]) { t.magFilter = THREE.NearestFilter; }
+    const card = (w, hgt) => { const a = new THREE.PlaneGeometry(w, hgt); a.translate(0, hgt / 2, 0); const b = a.clone(); b.rotateY(Math.PI / 2); const out = mergeGeos([a.toNonIndexed(), b.toNonIndexed()]); out.deleteAttribute('color'); return out; };
+    const tuftGeo = card(0.55, 0.38), flowerGeo = card(0.42, 0.34);
+    const tuftMat = ps1(new THREE.MeshLambertMaterial({ map: tuftTex, alphaTest: 0.5, side: THREE.DoubleSide }));
+    const flowerMat = ps1(new THREE.MeshLambertMaterial({ map: flowerTex, alphaTest: 0.5, side: THREE.DoubleSide }));
+    const cells = new Map(), gr = rngFrom(2024), dm = new THREE.Object3D(), col = new THREE.Color();
+    const put = (x, z, flower) => {
+      const key = Math.floor(x / 40) + ',' + Math.floor(z / 40) + (flower ? 'f' : '');
+      if (!cells.has(key)) cells.set(key, []);
+      cells.get(key).push([x, z, flower]);
+    };
+    const B2 = GOLF.bounds;
+    for (let n = 0; n < 26000; n++) {
+      const x = B2.x0 - 14 + gr() * (B2.x1 - B2.x0 + 28), z = B2.z0 - 14 + gr() * (B2.z1 - B2.z0 + 14);
+      const s = golfSurface(x, z);
+      if (s !== 'rough' && s !== 'ob') continue;
+      // thicker by the trees and the edges of play, thinner out in the open
+      let near = 0; for (const h of GOLF.holes) { if (h.fw.length) near = Math.max(near, 1 - Math.abs(segDist(x, z, h.fw[0], h.fw[1]) - h.fwr - 3) / 6); }
+      if (gr() > 0.18 + near * 0.5) continue;
+      if (Math.hypot(x - 28.6, z + 71) < 7 || (x > 36 && x < 53 && z > -72)) continue;
+      put(x, z, gr() < 0.12);
+    }
+    // the lawns by the drive, behind the courtyard and along the side street too
+    for (const [x0, x1, z0, z1, n] of [[15.2, 22.6, -66, -4.5, 900], [AL.x0 + 0.5, AL.x1 - 0.5, -66, -36, 900], [-47, -28, -13.5, 3.5, 500], [-19.8, -14.3, -64, 3.5, 450], [35, 62, -64, -14, 900]]) {
+      for (let k = 0; k < n; k++) { const x = x0 + gr() * (x1 - x0), z = z0 + gr() * (z1 - z0); if (Math.abs(z - LOT.z) < 2.6 && x > 15) continue; put(x, z, gr() < 0.15); }
+    }
+    for (const [key, list] of cells) {
+      const flower = key.endsWith('f'), im = new THREE.InstancedMesh(flower ? flowerGeo : tuftGeo, flower ? flowerMat : tuftMat, list.length);
+      list.forEach(([x, z], i) => {
+        const s = 0.6 + gr() * 0.9; dm.position.set(x, 0, z); dm.rotation.set(0, gr() * 3.14, 0); dm.scale.set(s, s * (0.8 + gr() * 0.5), s); dm.updateMatrix(); im.setMatrixAt(i, dm.matrix);
+        if (flower) col.set([0xf4f0e0, 0xf2d24a, 0xc8a0f0, 0xf08ab0][Math.floor(gr() * 4)]);
+        else { const dry = gr() < 0.15; col.setRGB(dry ? 0.85 : 0.55 + gr() * 0.25, dry ? 0.8 : 0.75 + gr() * 0.25, dry ? 0.45 : 0.45 + gr() * 0.2); }
+        im.setColorAt(i, col);
+      });
+      im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
+      // the instances' own spread, so the far patches are skipped like everything else past the fog
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity; for (const [x, z] of list) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+      Object.assign(im.userData, { zone: 'main', cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, rad: Math.hypot(x1 - x0, z1 - z0) / 2 + 1 });
+      im.frustumCulled = false; scene.add(im);
+    }
+  }
+  // course furniture: benches and ball washers at the tees, bins, yardage posts down the fairways
+  for (const h of GOLF.holes) {
+    const a = Math.atan2(h.pin[0] - h.tee[0], h.pin[1] - h.tee[1]), px = Math.cos(a), pz = -Math.sin(a);
+    const bx = h.tee[0] - px * 4.2 - Math.sin(a) * 1.0, bz = h.tee[1] - pz * 4.2 - Math.cos(a) * 1.0;
+    // a slatted bench
+    for (let k = 0; k < 3; k++) S.push(groundStrip(bx - px * 0.12 * k - Math.sin(a) * 0.8, bz - pz * 0.12 * k - Math.cos(a) * 0.8, bx - px * 0.12 * k + Math.sin(a) * 0.8, bz - pz * 0.12 * k + Math.cos(a) * 0.8, 0.09, 0.42, [120, 88, 56], 0.04));
+    for (const e of [-0.7, 0.7]) S.push(cyl(V(bx + Math.sin(a) * e, 0, bz + Math.cos(a) * e), V(bx + Math.sin(a) * e, 0.44, bz + Math.cos(a) * e), 0.03, 0.03, [40, 40, 44], { n: 4 }));
+    S.push(groundStrip(bx - px * 0.3 - Math.sin(a) * 0.8, bz - pz * 0.3 - Math.cos(a) * 0.8, bx - px * 0.3 + Math.sin(a) * 0.8, bz - pz * 0.3 + Math.cos(a) * 0.8, 0.07, 0.75, [120, 88, 56], 0.25));
+    // a ball washer on a post, and a little bin
+    const wx = h.tee[0] + px * 3.6, wz = h.tee[1] + pz * 3.6;
+    S.push(cyl(V(wx, 0, wz), V(wx, 0.85, wz), 0.035, 0.035, [30, 60, 40], { n: 5 }));
+    S.push(box(wx - 0.12, wx + 0.12, 0.85, 1.12, wz - 0.08, wz + 0.08, [36, 90, 56], 0.04));
+    S.push(cyl(V(wx + 0.13, 1.0, wz), V(wx + 0.13, 1.25, wz), 0.012, 0.012, [200, 200, 200], { n: 4 }));
+    S.push(cyl(V(wx - 0.6, 0, wz), V(wx - 0.6, 0.6, wz), 0.18, 0.2, [36, 60, 44], { n: 8, amt: 0.06 }));
+    // yardage posts: red at 100 m, white at 50 m, from the flag, on the edge of the fairway
+    if (h.fw.length) for (const [d, c] of [[100, [200, 40, 40]], [50, [236, 236, 230]], [25, [230, 200, 60]]]) {
+      const L = Math.hypot(h.pin[0] - h.tee[0], h.pin[1] - h.tee[1]); if (d > L - 8) continue;
+      const u = 1 - d / L, x = h.tee[0] + (h.pin[0] - h.tee[0]) * u + px * (h.fwr + 0.8), z = h.tee[1] + (h.pin[1] - h.tee[1]) * u + pz * (h.fwr + 0.8);
+      S.push(cyl(V(x, 0, z), V(x, 0.7, z), 0.05, 0.05, [230, 230, 224], { n: 6 })); S.push(cyl(V(x, 0.7, z), V(x, 0.82, z), 0.06, 0.06, c, { n: 6 }));
+    }
+  }
+  // low lanterns along the cart path
+  for (let k = 0; k < pathPts.length - 1; k++) {
+    const [a, b] = [pathPts[k], pathPts[k + 1]], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    for (let d = 4; d < L; d += 11) { const u = d / L, x = a[0] + (b[0] - a[0]) * u + 1.1, z = a[1] + (b[1] - a[1]) * u; S.push(cyl(V(x, 0, z), V(x, 0.55, z), 0.06, 0.06, [36, 36, 40], { n: 6 })); G.push(cyl(V(x, 0.44, z), V(x, 0.52, z), 0.065, 0.065, [255, 210, 140], { n: 6, amt: 0 })); S.push(cyl(V(x, 0.55, z), V(x, 0.6, z), 0.08, 0.05, [36, 36, 40], { n: 6 })); lightPool(x, z, 1.4); }
+  }
+  // fireflies drifting over the rough, ducks on the ponds, a greenkeeper mowing the far fairway
+  {
+    const N = 280, pos = new Float32Array(N * 3), base = [], fr = rngFrom(6060);
+    for (let i = 0; i < N; i++) {
+      let x = 0, z = 0; for (let t = 0; t < 30; t++) { x = GOLF.bounds.x0 + fr() * (GOLF.bounds.x1 - GOLF.bounds.x0); z = GOLF.bounds.z0 + fr() * (GOLF.bounds.z1 - GOLF.bounds.z0); if (golfSurface(x, z) === 'rough') break; }
+      base.push([x, 0.4 + fr() * 1.6, z, fr() * 6.28, 0.3 + fr() * 0.7]);
+    }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const flies = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xd6ff8a, size: 0.13, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+    flies.frustumCulled = false; flies.userData.anyZone = true; scene.add(flies);
+    GOLF.life = [(t) => {
+      for (let i = 0; i < N; i++) { const b = base[i], w = t * b[4] + b[3]; pos[i * 3] = b[0] + Math.sin(w) * 1.2; pos[i * 3 + 1] = b[1] + Math.sin(w * 1.7) * 0.35; pos[i * 3 + 2] = b[2] + Math.cos(w * 0.8) * 1.2; }
+      geo.attributes.position.needsUpdate = true;
+      flies.material.opacity = 0.55 + 0.35 * Math.sin(t * 2.3);
+    }];
+    // ducks: white body, green head, orange beak, paddling slow circles
+    const duckParts = (h) => [loft([rring(0.0, 0.1, 0.16, 0, 0, 8, 2), rring(0.1, 0.14, 0.22, 0, 0, 8, 2), rring(0.18, 0.08, 0.14, 0, -0.02, 8, 2)], h ? [236, 232, 220] : [120, 92, 60], { smooth: true, amt: 0.05 }), loft([rring(0.18, 0.05, 0.05, 0, 0.13, 6, 2), rring(0.28, 0.065, 0.065, 0, 0.15, 6, 2), rring(0.36, 0.01, 0.01, 0, 0.15, 6, 2)], h ? [30, 90, 50] : [110, 84, 56], { smooth: true, amt: 0.05 }), box(-0.025, 0.025, 0.27, 0.3, 0.2, 0.28, [240, 150, 40], 0.02)];
+    const ducks = [];
+    for (const h of GOLF.holes) for (const w of h.water) for (let k = 0; k < 3; k++) { const g = new THREE.Mesh(toGeometry(duckParts(k !== 2)), roomMat); scene.add(g); ducks.push({ g, w, ph: k * 2.1 + w[0], sp: 0.08 + k * 0.03 }); }
+    GOLF.life.push((t) => { for (const d of ducks) { const a = t * d.sp + d.ph, x = d.w[0] + Math.cos(a) * d.w[2] * 0.55, z = d.w[1] + Math.sin(a) * d.w[3] * 0.55; d.g.position.set(x, 0.03 + 0.01 * Math.sin(t * 2 + d.ph), z); d.g.rotation.y = Math.atan2(-Math.sin(a), Math.cos(a)) + Math.PI; } });
+    // the greenkeeper on a ride-on mower, headlight on, going up and down the fourth fairway
+    const mower = new THREE.Group();
+    mower.add(new THREE.Mesh(toGeometry([box(-0.55, 0.55, 0.18, 0.55, -0.9, 0.7, [190, 40, 30], 0.04), box(-0.62, 0.62, 0.0, 0.2, -0.95, 0.75, [40, 40, 44], 0.03), box(-0.25, 0.25, 0.55, 0.85, -0.6, -0.1, [30, 30, 34], 0.03), box(-0.24, 0.24, 0.85, 1.35, -0.55, -0.25, [70, 90, 120], 0.05), loft([rring(1.35, 0.13, 0.13, 0, -0.4, 8, 2), rring(1.6, 0.11, 0.11, 0, -0.4, 8, 2)], [210, 170, 130], { smooth: true }), box(-0.16, 0.16, 1.62, 1.68, -0.56, -0.24, [230, 200, 60], 0.03)]), roomMat));
+    for (const [ox, oz, rad] of [[-0.6, 0.55, 0.2], [0.6, 0.55, 0.2], [-0.6, -0.75, 0.28], [0.6, -0.75, 0.28]]) mower.add(new THREE.Mesh(toGeometry([cyl(V(ox - 0.06, rad, oz), V(ox + 0.06, rad, oz), rad, rad, [16, 16, 18], { n: 8 })]), roomMat));
+    mower.add(new THREE.Mesh(toGeometry([box(-0.1, 0.1, 0.35, 0.45, 0.72, 0.76, [255, 240, 200], 0)]), glowMat));
+    const beam = lightPool(0, 0, 2.2); scene.remove(beam); beam.position.set(0, 0.03 - 0, 2.6); mower.add(beam);
+    scene.add(mower);
+    const h4 = GOLF.holes[3], A4 = h4.fw[0], B4 = h4.fw[1], L4 = Math.hypot(B4[0] - A4[0], B4[1] - A4[1]), ang4 = Math.atan2(B4[0] - A4[0], B4[1] - A4[1]);
+    GOLF.life.push((t) => {
+      const lanes = 6, period = L4 / 1.6, k = Math.floor(t / period) % lanes, u = (t % period) / period, dir = k % 2 ? -1 : 1, s = dir > 0 ? u : 1 - u;
+      const off = (k / (lanes - 1) - 0.5) * (h4.fwr * 1.6), x = A4[0] + (B4[0] - A4[0]) * s + Math.cos(ang4) * off, z = A4[1] + (B4[1] - A4[1]) * s - Math.sin(ang4) * off;
+      mower.position.set(x, LIFT.fairway, z); mower.rotation.y = ang4 + (dir > 0 ? 0 : Math.PI);
+    });
+  }
+  // a few late-night golfers walking the cart path with their bags
+  for (let i = 0; i < 3; i++) {
+    const pts = pathPts.map(([x, z]) => [x + 0.5 * (i - 1), z]);
+    const L = []; let tot = 0; for (let k = 0; k < pts.length - 1; k++) { const d = Math.hypot(pts[k + 1][0] - pts[k][0], pts[k + 1][1] - pts[k][1]); L.push([pts[k], pts[k + 1], tot, d]); tot += d; }
+    WALKERS.push({ segs: L, L: tot, loop: false, speed: 0.9 + i * 0.15, s: (i * 37) % tot, dir: i % 2 ? -1 : 1, look: randomLook(rngFrom(1700 + i * 9)), ch: null, bag: true });
+  }
+
+  buildForest();
   // Pan the starter, at his podium by the first tee
   S.push(box(33.4, 34.2, 0, 1.05, -79.3, -78.7, [70, 50, 34], 0.04)); S.push(box(33.3, 34.3, 1.05, 1.12, -79.4, -78.6, [214, 206, 188], 0.03));
   lampPost(30.5, -80, 1, 0, 4.4);
@@ -4233,7 +4553,7 @@ function golfSetBalls(list) {
       scene.add(g); o = { g, mesh, ring }; golfBalls.set(b.uid, o); g.userData.anyZone = true;
     }
     o.mesh.position.set(0, (b.y || 0) + 0.075, 0); o.ring.position.y = -((b.y || 0)) + 0.05; o.ring.visible = !b.y || b.y < 0.05;
-    o.g.position.set(b.x, 0, b.z); o.g.visible = b.visible !== false;
+    o.g.position.set(b.x, golfLift(b.x, b.z), b.z); o.g.visible = b.visible !== false;
   }
 }
 const golfMarker = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.62, 20), new THREE.MeshBasicMaterial({ color: 0xffd060, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
@@ -4242,9 +4562,9 @@ const golfAimLine = new THREE.Mesh(toGeometry([box(-0.04, 0.04, 0, 0.01, 0, 1, [
 golfAimLine.visible = false; golfAimLine.userData.anyZone = true; scene.add(golfAimLine);
 function golfAim(o) {
   if (!o) { golfMarker.visible = golfAimLine.visible = false; return; }
-  golfMarker.visible = true; golfMarker.position.set(o.tx, 0.06, o.tz);
+  golfMarker.visible = true; golfMarker.position.set(o.tx, golfLift(o.tx, o.tz) + 0.02, o.tz);
   const d = Math.hypot(o.tx - o.x, o.tz - o.z);
-  golfAimLine.visible = true; golfAimLine.position.set(o.x, 0.05, o.z); golfAimLine.rotation.y = Math.atan2(o.tx - o.x, o.tz - o.z); golfAimLine.scale.set(1, 1, Math.max(0.5, d));
+  golfAimLine.visible = true; golfAimLine.position.set(o.x, golfLift(o.x, o.z) + 0.02, o.z); golfAimLine.rotation.y = Math.atan2(o.tx - o.x, o.tz - o.z); golfAimLine.scale.set(1, 1, Math.max(0.5, d));
 }
 // golfers: the players in a round leave their seat and stand at their ball, club in hand
 let golfers = {};
@@ -4260,7 +4580,7 @@ function golferOverride(ch, t) {
   if (!gp) { if (ch.golfClub) ch.golfClub.visible = false; return false; }
   // stand side-on to the line of play, the ball just ahead of the feet
   const h = gp.yaw, fx = -Math.cos(h), fz = Math.sin(h);
-  ch.root.position.set(gp.x - fx * 0.62, 0, gp.z - fz * 0.62);
+  ch.root.position.set(gp.x - fx * 0.62, golfLift(gp.x, gp.z), gp.z - fz * 0.62);
   ch.root.rotation.y = h - Math.PI / 2;
   if (!ch.golfClub && ch.bones && ch.bones.elR) { ch.golfClub = new THREE.Mesh(toGeometry(clubParts()), charMat); ch.golfClub.position.set(0, -0.3, 0.02); ch.bones.elR.add(ch.golfClub); }
   if (ch.golfClub) ch.golfClub.visible = true;
@@ -5662,6 +5982,7 @@ PRE_HOOKS.push((dt, t) => {
   if (zoneOf(cam.tx) !== 'main' || cam.tz > -40) return;
   GOLF_FLAGS.forEach((f, i) => { f.rotation.y = 0.5 * Math.sin(t * 0.7 + i) + 0.18 * Math.sin(t * 3.1 + i * 2); });
   if (GOLF.waterTex) GOLF.waterTex.offset.set((t * 0.02) % 1, (t * 0.011) % 1);
+  if (GOLF.life) for (const f of GOLF.life) f(t);
 });
 PRE_HOOKS.push((dt) => walkersTick(dt));
 REBUILD_HOOKS.push(walkersRebuild);
@@ -5678,7 +5999,7 @@ PRE_HOOKS.push(() => {
 POST_HOOKS.push((dt, t, beat) => danceFxTick(dt, t, beat));
 POST_HOOKS.push(() => { const inD = camRoom() === ROOMS.dance; if (inD !== danceHere) { danceHere = inD; pickTrack(inD ? DANCE_TRACKS[danceSel] : sharedTrack); } });
 POST_HOOKS.push((dt, t) => loungeTick(dt, t));
-const hash32 = (n) => { n = (n ^ 61) ^ (n >>> 16); n = Math.imul(n, 9); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return n >>> 0; };
+// (hash32 is defined near the top so the forest can use it while the world is built)
 const camRoom = () => (camT.free ? null : roomAt(cam.tx, cam.tz));
 
 // ---- the restroom fittings: three stalls, a double vanity, dryer; the roof comes off for whoever is in there

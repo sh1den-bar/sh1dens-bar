@@ -9,7 +9,7 @@ const toast = (t) => BAR().toast && BAR().toast(t);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
 const r3 = (v) => Math.round(v * 1000) / 1000;
 const COLORS = ['#ffd060', '#6ad0ff', '#ff7aa0', '#9be070'];
-const BETS = [0, 10, 50, 100];
+const MAX_BET = 100000;
 let C = null;   // the course, from bar.js
 
 // ---------------------------------------------------------------- clubs and the ball's flight
@@ -82,6 +82,7 @@ function carry(from, yaw, pow, club) {
 let game = null, ref = null, lastSeq = 0, firstLoad = true, anim = null;
 let aimYaw = 0, club = 'driver', power = 0, charging = null, freeCam = false, aimKeys = { l: 0, r: 0 }, lastTurnKey = '';
 let menuEl = null, panel = null, hud = null, panelOpen = false, setup = { holes: 3, bet: 0 };
+const clampBet = (v) => Math.max(0, Math.min(MAX_BET, Math.floor(+v || 0)));
 const me = () => NET().uid;
 const inRound = () => !!(game && game.p && game.p[me()] && !game.p[me()].out);
 const P = (uid) => (game && game.p && game.p[uid]) || null;
@@ -124,7 +125,7 @@ async function create() {
   if (!ref) { toast('Still connecting.'); return; }
   if (!n.myName || !n.myName()) { toast('Create your character first.'); return; }
   if (setup.bet && !canAfford(setup.bet)) { toast("You don't have " + setup.bet + ' coins for that bet.'); return; }
-  const mine = { name: n.myName(), c: 0, s: {} };
+  const mine = { name: n.myName(), c: 0, s: {}, bid: clampBet(setup.bet) };
   let made = false;
   await ref.transaction((g) => {
     made = false;
@@ -134,9 +135,9 @@ async function create() {
     made = true;
     const keepDebts = g && g.phase === 'over' && g.p && Object.keys(g.p).some((u) => g.p[u].owe && !g.p[u].paid);
     if (keepDebts) toast('The last round still has unpaid bets; they pay when those players come back.');
-    return { phase: 'wait', seq: ((g && g.seq) || 0) + 1, host: n.uid, holes: setup.holes, start: 0, bet: setup.bet, order: [n.uid], p: { [n.uid]: mine }, t: n.ts(), msg: '' };
+    return { phase: 'wait', seq: ((g && g.seq) || 0) + 1, host: n.uid, holes: setup.holes, start: 0, bet: 0, order: [n.uid], p: { [n.uid]: mine }, t: n.ts(), msg: '' };
   });
-  if (made) { n.say && n.say('⛳ ' + mine.name + ' is starting a round of golf (' + setup.holes + ' holes' + (setup.bet ? ', ' + setup.bet + ' coins a head' : '') + '). Right-click Pan at the golf club to join!'); BAR().setView && BAR().setView('golf'); }
+  if (made) { n.say && n.say('⛳ ' + mine.name + ' is starting a round of golf (' + setup.holes + ' holes' + (setup.bet ? ', ' + setup.bet + ' coins suggested' : '') + '). Right-click Pan at the golf club to join!'); BAR().setView && BAR().setView('golf'); }
   else toast('A round is already on. Join it, or wait for it to finish.');
   panelOpen = true; render();
 }
@@ -144,7 +145,6 @@ async function join() {
   const n = NET();
   if (!ref || !game || game.phase !== 'wait') return;
   if (!n.myName || !n.myName()) { toast('Create your character first.'); return; }
-  if (game.bet && !canAfford(game.bet)) { toast("You need " + game.bet + ' coins to join this round.'); return; }
   let ok = false;
   await ref.transaction((g) => {
     ok = false;
@@ -153,20 +153,46 @@ async function join() {
     if (order.includes(n.uid)) { ok = true; return; }
     if (order.length >= 4) return;
     ok = true;
-    const p = Object.assign({}, g.p); p[n.uid] = { name: n.myName(), c: order.length, s: {} };
+    const p = Object.assign({}, g.p); p[n.uid] = { name: n.myName(), c: order.length, s: {}, bid: clampBet(setup.bet) };
     return Object.assign({}, g, { order: order.concat([n.uid]), p, seq: (g.seq || 0) + 1 });
   });
   if (ok) { n.say && n.say('⛳ ' + n.myName() + ' joined the golf round (' + Math.min(4, (game.order || []).length) + '/4).'); BAR().setView && BAR().setView('golf'); }
   else toast("Couldn't join: the round is full or already started.");
   panelOpen = true; render();
 }
+// ---- the bet: everyone puts in the amount they'd like; if they differ, everyone votes for one of the amounts on the table
+function betState(g) {
+  const ps = g.order.map((u) => g.p[u]), opts = [...new Set(ps.map((p) => clampBet(p.bid)))].sort((a, b) => a - b);
+  if (opts.length <= 1) return { agreed: true, amount: opts[0] || 0, opts, tally: {} };
+  const tally = {}; let voted = 0;
+  for (const p of ps) if (p.vote !== undefined && p.vote !== null && opts.includes(+p.vote)) { tally[+p.vote] = (tally[+p.vote] || 0) + 1; voted++; }
+  if (voted < ps.length) return { agreed: false, amount: null, opts, tally, voted };
+  // most votes wins; a tie goes to the smaller amount
+  const best = opts.slice().sort((a, b) => (tally[b] || 0) - (tally[a] || 0) || a - b)[0];
+  return { agreed: true, amount: best, opts, tally, voted, byVote: true };
+}
+function setMine(field, v) { if (game && game.p[me()] && game.phase === 'wait') NET().db().ref('games/golf/p/' + me() + '/' + field).set(v).catch(() => { }); }
+function propose(v) {
+  v = clampBet(v);
+  if (v && !canAfford(v)) { toast("You don't have " + v + ' coins.'); return; }
+  const db = NET().db(), up = {};
+  up['games/golf/p/' + me() + '/bid'] = v;
+  // a new amount on the table means everyone votes again
+  for (const u of game.order) up['games/golf/p/' + u + '/vote'] = null;
+  up['games/golf/seq'] = (game.seq || 0) + 1;
+  db.ref().update(up).catch(() => toast("Couldn't change it."));
+}
+function vote(v) { if (v && !canAfford(v)) { toast("You can't vote for a bet you can't pay (" + v + ' coins).'); return; } setMine('vote', v); }
 function teeOff() {
   if (!game || game.phase !== 'wait' || game.host !== me()) return;
+  const bs = betState(game);
+  if (!bs.agreed) { toast('Everyone has to vote on the bet first.'); return; }
   const g = JSON.parse(JSON.stringify(game)), h = 0;
+  g.bet = g.order.length > 1 ? bs.amount : 0;
   g.order.forEach((u, i) => { g.p[u].ball = teeSpot(h, i); g.p[u].holed = false; g.p[u].s = {}; });
-  Object.assign(g, { phase: 'play', hole: h, turn: g.order[0], seq: g.seq + 1, msg: 'Hole 1. ' + g.p[g.order[0]].name + ' has the honour.', shot: null, t: NET().ts() });
+  Object.assign(g, { phase: 'play', hole: h, turn: g.order[0], seq: g.seq + 1, msg: (g.bet ? 'Playing for ' + g.bet + ' coins each. ' : '') + 'Hole 1. ' + g.p[g.order[0]].name + ' has the honour.', shot: null, t: NET().ts() });
   ref.set(g).catch(() => toast("Couldn't start. The room's Firebase rules may need updating."));
-  NET().say && NET().say('⛳ Tee off! ' + g.order.map((u) => g.p[u].name).join(', ') + ' on the first tee.');
+  NET().say && NET().say('⛳ Tee off! ' + g.order.map((u) => g.p[u].name).join(', ') + ' on the first tee' + (g.bet ? ', playing for ' + g.bet + ' coins each.' : '.'));
 }
 function leave() {
   if (!game || !game.p[me()]) { panelOpen = false; render(); return; }
@@ -351,7 +377,7 @@ async function payDebts() {
       await db.ref().update(upd);
       toast('⛳ You paid ' + game.p[w].name + ' ' + amt + ' coins for the golf.');
     }
-    await ref.child('p/' + me() + '/paid').set(true);
+    await NET().db().ref('games/golf/p/' + me() + '/paid').set(true);
   } catch (e) { /* try again on the next update */ }
   paying = false;
 }
@@ -372,7 +398,7 @@ function openMenu(x, y, talk) {
   if (talk) item('Talk', talk[1]);
   const g = game, mine = g && g.p && g.p[me()];
   if (!g || g.phase === 'over') item('Start a round…', () => { panelOpen = true; render(); });
-  else if (g.phase === 'wait' && !mine) item('Join ' + g.p[g.host].name + "'s round" + (g.bet ? ' (' + g.bet + ' coins)' : ''), join);
+  else if (g.phase === 'wait' && !mine) item('Join ' + g.p[g.host].name + "'s round", join);
   if (g && g.phase !== 'over') item(mine ? 'Scorecard' : 'Watch the round', () => { panelOpen = true; render(); });
   if (g && g.phase === 'over') item('Last scorecard', () => { panelOpen = true; render(); });
   const r = $('stage').getBoundingClientRect();
@@ -435,18 +461,19 @@ function render() {
   }
   panel.hidden = !panelOpen;
   if (!panelOpen) return;
+  // don't rebuild under someone's fingers while they type an amount
+  const ae = document.activeElement;
+  if (ae && ae.tagName === 'INPUT' && panel.contains(ae)) { clearTimeout(render.t); render.t = setTimeout(render, 900); return; }
   const body = $('golfBody'); body.textContent = '';
   if (!g || (g.phase === 'over' && !mine && !panelOpen)) { }
   if (!g || g.phase === 'over') {
     if (g && g.phase === 'over') body.appendChild(card(g));
     body.appendChild(el('h3', null, 'New round'));
-    const row = (label, opts, key) => {
-      const r = el('div', 'row'); r.appendChild(el('span', 'glabel', label));
-      for (const v of opts) { const b = el('button', null, key === 'bet' ? (v ? v + ' coins' : 'No bet') : v + ' holes'); b.type = 'button'; b.setAttribute('aria-pressed', setup[key] === v ? 'true' : 'false'); b.onclick = () => { setup[key] = v; render(); }; r.appendChild(b); }
-      body.appendChild(r);
-    };
-    row('Length', [3, 6], 'holes'); row('Bet each', BETS, 'bet');
-    body.appendChild(el('p', null, 'Up to 4 players. Lowest score wins' + (setup.bet ? '; everyone else pays the winner ' + setup.bet + ' coins.' : '.')));
+    const r = el('div', 'row'); r.appendChild(el('span', 'glabel', 'Length'));
+    for (const v of [3, 6]) { const b = el('button', null, v + ' holes'); b.type = 'button'; b.setAttribute('aria-pressed', setup.holes === v ? 'true' : 'false'); b.onclick = () => { setup.holes = v; render(); }; r.appendChild(b); }
+    body.appendChild(r);
+    body.appendChild(betInput('Your bet', setup.bet, (v) => { setup.bet = v; }));
+    body.appendChild(el('p', null, 'Up to 4 players. Everyone suggests a bet when they join; if the amounts differ, you vote. Lowest score wins and everyone else pays the winner.'));
     const go = el('button', 'primary', 'Start the round'); go.type = 'button'; go.onclick = create; body.appendChild(go);
     return;
   }
@@ -455,9 +482,10 @@ function render() {
   const btns = el('div', 'row');
   const B = (t, fn, cls) => { const b = el('button', cls || null, t); b.type = 'button'; b.onclick = fn; btns.appendChild(b); };
   if (g.phase === 'wait') {
-    body.appendChild(el('p', null, (g.order.length) + '/4 players · ' + g.holes + ' holes · ' + (g.bet ? g.bet + ' coins each' : 'no bet') + '. ' + (g.host === me() ? 'Tee off when everyone is in.' : 'Waiting for ' + g.p[g.host].name + ' to tee off.')));
-    if (!mine && g.order.length < 4) B('Join' + (g.bet ? ' (' + g.bet + ' coins)' : ''), join, 'primary');
-    if (g.host === me()) B('Tee off', teeOff, 'primary');
+    body.appendChild(el('p', null, (g.order.length) + '/4 players · ' + g.holes + ' holes. ' + (g.host === me() ? 'Tee off when everyone is in.' : 'Waiting for ' + g.p[g.host].name + ' to tee off.')));
+    body.appendChild(betBox(g, mine));
+    if (!mine && g.order.length < 4) { body.appendChild(betInput('Your bet', setup.bet, (v) => { setup.bet = v; })); B('Join', join, 'primary'); }
+    if (g.host === me()) { const ok = betState(g).agreed; B(ok ? 'Tee off' : 'Tee off (waiting for votes)', teeOff, 'primary'); if (!ok) btns.lastChild.disabled = true; }
     if (mine) B('Leave', leave);
   } else if (g.phase === 'play') {
     const t = g.turn && g.p[g.turn];
@@ -467,6 +495,34 @@ function render() {
   }
   if (NET().isAdmin) B('Reset (host)', () => ref.remove().catch(() => { }));
   body.appendChild(btns);
+}
+function betInput(label, val, set) {
+  const r = el('div', 'row'); r.appendChild(el('span', 'glabel', label));
+  const inp = el('input'); inp.type = 'number'; inp.min = 0; inp.max = MAX_BET; inp.step = 5; inp.value = val || 0; inp.style.width = '90px';
+  inp.oninput = () => set(clampBet(inp.value));
+  r.appendChild(inp); r.appendChild(el('span', 'glabel', 'coins'));
+  for (const q of [0, 25, 100, 500]) { const b = el('button', 'mini', q ? '+' + q : '0'); b.type = 'button'; b.onclick = () => { const v = q ? clampBet((+inp.value || 0) + q) : 0; inp.value = v; set(v); }; r.appendChild(b); }
+  return r;
+}
+// the bet table in the lobby: what each player wants, and the vote when they disagree
+function betBox(g, mine) {
+  const box = el('div', 'gbet'), bs = betState(g);
+  box.appendChild(el('div', 'gbetTitle', 'The bet'));
+  const ul = el('ul', 'gbids');
+  for (const u of g.order) { const p = g.p[u], li = el('li'); li.appendChild(el('span', null, p.name)); li.appendChild(el('b', null, clampBet(p.bid) ? clampBet(p.bid) + ' 🪙' : 'no bet')); if (!bs.agreed || bs.byVote) li.appendChild(el('i', null, p.vote !== undefined && p.vote !== null ? '✓ voted' : '…')); li.firstChild.style.color = COLORS[p.c % 4]; ul.appendChild(li); }
+  box.appendChild(ul);
+  if (mine) box.appendChild(betInput('Change mine', clampBet(mine.bid), (v) => { clearTimeout(betInput.t); betInput.t = setTimeout(() => propose(v), 700); }));
+  if (bs.opts.length > 1) {
+    box.appendChild(el('p', null, 'The amounts differ, so everyone votes. Most votes wins; a tie goes to the smaller bet.'));
+    const vr = el('div', 'row');
+    for (const v of bs.opts) {
+      const b = el('button', null, (v ? v + ' 🪙' : 'No bet') + ' · ' + (bs.tally[v] || 0)); b.type = 'button';
+      b.setAttribute('aria-pressed', mine && +mine.vote === v ? 'true' : 'false'); b.disabled = !mine; b.onclick = () => vote(v); vr.appendChild(b);
+    }
+    box.appendChild(vr);
+  }
+  box.appendChild(el('p', 'gbetNow', bs.agreed ? (bs.amount ? 'Playing for ' + bs.amount + ' coins each' + (bs.byVote ? ' (voted)' : '') + '.' : 'No bet: just for fun.') : 'Waiting for ' + (g.order.length - (bs.voted || 0)) + ' vote' + (g.order.length - (bs.voted || 0) > 1 ? 's' : '') + '.'));
+  return box;
 }
 function card(g) {
   const t = el('table', 'gcard'), start = g.start || 0;
