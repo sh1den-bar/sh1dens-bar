@@ -112,6 +112,7 @@ function toast(t) { const o = document.createElement('div'); o.className = 'toas
 setInterval(() => { const d = new Date(); $('clock').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }, 1000);
 
 // ---------------------------------------------------------------- screens
+const BRAVE_TIP = 'Full bar runs smoothest in Safari. On Brave, tap the lion and turn Shields off for this site.';
 const APPS = [
   ['chat', '☏', 'Chat'], ['who', '☻', "Who's in"], ['friends', '☺', 'Friends'],
   ['tv', '▶', 'The TV'], ['news', '✉', 'News'], ['wallet', '¤', 'Wallet'],
@@ -133,7 +134,8 @@ function render() {
       '<p class="dim">' + Object.keys(online).length + ' in the bar right now</p>' +
       (tvNow ? '<p>▶ <span class="gold">' + esc(tvNow.title || 'a video') + '</span> <span class="dim">on the TV</span></p>' : '') +
       (news[0] ? '<p>✉ <span class="gold">' + esc(news[0].text) + '</span></p>' : '') +
-      '<div class="grid">' + APPS.map(([k, ic, n]) => '<button class="app" type="button" data-go="' + k + '"><b>' + ic + '</b>' + n + (dotFor(k) ? '<i class="dot"></i>' : '') + '</button>').join('') + '</div>';
+      '<div class="grid">' + APPS.map(([k, ic, n]) => '<button class="app" type="button" data-go="' + k + '"><b>' + ic + '</b>' + n + (dotFor(k) ? '<i class="dot"></i>' : '') + '</button>').join('') + '</div>' +
+      '<p class="dim center" style="margin-top:10px;font-size:16px">' + BRAVE_TIP + '</p>';
     for (const b of v.querySelectorAll('[data-go]')) b.onclick = () => (b.dataset.go === 'pc' ? (location.href = 'index.html?full') : go(b.dataset.go));
     return;
   }
@@ -258,7 +260,7 @@ function meHTML() {
   return '<div class="card"><h3>' + esc(myName || 'No character yet') + '</h3>' +
     '<p class="dim">' + (g ? 'Guest on this phone' : esc(me.email || 'signed in')) + '</p></div>' +
     '<p>People in the bar see a <span class="ph"></span> next to your name while you\'re here.</p>' +
-    '<p><a href="index.html?full">Open the full 3D bar</a> <span class="dim">(heavy on phones)</span></p>' +
+    '<p><a href="index.html?full">Open the full 3D bar</a></p><p class="dim">' + BRAVE_TIP + '</p>' +
     '<p><button class="btn" type="button" id="meOut">Log out</button></p>';
 }
 function wireMe() { $('meOut').onclick = () => { try { db.ref('presence/' + uid).remove(); } catch (e) { } firebase.auth().signOut(); }; }
