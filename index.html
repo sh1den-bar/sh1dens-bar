@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>
+// phones go to the light phone version unless they asked for the full bar (index.html?full)
+(function () { try {
+  var full = /[?&]full\b/.test(location.search);
+  if (full) sessionStorage.setItem('sh1den-full', '1');
+  var phone = /iPhone|iPod|Android.*Mobile|Windows Phone|Mobile Safari/i.test(navigator.userAgent) && !/iPad/.test(navigator.userAgent);
+  if (phone && !full && !sessionStorage.getItem('sh1den-full')) location.replace('phone.html' + location.hash);
+} catch (e) { } })();
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SH1DEN'S Bar</title>
@@ -680,15 +689,6 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
   </div>
 </div>
 
-<script>
-// phones go to the light phone version unless they asked for the full bar (index.html?full)
-(function () { try {
-  var full = /[?&]full\b/.test(location.search);
-  if (full) sessionStorage.setItem('sh1den-full', '1');
-  var phone = /iPhone|iPod|Android.*Mobile|Windows Phone|Mobile Safari/i.test(navigator.userAgent) && !/iPad/.test(navigator.userAgent);
-  if (phone && !full && !sessionStorage.getItem('sh1den-full')) location.replace('phone.html' + location.hash);
-} catch (e) { } })();
-</script>
 <script>
 // the loading screen: a pixel bar that fills as each part arrives, with a tip underneath
 window.LOAD = (function () {
