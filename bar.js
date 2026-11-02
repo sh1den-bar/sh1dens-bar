@@ -1111,7 +1111,7 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.setClearColor(0x04060a, 1);
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x04060a, 7, 17);
-const camera = new THREE.PerspectiveCamera(46, 1, 0.15, 80);
+const camera = new THREE.PerspectiveCamera(46, 1, 0.15, 170);
 
 const signFont = '"Limelight", "Poiret One", Georgia, serif';
 const ROOMS = {
@@ -1130,8 +1130,10 @@ const ROOMS = {
   vip: { x0: -5, x1: 2, z0: -11, z1: -4, name: 'VIP lounge' },
   swim: { x0: 5, x1: 14, z0: -12, z1: -4, name: 'Pool lounge' },
   change: { x0: 2, x1: 5, z0: -11, z1: -4, name: 'Changing room' },
-  street: { x0: -26, x1: 28, z0: 4, z1: 15.4, name: 'Street', outside: true },
-  alley: { x0: -14, x1: 15, z0: -35, z1: -11, name: 'Backstreet', outside: true }
+  street: { x0: -84, x1: 36, z0: 4, z1: 17.4, name: 'Street', outside: true },
+  alley: { x0: -14, x1: 15, z0: -35, z1: -11, name: 'Backstreet', outside: true },
+  drive: { x0: 15, x1: 38, z0: -62, z1: 4, name: 'Valet drive', outside: true },
+  carpark: { x0: -88, x1: -14.2, z0: -72, z1: 4, name: 'Car park', outside: true }
 };
 function roomAt(x, z) {
   for (const k in ROOMS) { const r = ROOMS[k]; if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) return r; }
@@ -3145,7 +3147,7 @@ const wetTex = canvasTex(32, 32, (x, w, h) => {
 for (const t of [asphaltTex, pavingTex, wetTex]) t.wrapS = t.wrapT = THREE.RepeatWrapping;
 
 // the street: sidewalk at floor level, road a curb lower
-const ST = { x0: -26, x1: 28, walk0: 4, curb0: 6.6, curb1: 13.4, walk1: 15.4 }, ROAD_Y = -0.12;
+const ST = { x0: -84, x1: 20.6, walk0: 4, curb0: 6.6, curb1: 13.4, walk1: 15.4 }, ROAD_Y = -0.12;   // past x1 the street bends left round the corner
 groundPlane(ST.x0, ST.x1, ST.walk0, ST.curb0 - 0.12, pavingTex, 1.2, 0);
 groundPlane(ST.x0, ST.x1, ST.curb0 - 0.12, ST.curb1 + 0.12, asphaltTex, 3, ROAD_Y);
 groundPlane(ST.x0, ST.x1, ST.curb1 + 0.12, ST.walk1 + 2, pavingTex, 1.2, 0);
@@ -3247,8 +3249,19 @@ const TRAFFIC = [
   { kind: 'sedan', color: [44, 46, 52], z: LANE_Z - 1.05, dir: 1, speed: 8.5, x: -20 },
   { kind: 'suv', color: [13, 13, 15], z: LANE_Z - 1.05, dir: 1, speed: 7.2, x: 8 },
   { kind: 'sedan', color: [96, 96, 102], z: LANE_Z + 1.05, dir: -1, speed: 9.5, x: 18 },
-  { kind: 'sedan', color: [70, 22, 26], z: LANE_Z + 1.05, dir: -1, speed: 8.0, x: -6 }
+  { kind: 'sedan', color: [70, 22, 26], z: LANE_Z + 1.05, dir: -1, speed: 8.0, x: -6 },
+  { kind: 'saloon', color: [22, 40, 70], z: LANE_Z - 1.05, dir: 1, speed: 7.8, x: -60 },
+  { kind: 'sedan', color: [150, 150, 150], z: LANE_Z + 1.05, dir: -1, speed: 8.8, x: -45 }
 ];
+// each lane runs along the main street, round the bend and down the side street; a car's place is a distance along it
+const TR_X0 = -92, TR_Z1 = -66, TCX = 20.6, TCZ = 2.0;
+function lanePos(r, s) {
+  const A = TCX - TR_X0, B = r * Math.PI / 2;
+  if (s < A) return [TR_X0 + s, TCZ + r, 1, 0];
+  if (s < A + B) { const a = (s - A) / r; return [TCX + r * Math.sin(a), TCZ + r * Math.cos(a), Math.cos(a), -Math.sin(a)]; }
+  return [TCX + r, TCZ - (s - A - B), 0, -1];
+}
+const laneLen = (r) => TCX - TR_X0 + r * Math.PI / 2 + TCZ - TR_Z1;
 const beamTex = canvasTex(16, 16, (x, w, h) => {
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
     const u = i / (w - 1), v = Math.abs(j / (h - 1) - 0.5) * 2, k = Math.max(0, (1 - u) * (1 - v * v));
@@ -3261,17 +3274,18 @@ for (const tc of TRAFFIC) {
   const grp = carGroup(carParts(tc.kind, tc.color));
   const beam = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 2.4), beamMat);
   beam.rotation.x = -Math.PI / 2; beam.position.set(2.3 + 2.75, 0.02, 0); grp.add(beam);
-  grp.position.set(tc.x, ROAD_Y, tc.z); grp.rotation.y = tc.dir > 0 ? 0 : Math.PI;
+  tc.r = tc.z - TCZ; tc.L = laneLen(tc.r); tc.s = tc.x - TR_X0;
   scene.add(grp); traffic.push({ grp, tc });
 }
 function driveTraffic(dt) {
   for (const { grp, tc } of traffic) {
-    tc.x += tc.dir * tc.speed * dt;
-    if (tc.dir > 0 && tc.x > ST.x1 + 6) tc.x = ST.x0 - 6;
-    if (tc.dir < 0 && tc.x < ST.x0 - 6) tc.x = ST.x1 + 6;
-    grp.position.x = tc.x;
+    tc.s += tc.dir * tc.speed * dt;
+    if (tc.s > tc.L) tc.s -= tc.L; if (tc.s < 0) tc.s += tc.L;
+    const [x, z, hx, hz] = lanePos(tc.r, tc.s);
+    grp.position.set(x, ROAD_Y, z); grp.rotation.y = Math.atan2(-hz * tc.dir, hx * tc.dir);
   }
 }
+driveTraffic(0);
 
 // ===== BACKSTREET: a walled courtyard behind the VIP with a round valet drive =====
 const AL = { x0: -14, x1: 15, z0: -35, z1: -11 };
@@ -3283,7 +3297,8 @@ groundPlane(5, AL.x1, AL.z0, -12.02, wetTex, 3, 0);
   scaleUV(g, w / 3.2, 7 / 6.4);
   const m = new THREE.Mesh(g, windowMat); m.position.set((AL.x0 + AL.x1) / 2, 3.5, AL.z0 - 0.02); scene.add(m);
 }
-facade(-14.01, AL.z0, -14.01, -11.0, 1, 0);
+facade(-14.01, AL.z0, -14.01, -11.0, 1, 0, [[1.5, 4.5]]);   // a gate through to the car park, by Old Tobias
+facade(-14.06, -11.0, -14.06, AL.z0, -1, 0, [[19.5, 22.5]]);
 facade(15.01, -12.0, 15.01, AL.z0, -1, 0, [[8.3, 12.2]]);   // the arch for the drive at z -24.2..-20.3
 facade(14.0, -12.01, 15.0, -12.01, 0, 1);
 // the round drive: a raised island with a fountain, a ring of granite setts, and eight bays fanned around it
@@ -3736,6 +3751,281 @@ for (const R of HOTEL_ROOMS) {
   for (const u of [2.95, 4.75]) for (let k = 0; k < 3; k++) { const uu = u - 0.1 + k * 0.1, w = 5.7; S.push(tube([V(x0 + uu, 0.02, side * (1.2 + w)), V(x0 + uu + 0.02, 1.3, side * (1.2 + w - 0.05)), V(x0 + uu, 2.5, side * (1.2 + w))], [0.05, 0.06, 0.05], [92, 12, 20], { n: 6, amt: 0.08 })); }
   const rug = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.0), decal({ map: loungeRugTex(R.i % 2 ? '#2a1a40' : '#4a1014', '#14181e') }));
   rug.rotation.x = -Math.PI / 2; rug.position.set(x0 + 2.0, 0.012, side * (1.2 + 3.0)); scene.add(rug);
+}
+
+// ================================================================ OUTSIDE: the street turns the corner, the valet drive, and the big public car park
+// ---- the corner: past the dance room the street bends left and runs down the side of the building
+const CC = { x: ST.x1, z: 2.0 }, CRI = ST.curb0 - CC.z, CRO = ST.curb1 - CC.z;   // turn centre, inner and outer curb radius
+const SS = { x0: CC.x + CRI, x1: CC.x + CRO, z1: CC.z, z0: -60 };                  // the side street's road
+const groundAt = (x0, x1, z0, z1, mat, tile, y) => { const m = groundPlane(x0, x1, z0, z1, asphaltTex, tile, y); m.material = mat; return m; };
+const pavingMat = ps1(new THREE.MeshLambertMaterial({ map: pavingTex })), asphaltMat = ps1(new THREE.MeshLambertMaterial({ map: asphaltTex }));
+const lawnTex = canvasTex(16, 16, (x, w, h) => { noiseFill(x, w, h, [24, 44, 24], 9); for (let k = 0; k < 18; k++) { x.fillStyle = 'rgb(40,66,34)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 2); } });
+lawnTex.wrapS = lawnTex.wrapT = THREE.RepeatWrapping;
+const lawnMat = ps1(new THREE.MeshLambertMaterial({ map: lawnTex }));
+// a quarter ring around the turn centre, laid flat
+function cornerRing(r0, r1, mat, tile, y) {
+  const g = r0 > 0 ? new THREE.RingGeometry(r0, r1, 24, 2, -Math.PI / 2, Math.PI / 2) : new THREE.CircleGeometry(r1, 24, -Math.PI / 2, Math.PI / 2);
+  scaleUV(g, 2 * r1 / tile, 2 * r1 / tile);
+  const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.set(CC.x, y, CC.z); scene.add(m);
+  return m;
+}
+cornerRing(CRI - 0.12, CRO + 0.12, asphaltMat, 3, ROAD_Y);
+cornerRing(0, CRI - 0.12, pavingMat, 1.2, -0.02);
+cornerRing(CRO + 0.12, CRO + 4.2, pavingMat, 1.2, 0);
+// curbs round the bend, in short pieces
+const cAt = (r, a) => [CC.x + r * Math.sin(a), CC.z + r * Math.cos(a)];
+for (let k = 0; k < 16; k++) {
+  const a0 = (k / 16) * Math.PI / 2, a1 = ((k + 1) / 16) * Math.PI / 2;
+  for (const [r0, r1] of [[CRI - 0.12, CRI], [CRO, CRO + 0.12]]) {
+    const q = (y) => [V(...[cAt(r0, a0)[0], y, cAt(r0, a0)[1]]), V(cAt(r0, a1)[0], y, cAt(r0, a1)[1]), V(cAt(r1, a1)[0], y, cAt(r1, a1)[1]), V(cAt(r1, a0)[0], y, cAt(r1, a0)[1])];
+    S.push(loft([q(ROAD_Y), q(0)], [74, 74, 80], { amt: 0.03 }));
+  }
+  if (k % 2 === 0) { const L = LANE_Z - CC.z, m0 = cAt(L, a0 + 0.02), m1 = cAt(L, a1 - 0.02); S.push(groundStrip(m0[0], m0[1], m1[0], m1[1], 0.12, ROAD_Y, [190, 166, 84])); }
+}
+// the side street itself: road, curbs, centre dashes, sidewalks both sides
+groundAt(SS.x0 - 0.12, SS.x1 + 0.12, SS.z0, SS.z1, asphaltMat, 3, ROAD_Y);
+S.push(box(SS.x0 - 0.12, SS.x0, ROAD_Y, 0, SS.z0, SS.z1, [74, 74, 80], 0.03));
+S.push(box(SS.x1, SS.x1 + 0.12, ROAD_Y, 0, SS.z0, SS.z1, [74, 74, 80], 0.03));
+const SIDE_X = CC.x + (LANE_Z - CC.z);
+for (let z = SS.z1 - 1; z > SS.z0; z -= 3.2) S.push(box(SIDE_X - 0.06, SIDE_X + 0.06, ROAD_Y, ROAD_Y + 0.012, z - 1.6, z, [190, 166, 84], 0.03));
+groundAt(23.02, SS.x0 - 0.12, SS.z0, CC.z, pavingMat, 1.2, -0.02);
+groundAt(SS.x1 + 0.12, SS.x1 + 4.2, SS.z0, CC.z, pavingMat, 1.2, 0);
+// buildings round the outside of the bend and along the far side
+{
+  const segs = [[0, 0.55], [0.55, 1.05], [1.05, 1.5]], R = CRO + 4.25;
+  segs.forEach(([a0, a1], k) => {
+    const p = cAt(R, a0), q = cAt(R, a1), w = Math.hypot(q[0] - p[0], q[1] - p[1]), h = 8 + (k * 3) % 5;
+    const g = new THREE.PlaneGeometry(w, h); scaleUV(g, w / 3.2, h / 6.4);
+    const m = new THREE.Mesh(g, windowMat); m.position.set((p[0] + q[0]) / 2, h / 2, (p[1] + q[1]) / 2);
+    m.rotation.y = Math.atan2(-(q[1] - p[1]), q[0] - p[0]) + Math.PI; scene.add(m);
+  });
+  for (let z = CC.z, k = 0; z > SS.z0; k++) {
+    const w = 7 + (k * 5) % 4, h = 7 + (k * 7) % 6;
+    const g = new THREE.PlaneGeometry(w, h); scaleUV(g, w / 3.2, h / 6.4);
+    const m = new THREE.Mesh(g, windowMat); m.position.set(SS.x1 + 4.3, h / 2, z - w / 2); m.rotation.y = -Math.PI / 2; scene.add(m);
+    S.push(box(SS.x1 + 4.12, SS.x1 + 4.28, 0, 0.5, z - w + 0.05, z - 0.05, [24, 24, 28], 0.03));
+    z -= w;
+  }
+}
+// sodium street lamps: the same warm yellow as the dance floor's glow, these ones just don't pulse
+const SODIUM = [255, 196, 84], SODIUM_HEX = 0xffc454;
+// a soft pool of lamp light on the ground under each head (cheaper and more PS1 than real light for every lamp)
+const poolTex = canvasTex(32, 32, (x, w, h) => {
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const d = Math.hypot(i - w / 2 + 0.5, j - h / 2 + 0.5) / (w / 2), k = Math.max(0, 1 - d), v = k * k;
+    x.fillStyle = `rgb(${Math.round(255 * v)},${Math.round(176 * v)},${Math.round(60 * v)})`; x.fillRect(i, j, 1, 1);
+  }
+});
+const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -20 });
+function lightPool(x, z, r, y) { const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, r * 2), poolMat); m.rotation.x = -Math.PI / 2; m.position.set(x, (y || 0) + 0.03, z); scene.add(m); return m; }
+function lampPost(x, z, ax, az, h) {
+  h = h || 4.4;
+  lightPool(x + ax * 0.9, z + az * 0.9, h * 0.95, x < -15 && z < -13 ? 0 : -0.1);
+  S.push(cyl(V(x, 0, z), V(x, 0.12, z), 0.15, 0.13, [20, 20, 22], { n: 8 }));
+  S.push(cyl(V(x, 0.12, z), V(x, h, z), 0.055, 0.04, [20, 20, 22], { n: 6 }));
+  const hx = x + ax * 0.9, hz = z + az * 0.9;
+  S.push(cyl(V(x, h, z), V(hx, h + 0.05, hz), 0.03, 0.03, [20, 20, 22], { n: 4 }));
+  S.push(cyl(V(hx, h + 0.12, hz), V(hx, h - 0.06, hz), 0.09, 0.24, [30, 30, 34], { n: 8 }));
+  G.push(cyl(V(hx, h - 0.07, hz), V(hx, h - 0.11, hz), 0.2, 0.17, SODIUM, { n: 8, amt: 0 }));
+  return [hx, h - 0.3, hz];
+}
+const SIDE_LAMPS = [-6, -19, -32, -45, -58].map((z) => lampPost(SS.x0 - 0.5, z, 1, 0));
+[SIDE_LAMPS[0], SIDE_LAMPS[2]].forEach(([x, y, z]) => pLight(SODIUM_HEX, 1.3, 13, x, y, z));
+for (const a of [0.35, 1.2]) { const [x, z] = cAt(CRO + 0.6, a); lampPost(x, z, -Math.sin(a), -Math.cos(a)); }
+
+// ---- the valet drive: from the side street through a planted entrance to the arch in the courtyard wall
+groundAt(23.02, SS.x0 - 0.1, LOT.z - 1.6, LOT.z + 1.6, flatMat(settTex, -6), 1.1, 0.034);
+groundAt(AL.x1 + 0.8, 23.02, LOT.z - 1.6, LOT.z + 1.6, flatMat(settTex, -6), 1.1, 0.032);
+for (const zz of [LOT.z - 1.65, LOT.z + 1.65]) S.push(box(AL.x1 + 0.8, SS.x0 - 0.12, 0, 0.1, zz - 0.07, zz + 0.07, MARBLE_W, 0.03));
+groundAt(AL.x1 + 0.05, 22.98, LOT.z + 1.75, -4.05, lawnMat, 1.4, 0.01);
+groundAt(AL.x1 + 0.05, 22.98, SS.z0, LOT.z - 1.75, lawnMat, 1.4, 0.01);
+// clipped hedges lining the drive, cypress cones at both ends, beds of flowers in front of the hedges
+function cone(x, z, s) {
+  S.push(cyl(V(x, 0, z), V(x, 0.36, z), 0.26, 0.24, [110, 102, 94], { n: 10 }));
+  S.push(loft([rring(0.36, 0.4 * s, 0.4 * s, x, z, 10, 2), rring(0.9 * s, 0.5 * s, 0.5 * s, x, z, 10, 2), rring(1.6 * s, 0.34 * s, 0.34 * s, x, z, 10, 2), rring(2.2 * s, 0.04, 0.04, x, z, 10, 2)], HEDGE, { smooth: true, amt: 0.1 }));
+}
+for (const e of [-1, 1]) {
+  const zh = LOT.z + e * 2.25;
+  S.push(box(17.2, 22.0, 0, 0.75, zh - 0.28, zh + 0.28, HEDGE, 0.12));
+  S.push(box(17.15, 22.05, 0, 0.12, zh - 0.32, zh + 0.32, [60, 58, 56], 0.04));
+  cone(22.6, LOT.z + e * 2.35, 1.1); cone(16.4, LOT.z + e * 2.35, 0.9);
+  const zf = LOT.z + e * 2.95, fr = rngFrom(e > 0 ? 71 : 73);
+  for (let x = 17.3; x < 22; x += 0.22) {
+    const c = [[200, 40, 60], [230, 190, 60], [240, 120, 170], [250, 250, 240]][Math.floor(fr() * 4)];
+    S.push(box(x, x + 0.12, 0.02, 0.18 + fr() * 0.12, zf - 0.08 + fr() * 0.16, zf + 0.04 + fr() * 0.1, c, 0.05));
+  }
+}
+// a low hedge along the sidewalk, broken for the drive
+for (const [z0, z1] of [[LOT.z + 3.4, -4.4], [SS.z0 + 0.5, LOT.z - 3.4]]) S.push(box(22.55, 22.95, 0, 0.55, z0, z1, HEDGE, 0.12));
+// a few trees on the lawns
+function tree(x, z, s) {
+  S.push(cyl(V(x, 0, z), V(x, 2.0 * s, z), 0.13 * s, 0.09 * s, [58, 42, 30], { n: 7 }));
+  S.push(loft([rring(1.6 * s, 0.3 * s, 0.3 * s, x, z, 10, 2), rring(2.2 * s, 1.2 * s, 1.1 * s, x, z, 10, 2), rring(3.1 * s, 1.35 * s, 1.3 * s, x + 0.1, z, 10, 2), rring(3.9 * s, 0.9 * s, 0.95 * s, x, z, 10, 2), rring(4.4 * s, 0.1, 0.1, x, z, 10, 2)], [34, 66, 36], { smooth: true, amt: 0.14 }));
+}
+for (const [x, z, s] of [[19.2, -8.5, 0.95], [18.6, -14.8, 1.1], [19.4, -29.5, 1.05], [18.8, -37.5, 0.9], [19.6, -46, 1.0], [18.7, -54, 0.95]]) tree(x, z, s);
+// a stone sign on the lawn by the entrance, lit from below
+{
+  const sx = 21.2, sz = LOT.z + 4.3;
+  S.push(box(sx - 0.15, sx + 0.15, 0, 1.15, sz - 1.1, sz + 1.1, [70, 68, 64], 0.04));
+  S.push(box(sx - 0.2, sx + 0.2, 1.15, 1.22, sz - 1.16, sz + 1.16, [96, 92, 86], 0.03));
+  const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d');
+  x.fillStyle = '#121014'; x.fillRect(0, 0, 256, 96); x.strokeStyle = '#b8924a'; x.lineWidth = 3; x.strokeRect(4, 4, 248, 88);
+  x.fillStyle = '#e7c98a'; x.textAlign = 'center'; x.font = '34px "Limelight", Georgia, serif'; x.fillText("SH1DEN'S", 128, 46);
+  x.font = '16px "IBM Plex Mono", monospace'; x.fillStyle = '#cdbb94'; x.fillText('VALET  ·  MEMBERS', 128, 76);
+  const tex = new THREE.CanvasTexture(c); tex.magFilter = THREE.NearestFilter; tex.encoding = THREE.sRGBEncoding;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.75), decal({ map: tex })); m.position.set(sx + 0.16, 0.65, sz); m.rotation.y = Math.PI / 2; scene.add(m);
+  setTimeout(() => { if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { x.fillStyle = '#121014'; x.fillRect(6, 6, 244, 84); x.fillStyle = '#e7c98a'; x.font = '34px "Limelight", Georgia, serif'; x.fillText("SH1DEN'S", 128, 46); x.font = '16px "IBM Plex Mono", monospace'; x.fillStyle = '#cdbb94'; x.fillText('VALET  ·  MEMBERS', 128, 76); tex.needsUpdate = true; }); }, 0);
+  for (const e of [-1, 1]) G.push(box(sx + 0.3, sx + 0.42, 0.02, 0.1, sz + e * 0.8 - 0.06, sz + e * 0.8 + 0.06, [255, 220, 150], 0));
+}
+for (const e of [-1, 1]) lampPost(22.3, LOT.z + e * 3.6, 0, -e);
+pLight(SODIUM_HEX, 1.2, 12, 21.0, 3.4, LOT.z);
+
+// ---- the public car park: behind the hotel on the beggar's side, in off the main street
+const PK2 = { x0: -80, x1: -20, z0: -66, z1: -14 };
+groundAt(PK2.x0, PK2.x1, PK2.z0, PK2.z1, asphaltMat, 3.2, 0);
+groundAt(-27, -20, PK2.z1, ST.walk0, asphaltMat, 3.2, 0.012);            // the way in, off the main street
+groundAt(-48, -27.02, PK2.z1, ST.walk0 - 0.02, lawnMat, 1.4, 0.0);           // lawn between the street and the car park
+groundAt(-19.98, -17.05, -11.0, ST.walk0 - 0.02, lawnMat, 1.4, 0.0);
+groundAt(-19.98, AL.x0 - 0.05, PK2.z0, -11.0, lawnMat, 1.4, 0.0);
+groundAt(PK2.x0 - 6, -48, PK2.z1, ST.walk0 - 0.02, lawnMat, 1.4, 0.0);
+// a paved path from the car park to a gate in the courtyard wall, right by Old Tobias
+groundAt(-20, AL.x0 + 0.05, -33.3, -30.7, pavingMat, 1.2, 0.015);
+for (const zz of [-33.35, -30.65]) S.push(box(-20, AL.x0, 0, 0.08, zz - 0.06, zz + 0.06, [74, 74, 80], 0.03));
+// curb round the edge, a chain-link fence on the far sides
+S.push(box(PK2.x0 - 0.15, PK2.x1, 0, 0.14, PK2.z1 - 0.15, PK2.z1, [74, 74, 80], 0.03));
+for (const [x0, x1, z0, z1] of [[PK2.x0 - 0.15, PK2.x0, PK2.z0, PK2.z1], [PK2.x1, PK2.x1 + 0.15, PK2.z0, -33.4], [PK2.x1, PK2.x1 + 0.15, -30.6, PK2.z1 - 7]]) S.push(box(x0, x1, 0, 0.14, z0, z1, [74, 74, 80], 0.03));
+for (let x = PK2.x0; x <= PK2.x1; x += 2.5) S.push(cyl(V(x, 0, PK2.z0), V(x, 2.0, PK2.z0), 0.03, 0.03, [70, 72, 76], { n: 4 }));
+for (let z = PK2.z0; z <= PK2.z1 - 2; z += 2.5) S.push(cyl(V(PK2.x0, 0, z), V(PK2.x0, 2.0, z), 0.03, 0.03, [70, 72, 76], { n: 4 }));
+{
+  const fenceTex = canvasTex(16, 16, (x, w, h) => { x.clearRect(0, 0, w, h); x.strokeStyle = 'rgba(120,124,130,0.9)'; x.lineWidth = 1; for (let i = -16; i < 32; i += 4) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 16, 16); x.stroke(); x.beginPath(); x.moveTo(i + 16, 0); x.lineTo(i, 16); x.stroke(); } });
+  fenceTex.wrapS = fenceTex.wrapT = THREE.RepeatWrapping;
+  const fm = new THREE.MeshBasicMaterial({ map: fenceTex, transparent: true, side: THREE.DoubleSide, alphaTest: 0.3, fog: true, color: 0x6a6c70 });
+  const w1 = PK2.x1 - PK2.x0, g1 = new THREE.PlaneGeometry(w1, 1.9); scaleUV(g1, w1 / 0.8, 1.9 / 0.8);
+  const m1 = new THREE.Mesh(g1, fm); m1.position.set((PK2.x0 + PK2.x1) / 2, 1.0, PK2.z0); scene.add(m1);
+  const w2 = PK2.z1 - 2 - PK2.z0, g2 = new THREE.PlaneGeometry(w2, 1.9); scaleUV(g2, w2 / 0.8, 1.9 / 0.8);
+  const m2 = new THREE.Mesh(g2, fm); m2.position.set(PK2.x0, 1.0, (PK2.z0 + PK2.z1 - 2) / 2); m2.rotation.y = Math.PI / 2; scene.add(m2);
+  S.push(cyl(V(PK2.x0, 1.95, PK2.z0), V(PK2.x1, 1.95, PK2.z0), 0.02, 0.02, [70, 72, 76], { n: 4 }));
+  S.push(cyl(V(PK2.x0, 1.95, PK2.z0), V(PK2.x0, 1.95, PK2.z1 - 2), 0.02, 0.02, [70, 72, 76], { n: 4 }));
+  // a warehouse behind the fence
+  const wg = new THREE.PlaneGeometry(w1 + 10, 9); scaleUV(wg, (w1 + 10) / 3.2, 9 / 6.4);
+  const wm = new THREE.Mesh(wg, windowMat); wm.position.set((PK2.x0 + PK2.x1) / 2, 4.5, PK2.z0 - 6); scene.add(wm);
+}
+// the bays: five rows of eighteen, painted white, a concrete wheel stop at the head of each
+const BAY_W = 2.6, BAY_D = 5.2, BX0 = -77, NB = 18, BX1 = BX0 + NB * BAY_W;
+const PROWS = [{ z: -14.4, dir: -1 }, { z: -31.9, dir: 1 }, { z: -31.9, dir: -1 }, { z: -49.5, dir: 1 }, { z: -49.5, dir: -1 }];   // head line z, which way the bay runs from it
+const LINE_W = [214, 214, 206];
+for (const r of PROWS) {
+  const zb = r.z + r.dir * BAY_D;
+  for (let k = 0; k <= NB; k++) S.push(...paintLine(BX0 + k * BAY_W, r.z, BX0 + k * BAY_W, zb, 0.09, 0.006, LINE_W, 3));
+  for (let k = 0; k < NB; k++) { const cx = BX0 + (k + 0.5) * BAY_W, sz = r.z + r.dir * 0.45; S.push(box(cx - 0.8, cx + 0.8, 0, 0.13, sz - 0.1, sz + 0.1, [120, 118, 112], 0.04)); }
+}
+for (const z of [-31.9, -49.5]) S.push(...paintLine(BX0, z, BX1, z, 0.09, 0.006, LINE_W, 24));
+// arrows and a painted "EXIT" in the aisles
+for (const [x, z, a] of [[-24, -24, 0], [-24, -41, Math.PI], [-24, -58, 0], [-50, -23, -Math.PI / 2], [-50, -40.7, Math.PI / 2]]) {
+  const s = Math.sin(a), c = Math.cos(a), P2 = (u, v) => [x + u * c - v * s, z + u * s + v * c];
+  const shaft = [P2(-1.2, 0), P2(0.5, 0)], h1 = [P2(0.5, -0.4), P2(1.1, 0)], h2 = [P2(0.5, 0.4), P2(1.1, 0)];
+  for (const [p, q] of [shaft, h1, h2]) S.push(groundStrip(p[0], p[1], q[0], q[1], 0.16, 0.006, LINE_W));
+}
+// planted islands at the end of each double row, with a tree; tall lamps along the middle of the rows
+for (const z of [-31.9, -49.5]) {
+  const x0 = BX1 + 0.3, x1 = BX1 + 2.3;
+  S.push(box(x0, x1, 0, 0.16, z - BAY_D + 0.3, z + BAY_D - 0.3, [86, 84, 80], 0.04));
+  groundAt(x0 + 0.12, x1 - 0.12, z - BAY_D + 0.42, z + BAY_D - 0.42, lawnMat, 1.2, 0.17);
+  tree((x0 + x1) / 2, z + 2.6, 0.75); tree((x0 + x1) / 2, z - 2.6, 0.7);
+}
+const PARK_LAMPS = [];
+for (const z of [-31.9, -49.5]) for (const k of [3, 9, 15]) {
+  const x = BX0 + k * BAY_W;
+  S.push(cyl(V(x, 0, z), V(x, 0.5, z), 0.24, 0.22, [96, 94, 90], { n: 10 }));
+  for (const e of [-1, 1]) PARK_LAMPS.push(lampPost(x, z, 0, e * 0.6, 6.2));
+}
+for (const x of [-68, -49, -30]) PARK_LAMPS.push(lampPost(x, PK2.z1 + 0.6, 0, -1, 5.0));
+lampPost(PK2.x0 + 7, PK2.z0 + 0.8, 0, 1, 5.0);   // one over the dumpster corner
+// a lantern over the gate through to the courtyard
+S.push(box(AL.x0 - 0.3, AL.x0 - 0.02, 2.55, 2.62, -32.2, -31.8, [20, 20, 22], 0.03));
+S.push(box(AL.x0 - 0.42, AL.x0 - 0.18, 2.2, 2.55, -32.12, -31.88, [26, 26, 30], 0.03));
+G.push(box(AL.x0 - 0.4, AL.x0 - 0.2, 2.24, 2.5, -32.1, -31.9, SODIUM, 0));
+lightPool(AL.x0 - 1.5, -32, 2.6);
+for (const [x, y, z] of [PARK_LAMPS[0], PARK_LAMPS[4], PARK_LAMPS[7], PARK_LAMPS[10], PARK_LAMPS[13]]) pLight(SODIUM_HEX, 1.6, 17, x, y, z);
+// a few cars left here overnight
+{
+  const pr = rngFrom(4242), kinds = ['sedan', 'sedan', 'suv', 'saloon', 'coupe', 'sedan', 'super', 'roadster'];
+  const cols = [[44, 46, 52], [96, 96, 102], [120, 26, 30], [22, 40, 70], [150, 150, 150], [16, 16, 18], [70, 64, 52], [36, 60, 46], [180, 176, 166], [110, 80, 30]];
+  const taken = new Set();
+  for (let n = 0; n < 26; n++) {
+    const ri = Math.floor(pr() * PROWS.length), k = Math.floor(pr() * NB), key = ri + ':' + k;
+    if (taken.has(key)) continue; taken.add(key);
+    const r = PROWS[ri], cx = BX0 + (k + 0.5) * BAY_W, cz = r.z + r.dir * (BAY_D / 2 + 0.15);
+    const nose = pr() < 0.8 ? -r.dir : r.dir;   // most pull in nose first, a few back in
+    parkCar(kinds[Math.floor(pr() * kinds.length)], cols[Math.floor(pr() * cols.length)], cx, cz, Math.atan2(-nose, 0) + (pr() - 0.5) * 0.08, 0);
+  }
+}
+// litter: crumpled paper, cans, a bag or two; bins and a dumpster by the fence
+{
+  const tr = rngFrom(777);
+  for (let n = 0; n < 90; n++) {
+    const x = PK2.x0 + 1 + tr() * (PK2.x1 - PK2.x0 - 2), z = PK2.z0 + 1 + tr() * (PK2.z1 - PK2.z0 - 2), kind = tr();
+    if (kind < 0.45) { const s = 0.05 + tr() * 0.06, v = 150 + Math.floor(tr() * 90); S.push(box(x - s, x + s, 0.005, 0.03 + tr() * 0.04, z - s * 0.8, z + s * 0.8, [v, v, v - 10], 0.25)); }
+    else if (kind < 0.75) { const a = tr() * Math.PI, dx = Math.cos(a) * 0.06, dz = Math.sin(a) * 0.06; S.push(cyl(V(x - dx, 0.033, z - dz), V(x + dx, 0.033, z + dz), 0.033, 0.033, [[180, 30, 30], [170, 170, 176], [30, 70, 150], [40, 120, 50]][Math.floor(tr() * 4)], { n: 6 })); }
+    else if (kind < 0.88) { S.push(loft([rring(0, 0.12, 0.1, x, z, 7, 2), rring(0.1, 0.18, 0.15, x, z, 7, 2), rring(0.2, 0.1, 0.09, x, z, 7, 2), rring(0.24, 0.02, 0.02, x, z, 7, 2)], [22, 22, 24], { smooth: true, amt: 0.3 })); }
+    else { const a = tr() * 6.28; S.push(box(x - 0.11, x + 0.11, 0.004, 0.014, z - 0.07, z + 0.07, [150, 120, 80], 0.2)); if (a > 5) S.push(box(x - 0.2, x + 0.2, 0.004, 0.012, z + 0.1, z + 0.35, [210, 200, 170], 0.1)); }
+  }
+  const bin = (x, z) => {
+    S.push(cyl(V(x, 0, z), V(x, 0.92, z), 0.3, 0.32, [34, 52, 40], { n: 10, amt: 0.08 }));
+    for (const y of [0.25, 0.6]) S.push(cyl(V(x, y, z), V(x, y + 0.05, z), 0.335, 0.335, [26, 40, 30], { n: 10 }));
+    S.push(cyl(V(x, 0.92, z), V(x, 1.0, z), 0.34, 0.3, [22, 30, 24], { n: 10 }));
+    S.push(cyl(V(x + 0.15, 0.94, z), V(x + 0.35, 0.02, z + 0.1), 0.02, 0.02, [200, 200, 190], { n: 4 }));   // something hanging out
+  };
+  for (const [x, z] of [[-21.2, -16], [-21.2, -40], [-21.2, -60], [-44, -15], [-62, -15], [AL.x0 - 0.6, -29.6]]) bin(x, z);
+  // the dumpster in the far corner, lid propped, bags piled beside it
+  const dx = PK2.x0 + 3, dz = PK2.z0 + 2.2;
+  S.push(box(dx - 1.1, dx + 1.1, 0.12, 1.35, dz - 0.75, dz + 0.75, [30, 70, 46], 0.08));
+  S.push(box(dx - 1.15, dx + 1.15, 1.32, 1.4, dz - 0.8, dz + 0.8, [24, 56, 36], 0.05));
+  S.push(loft([[V(dx - 1.1, 1.4, dz + 0.75), V(dx + 1.1, 1.4, dz + 0.75), V(dx + 1.1, 1.42, dz + 0.75), V(dx - 1.1, 1.42, dz + 0.75)], [V(dx - 1.1, 2.1, dz + 0.25), V(dx + 1.1, 2.1, dz + 0.25), V(dx + 1.1, 2.12, dz + 0.25), V(dx - 1.1, 2.12, dz + 0.25)]], [20, 44, 30], { amt: 0.05 }));
+  for (const e of [-1, 1]) S.push(cyl(V(dx + e * 0.9, 0, dz + e * 0.5), V(dx + e * 0.9, 0.12, dz + e * 0.5), 0.08, 0.08, [16, 16, 18], { n: 6 }));
+  for (const [ox, oz, r] of [[1.6, 0.4, 0.34], [1.9, -0.2, 0.3], [1.5, -0.6, 0.28], [2.3, 0.3, 0.26]]) { const x = dx + ox, z = dz + oz; S.push(loft([rring(0, r * 0.6, r * 0.6, x, z, 8, 2), rring(r * 0.7, r, r, x, z, 8, 2), rring(r * 1.3, r * 0.8, r * 0.8, x, z, 8, 2), rring(r * 1.6, 0.05, 0.05, x, z, 8, 2)], [14, 14, 16], { smooth: true, amt: 0.2 })); }
+  for (const [ox, oz, s] of [[-1.6, 0.9, 0.5], [-1.9, 0.2, 0.4], [-1.5, 0.2, 0.35]]) S.push(box(dx + ox - s / 2, dx + ox + s / 2, 0, s * 0.8, dz + oz - s / 2, dz + oz + s / 2, [130, 100, 66], 0.12));
+}
+// a "P" sign on a post at the way in
+{
+  const sx = -27.6, sz = 2.4;
+  S.push(cyl(V(sx, 0, sz), V(sx, 2.6, sz), 0.04, 0.04, [30, 30, 34], { n: 6 }));
+  S.push(box(sx - 0.05, sx + 0.05, 2.0, 2.9, sz - 0.45, sz + 0.45, [24, 50, 120], 0.03));
+  G.push(box(sx + 0.05, sx + 0.06, 2.15, 2.75, sz - 0.3, sz + 0.3, [240, 240, 250], 0));
+  G.push(box(sx + 0.061, sx + 0.07, 2.25, 2.65, sz - 0.18, sz + 0.06, [24, 50, 120], 0));
+  G.push(box(sx + 0.061, sx + 0.07, 2.45, 2.55, sz - 0.06, sz + 0.12, [240, 240, 250], 0));
+}
+
+// ---- people walking about outside (they're not players, just passers-by)
+const WALKERS = [
+  { path: [[-23.5, 5.3], [-23.5, -22], [-60, -23], [-60, -41], [-23.5, -41], [-23.5, -22]], speed: 1.25 },
+  { path: [[-30, -58], [-74, -58], [-74, -40], [-30, -40]], speed: 1.1 },
+  { path: [[-36, -22.5], [-20.5, -32], [-15.2, -32], [-20.5, -32]], speed: 1.0 },
+  { path: [[24.1, 1.2], [24.1, -55]], speed: 1.3 },
+  { path: [[-80, 15.6], [18, 15.6]], speed: 1.35 },
+  { path: [[-70, -23], [-28, -23.5]], speed: 1.15 },
+  { path: [[33.2, -50], [33.2, 0.5], [31.0, 9.0], [26.5, 13.6], [20.6, 15.4], [-40, 15.4]], speed: 1.2 }
+].map((w, i) => {
+  // pre-measure each path so the walker's position is just a distance along it
+  const pts = w.path.concat(w.path.length > 2 ? [w.path[0]] : []), segs = [];
+  let L = 0; for (let k = 0; k < pts.length - 1; k++) { const d = Math.hypot(pts[k + 1][0] - pts[k][0], pts[k + 1][1] - pts[k][1]); segs.push([pts[k], pts[k + 1], L, d]); L += d; }
+  return { segs, L, loop: w.path.length > 2, speed: w.speed, s: (i * 13.7) % L, dir: 1, look: randomLook(rngFrom(900 + i * 17)), ch: null };
+});
+function walkersRebuild() {
+  for (const w of WALKERS) { w.ch = addChar(w.look, '', { npc: true, seedName: 'walker' }); w.ch.act = 'walk'; }
+  walkersTick(0);
+}
+function walkersTick(dt) {
+  for (const w of WALKERS) {
+    w.s += w.dir * w.speed * dt;
+    if (w.loop) w.s = ((w.s % w.L) + w.L) % w.L;
+    else if (w.s > w.L) { w.s = w.L; w.dir = -1; } else if (w.s < 0) { w.s = 0; w.dir = 1; }
+    const sg = w.segs.find((g) => w.s >= g[2] && w.s <= g[2] + g[3]) || w.segs[w.segs.length - 1];
+    const u = sg[3] ? (w.s - sg[2]) / sg[3] : 0, x = sg[0][0] + (sg[1][0] - sg[0][0]) * u, z = sg[0][1] + (sg[1][1] - sg[0][1]) * u;
+    if (!w.ch) continue;
+    w.ch.root.position.set(x, 0, z);
+    w.ch.root.rotation.y = Math.atan2((sg[1][0] - sg[0][0]) * w.dir, (sg[1][1] - sg[0][1]) * w.dir);
+  }
 }
 
 ROOMS.base = { x0: BASE.x0, x1: BASE.x1, z0: BASE.z0, z1: BASE.z1, name: 'Basement' };
@@ -4428,7 +4718,9 @@ const VIEWS = {
   change: { tx: 3.5, ty: 1.0, tz: -8.2, d: 5, yaw: 0.0, pitch: 0.5 },
   street: { tx: 0, ty: 1.6, tz: 6.2, d: 9, yaw: 0.0, pitch: 0.22 },
   alley: { tx: 2.0, ty: 0.9, tz: -21.5, d: 12, yaw: -0.25, pitch: 0.5 },
-  map: { tx: 0.5, ty: 0, tz: -1.8, d: 34, yaw: 0, pitch: 1.3, free: true }
+  drive: { tx: 20.5, ty: 1.0, tz: -22.5, d: 11, yaw: 1.25, pitch: 0.32 },
+  carpark: { tx: -40, ty: 1.0, tz: -30, d: 14, yaw: 0.75, pitch: 0.38 },
+  map: { tx: -20, ty: 0, tz: -22, d: 62, yaw: 0, pitch: 1.3, free: true }
 };
 VIEWS.basement = { tx: 100, ty: 0.9, tz: 0, d: 6.5, yaw: 0.7, pitch: 0.6 };
 VIEWS.f2 = { tx: 208.5, ty: 0, tz: 0, d: 13, yaw: 0, pitch: 1.05, free: true };
@@ -4500,7 +4792,7 @@ const endDrag = () => {
 };
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
-const maxD = () => (camT.free ? 40 : 14);
+const maxD = () => (camT.free ? 75 : 14);
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); camT.d = Math.max(1.2, Math.min(maxD(), camT.d * (1 + Math.sign(e.deltaY) * 0.12))); }, { passive: false });
 let pinch = null;
 canvas.addEventListener('touchmove', (e) => {
@@ -4532,7 +4824,7 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'Shift') keys.fast = false;
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-const BIRD = { pitch: 1.3, d: 14, x0: -20, x1: 26, z0: -33, z1: 15 };
+const BIRD = { pitch: 1.3, d: 14, x0: -86, x1: 36, z0: -68, z1: 17 };
 // which floor the camera is on: the bar, the basement or the hotel, each with its own bounds for free looking
 const zoneOf = zoneAtX;
 // ---------------------------------------------------------------- only draw the floor you're on
@@ -4669,7 +4961,7 @@ function updateCamera(dt, t) {
   camera.position.set(cam.tx + dx * d, Math.max(0.4, cam.ty + dyv * d), cam.tz + dz * d);
   const outRoom = camT.free ? null : roomAt(cam.tx, cam.tz);
   const outside = !!(outRoom && outRoom.outside);
-  scene.fog.near = camDist > 12 ? 30 : outside ? 12 : 7; scene.fog.far = camDist > 12 ? 70 : outside ? 42 : 17;
+  scene.fog.near = camDist > 12 ? Math.max(30, camDist * 0.6) : outside ? 12 : 7; scene.fog.far = camDist > 12 ? Math.max(70, camDist * 2.2) : outside ? 42 : 17;
   // the outside walls only show from street level outside the building
   const cx = camera.position.x, cz = camera.position.z;
   const inBuilding = (cx > -17 && cx < 14 && cz < 4 && cz > (cx > 5 ? -12 : -11)) || (cx >= 14 && cx < 23 && cz < 4 && cz > -4);
@@ -5094,6 +5386,8 @@ function toast(text) {
 
 // ================================================================ v42: restroom, VIP glass, Charon, card room, coins, lot, events
 const PRE_HOOKS = [], POST_HOOKS = [], REBUILD_HOOKS = [];
+PRE_HOOKS.push((dt) => walkersTick(dt));
+REBUILD_HOOKS.push(walkersRebuild);
 PRE_HOOKS.push(zoneCullHook);
 PRE_HOOKS.push((dt) => tourHook(dt));
 POST_HOOKS.push(cinemaHook);
