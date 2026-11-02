@@ -2733,6 +2733,8 @@ function xyRing(cx, cy, z, r, n) { const p = []; for (let k = 0; k < n; k++) { c
 // detailed wheels: tyre with rounded shoulders, a dished rim with spokes, brake disc and caliper; fronts can be steered
 function carWheelSet(K, o) {
   const r = o.r, w = o.w, n = 20, rimC = o.rim || RIM_C, cal = o.caliper || [150, 20, 24];
+  // the tyre's outer face sits just proud of the body side, so the bodywork never slices through the wheel
+  if (o.half) o.track = Math.max(o.track, 2 * (o.half + 0.014) - w);
   for (const [x, front] of [[o.xs[0], false], [o.xs[1], true]]) for (const e of [-1, 1]) {
     const W = [], C = [], zc = e * o.track / 2, zo = zc + e * w / 2, zi = zc - e * w / 2;
     W.push(loft([xyRing(x, r, zi, r * 0.8, n), xyRing(x, r, zi + e * w * 0.12, r * 0.98, n), xyRing(x, r, zc, r, n), xyRing(x, r, zo - e * w * 0.12, r * 0.98, n), xyRing(x, r, zo, r * 0.82, n)], RUBBER, { amt: 0.02, smooth: true, cap: false }));
@@ -2918,7 +2920,9 @@ function carParts(kind, color, opts) {
     B.push(loft(yzBody(prof, 28, 3.6), color, { amt: 0.012, smooth: true }));
     // raised front wings over the wheels and muscular rear haunches
     for (const e of [-1, 1]) {
-      const fen = (st) => B.push(loft(st.map(([x, y0, y1, w, z]) => yzRing(x, y0, y1, w, 12, 2.6).map((p) => V(p[0], p[1], p[2] + e * z))), color, { amt: 0.012, smooth: true }));
+      // (over each wheel the wing's underside clears the top of the tyre: wheel radius 0.33, wheels at x -1.26 and 1.31)
+      const clr = (x, y0) => (Math.min(Math.abs(x + 1.26), Math.abs(x - 1.31)) < 0.44 ? Math.max(y0, 0.71) : y0);
+      const fen = (st) => B.push(loft(st.map(([x, y0, y1, w, z]) => yzRing(x, clr(x, y0), Math.max(y1, clr(x, y0) + 0.08), w, 12, 2.6).map((p) => V(p[0], p[1], p[2] + e * z))), color, { amt: 0.012, smooth: true }));
       fen([[0.72, 0.62, 0.8, 0.16, 0.7], [1.0, 0.6, 0.86, 0.3, 0.72], [1.35, 0.6, 0.87, 0.32, 0.72], [1.7, 0.58, 0.82, 0.28, 0.72], [1.98, 0.54, 0.7, 0.16, 0.7]]);
       fen([[-0.8, 0.66, 0.86, 0.14, 0.74], [-1.05, 0.64, 0.95, 0.28, 0.75], [-1.45, 0.64, 0.96, 0.3, 0.75], [-1.8, 0.62, 0.92, 0.24, 0.73], [-2.0, 0.6, 0.84, 0.12, 0.7]]);
       // the little vent behind each front wheel
@@ -2980,7 +2984,9 @@ function carParts(kind, color, opts) {
     B.push(loft(yzBody([[-1.98, 0.32, 0.66, 1.46], [-1.9, 0.26, 0.73, 1.62], [-1.7, 0.22, 0.77, 1.72], [-1.3, 0.2, 0.79, 1.74], [-0.8, 0.19, 0.79, 1.72], [-0.2, 0.19, 0.775, 1.7], [0.45, 0.19, 0.765, 1.72], [0.95, 0.19, 0.745, 1.74], [1.4, 0.19, 0.725, 1.74], [1.72, 0.2, 0.69, 1.7], [1.88, 0.22, 0.62, 1.6], [1.96, 0.26, 0.55, 1.42], [1.99, 0.3, 0.5, 1.2]], 26, 3.4), color, { amt: 0.012, smooth: true }));
     // fender peaks over the front wheels and a rear haunch
     for (const e of [-1, 1]) {
-      const fen = (st) => B.push(loft(st.map(([x, y0, y1, w]) => yzRing(x, y0, y1, w, 10, 2.6).map((p) => V(p[0], p[1], p[2] + e * 0.66))), color, { amt: 0.012, smooth: true }));
+      // (over each wheel, clear of the tyre top: wheel radius 0.31, wheels at x -1.12 and 1.18)
+      const clr = (x, y0) => (Math.min(Math.abs(x + 1.12), Math.abs(x - 1.18)) < 0.42 ? Math.max(y0, 0.67) : y0);
+      const fen = (st) => B.push(loft(st.map(([x, y0, y1, w]) => yzRing(x, clr(x, y0), Math.max(y1, clr(x, y0) + 0.06), w, 10, 2.6).map((p) => V(p[0], p[1], p[2] + e * 0.66))), color, { amt: 0.012, smooth: true }));
       fen([[0.45, 0.6, 0.74, 0.18], [0.8, 0.6, 0.79, 0.3], [1.2, 0.6, 0.795, 0.32], [1.55, 0.58, 0.76, 0.28], [1.82, 0.52, 0.66, 0.18]]);
       fen([[-1.78, 0.6, 0.74, 0.18], [-1.4, 0.62, 0.825, 0.3], [-1.0, 0.62, 0.825, 0.3], [-0.6, 0.62, 0.79, 0.18]]);
     }
@@ -4061,6 +4067,15 @@ function walkPeds(dt, t) {
   dt = Math.min(dt, 0.1);
   if (!PEDS.length) makePeds();
   for (const p of PEDS) {
+    // now and then someone stops for a chat with a job contact or a look at a place, then walks on
+    if (p.pause > 0) { p.pause -= dt; pose(p.ch, 'lean', 0, t); if (p.faceYaw != null) { let d = p.faceYaw - p.ch.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); p.ch.root.rotation.y += d * Math.min(1, dt * 4); } continue; }
+    p.cool = (p.cool || 0) - dt;
+    if (p.cool <= 0) {
+      const px = p.ch.root.position.x, pz = p.ch.root.position.z;
+      const near = PLACE_NPCS.find((N) => Math.hypot(N.x - px, N.z - pz) < 2.4) || Object.values(POIS).find((P) => P.along && Math.abs(P.x - px) < 1.2 && Math.abs(P.z - pz) < 1.2);
+      if (near && Math.random() < 0.6) { p.pause = 4 + Math.random() * 6; p.cool = 25; const tx = near.x, tz = near.z + (near.along ? (near.yaw ? -3 : 3) : 0); p.faceYaw = Math.atan2(tx - px, tz - pz); continue; }
+      if (near) p.cool = 8;
+    }
     p.s += p.dir * p.sp * dt;
     const q = rectAt(p.R, p.s), hx = q.hx * p.dir, hz = q.hz * p.dir;
     // keep to one side of the walk so people passing each other don't collide
@@ -4540,6 +4555,638 @@ for (const R of HOTEL_ROOMS) {
   rug.rotation.x = -Math.PI / 2; rug.position.set(x0 + 2.0, 0.012, side * (1.2 + 3.0)); scene.add(rug);
 }
 
+// ===== SH1DEN CITY BANK, INSIDE: built far east like the other floors. Two takes on the banking hall to choose between:
+// A "The Grand Hall" (a 1920s marble palace still running in '94) and B "The '94 Branch" (drop ceiling, teal carpet, bulletproof glass).
+// Both share the staff floor upstairs. The vault sits behind the tellers, full of cash.
+const BKA = { x0: 283, x1: 317, z0: -11, z1: 11, h: 7.5 };      // version A banking hall
+const BKV = { x0: 296, x1: 304, z0: -18, z1: -11 };             // A's vault
+const BK2 = { x0: 343, x1: 377, z0: -11, z1: 11, h: 3.2 };       // the staff floor
+const BKB = { x0: 403, x1: 437, z0: -11, z1: 11, h: 3.4 };       // version B branch
+const BKBV = { x0: 416, x1: 424, z0: -17, z1: -11 };            // B's vault
+const BANK_ANIM = [];
+// ---- materials made for the bank
+const bankTex = {
+  // cream and dark green marble chequers with a thin brass line, faint veins
+  checker: canvasTex(64, 64, (x, w, h) => {
+    for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
+      const dark = (i + j) % 2, base = dark ? [22, 52, 40] : [214, 206, 186];
+      for (let b = 0; b < 32; b++) for (let a = 0; a < 32; a++) { const n = rr() * 7; x.fillStyle = `rgb(${Math.round(base[0] + n)},${Math.round(base[1] + n)},${Math.round(base[2] + n)})`; x.fillRect(i * 32 + a, j * 32 + b, 1, 1); }
+      x.strokeStyle = dark ? 'rgba(120,170,140,0.35)' : 'rgba(150,140,120,0.45)'; x.lineWidth = 1;
+      x.beginPath(); x.moveTo(i * 32 + 3, j * 32 + 6 + dark * 10); x.lineTo(i * 32 + 14, j * 32 + 14); x.lineTo(i * 32 + 29, j * 32 + 26 - dark * 6); x.stroke();
+    }
+    x.fillStyle = 'rgb(160,124,60)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h); x.fillRect(0, 32, w, 1); x.fillRect(32, 0, 1, h);
+  }),
+  // deep green carpet with a gold lattice
+  greenCarpet: canvasTex(32, 32, (x, w, h) => {
+    noiseFill(x, w, h, [22, 50, 36], 6);
+    x.fillStyle = 'rgba(190,150,70,0.55)'; for (let k = 0; k < w; k += 16) { x.fillRect(k, 0, 1, h); x.fillRect(0, k, w, 1); }
+    x.fillStyle = 'rgba(210,170,80,0.7)'; for (let a = 0; a < w; a += 16) for (let b = 0; b < h; b += 16) { x.fillRect(a + 7, b + 6, 2, 4); x.fillRect(a + 6, b + 7, 4, 2); }
+  }),
+  // burgundy carpet for the waiting lounge
+  redCarpet: canvasTex(32, 32, (x, w, h) => {
+    noiseFill(x, w, h, [74, 16, 22], 6);
+    x.fillStyle = 'rgba(200,150,80,0.45)'; for (let a = 0; a < w; a += 8) for (let b = (a / 8) % 2 ? 4 : 0; b < h; b += 8) x.fillRect(a + 3, b + 3, 2, 2);
+  }),
+  // the lower walls: walnut wainscot under a brass rail, cream plaster above
+  wainscot: canvasTex(64, 128, (x, w, h) => {
+    noiseFill(x, w, h, [214, 204, 180], 4);
+    x.fillStyle = 'rgb(150,112,54)'; x.fillRect(0, 70, w, 3);
+    x.fillStyle = 'rgb(60,36,20)'; x.fillRect(0, 73, w, h - 73);
+    for (let i = 0; i < w; i += 32) { x.fillStyle = 'rgb(40,24,14)'; x.fillRect(i + 3, 79, 26, 1); x.fillRect(i + 3, 79, 1, 42); x.fillRect(i + 3, 120, 26, 1); x.fillRect(i + 28, 79, 1, 42); x.fillStyle = 'rgb(76,46,26)'; x.fillRect(i + 5, 81, 22, 38); }
+    x.fillStyle = 'rgb(30,18,10)'; x.fillRect(0, h - 4, w, 4);
+    // a dentil cornice line near the top of the band
+    x.fillStyle = 'rgb(190,178,150)'; for (let i = 0; i < w; i += 4) x.fillRect(i, 2, 2, 3);
+  }),
+  // upper walls: cream plaster with shallow panels and gold lines
+  plaster: canvasTex(64, 128, (x, w, h) => {
+    noiseFill(x, w, h, [206, 196, 170], 4);
+    x.fillStyle = 'rgb(186,174,146)'; x.fillRect(6, 10, w - 12, 1); x.fillRect(6, h - 10, w - 12, 1); x.fillRect(6, 10, 1, h - 20); x.fillRect(w - 7, 10, 1, h - 20);
+    x.fillStyle = 'rgba(190,150,80,0.6)'; x.fillRect(9, 13, w - 18, 1); x.fillRect(9, h - 13, w - 18, 1);
+  }),
+  // a coffered ceiling: deep square coffers, gilt edges, a rosette in each
+  coffer: canvasTex(32, 32, (x, w, h) => {
+    x.fillStyle = 'rgb(196,186,160)'; x.fillRect(0, 0, w, h);
+    x.fillStyle = 'rgb(150,140,116)'; x.fillRect(4, 4, 24, 24);
+    x.fillStyle = 'rgb(120,110,90)'; x.fillRect(7, 7, 18, 18);
+    x.fillStyle = 'rgb(200,160,80)'; x.fillRect(4, 4, 24, 1); x.fillRect(4, 4, 1, 24); x.fillRect(7, 25, 18, 1); x.fillRect(25, 7, 1, 18);
+    x.fillStyle = 'rgb(220,180,90)'; x.fillRect(14, 13, 4, 6); x.fillRect(13, 14, 6, 4);
+  }),
+  // the staff floor: grey-blue office carpet tiles, a drop ceiling, a kitchen's vinyl chequers
+  officeCarpet: canvasTex(32, 32, (x, w, h) => { noiseFill(x, w, h, [56, 64, 78], 9); x.fillStyle = 'rgba(30,34,44,0.6)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h); }),
+  dropCeil: canvasTex(32, 32, (x, w, h) => { noiseFill(x, w, h, [214, 212, 204], 5); for (let k = 0; k < 40; k++) { x.fillStyle = 'rgba(150,148,140,0.6)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 1); } x.fillStyle = 'rgb(160,160,156)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h); }),
+  vinyl: canvasTex(16, 16, (x, w, h) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { x.fillStyle = ((i >> 3) + (j >> 3)) % 2 ? '#2c3a48' : '#d8d2c2'; x.fillRect(i, j, 1, 1); } }),
+  officeWall: canvasTex(32, 64, (x, w, h) => { noiseFill(x, w, h, [196, 190, 172], 4); x.fillStyle = 'rgb(90,100,110)'; x.fillRect(0, h - 5, w, 5); x.fillStyle = 'rgb(150,150,146)'; x.fillRect(0, 34, w, 1); }),
+  steel: canvasTex(32, 32, (x, w, h) => { noiseFill(x, w, h, [120, 124, 130], 8); x.fillStyle = 'rgb(84,88,94)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h); for (const [a, b] of [[3, 3], [28, 3], [3, 28], [28, 28]]) { x.fillStyle = 'rgb(170,172,178)'; x.fillRect(a, b, 2, 2); } }),
+  concrete: canvasTex(32, 32, (x, w, h) => { noiseFill(x, w, h, [104, 104, 102], 8); }),
+  // version B: teal-and-mauve '90s carpet, bright plaster walls with a chair rail
+  teal: canvasTex(32, 32, (x, w, h) => { noiseFill(x, w, h, [30, 92, 100], 9); for (let k = 0; k < 30; k++) { x.fillStyle = rr() < 0.5 ? 'rgba(170,90,150,0.6)' : 'rgba(230,220,200,0.5)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 2, 1); } }),
+  wallB: canvasTex(32, 64, (x, w, h) => { noiseFill(x, w, h, [214, 206, 196], 3); x.fillStyle = 'rgb(140,70,110)'; x.fillRect(0, 38, w, 2); x.fillStyle = 'rgb(176,168,160)'; x.fillRect(0, 40, w, h - 40); x.fillStyle = 'rgb(60,110,120)'; x.fillRect(0, h - 5, w, 5); })
+};
+for (const k in bankTex) bankTex[k].wrapS = bankTex[k].wrapT = THREE.RepeatWrapping;
+const bankMat = {};
+for (const k of ['wainscot', 'plaster', 'officeWall', 'steel', 'wallB']) bankMat[k] = ps1(new THREE.MeshLambertMaterial({ map: bankTex[k], emissive: k === 'plaster' ? 0x1c160e : k === 'wainscot' ? 0x0c0805 : k === 'wallB' || k === 'officeWall' ? 0x101010 : 0x000000 }));
+bankMat.tile = wallMats.tile;
+// walls of any height, with doorways
+function bWall(ax, az, bx, bz, nx, nz, y0, y1, mat, texW, gaps, doorH) {
+  const len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len, P = (d) => [ax + ux * d, az + uz * d];
+  let cur = 0;
+  for (const [g0, g1] of (gaps || []).slice().sort((a, b) => a[0] - b[0])) {
+    if (g0 > cur) { const p = P(cur), q = P(g0); wallPlane(p[0], p[1], q[0], q[1], nx, nz, y0, y1, mat, texW); }
+    const p = P(g0), q = P(g1); if ((doorH || DOOR_H) < y1) wallPlane(p[0], p[1], q[0], q[1], nx, nz, Math.max(y0, doorH || DOOR_H), y1, mat, texW);
+    cur = g1;
+  }
+  if (cur < len) { const p = P(cur), q = P(len); wallPlane(p[0], p[1], q[0], q[1], nx, nz, y0, y1, mat, texW); }
+}
+function bRoomWalls(r, y0, y1, mat, texW, gaps, doorH) {
+  gaps = gaps || {};
+  bWall(r.x0, r.z0, r.x1, r.z0, 0, 1, y0, y1, mat, texW, gaps.back, doorH);
+  bWall(r.x0, r.z1, r.x1, r.z1, 0, -1, y0, y1, mat, texW, gaps.front, doorH);
+  bWall(r.x0, r.z0, r.x0, r.z1, 1, 0, y0, y1, mat, texW, gaps.left, doorH);
+  bWall(r.x1, r.z0, r.x1, r.z1, -1, 0, y0, y1, mat, texW, gaps.right, doorH);
+}
+function bFloor(x0, x1, z0, z1, tex, tile, y, lift) {
+  const w = x1 - x0, d = z1 - z0, g = new THREE.PlaneGeometry(w, d, Math.max(1, Math.ceil(w)), Math.max(1, Math.ceil(d)));
+  scaleUV(g, w / tile, d / tile);
+  const m = new THREE.Mesh(g, ps1(new THREE.MeshLambertMaterial(Object.assign({ map: tex }, lift ? { polygonOffset: true, polygonOffsetFactor: -lift, polygonOffsetUnits: -4 * lift } : {}))));
+  m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, y || 0, (z0 + z1) / 2); scene.add(m); return m;
+}
+// ceilings face down, so from above (the bird's-eye view) you look straight through them
+function bCeil(x0, x1, z0, z1, y, tex, tile, basic) {
+  const w = x1 - x0, d = z1 - z0, g = new THREE.PlaneGeometry(w, d, Math.max(1, Math.ceil(w / 2)), Math.max(1, Math.ceil(d / 2)));
+  scaleUV(g, w / tile, d / tile);
+  const m = new THREE.Mesh(g, basic ? new THREE.MeshBasicMaterial({ map: tex }) : ps1(new THREE.MeshLambertMaterial({ map: tex })));
+  m.rotation.x = Math.PI / 2; m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2); scene.add(m); return m;
+}
+const bS = (...a) => S.push(box(...a)), bG = (...a) => G.push(box(...a));
+// fluorescent panels: flat, facing down, so from the bird's-eye view they don't hide the room
+const CEIL_LIGHTS = [];
+function ceilLight(x, y, z, w, d) { CEIL_LIGHTS.push(x - w / 2, y, z - d / 2, x + w / 2, y, z - d / 2, x + w / 2, y, z + d / 2, x - w / 2, y, z - d / 2, x + w / 2, y, z + d / 2, x - w / 2, y, z + d / 2); }
+const at = (parts, x, z, yaw, y) => S.push(...placeParts(parts, x, z, yaw || 0, y || 0));
+const atG = (parts, x, z, yaw, y) => G.push(...placeParts(parts, x, z, yaw || 0, y || 0));
+const BEIGE = [196, 186, 160], BEIGE_D = [150, 142, 120], WALNUT = [70, 42, 24], WALNUT_D = [44, 26, 15], CREAM = [222, 214, 194], GREEN_SH = [40, 140, 80], LEATHER_G = [24, 58, 40], LEATHER_R = [92, 22, 22];
+const STEEL = [150, 154, 160], STEEL_D = [88, 92, 98], CASH = [96, 140, 92], CASH_D = [70, 104, 66], CASH_BAND = [226, 218, 196], GOLD = [222, 176, 66];
+// ---- furniture and props, built at the origin facing +z and placed with at(parts, x, z, yaw)
+function pDesk(w, d, h, top, body) { const P = []; P.push(box(-w / 2, w / 2, h - 0.04, h, -d / 2, d / 2, top, 0.03)); P.push(box(-w / 2 + 0.03, -w / 2 + 0.45, 0, h - 0.04, -d / 2 + 0.03, d / 2 - 0.03, body, 0.04)); P.push(box(w / 2 - 0.45, w / 2 - 0.03, 0, h - 0.04, -d / 2 + 0.03, d / 2 - 0.03, body, 0.04)); P.push(box(-w / 2 + 0.45, w / 2 - 0.45, 0.25, h - 0.04, -d / 2 + 0.03, -d / 2 + 0.08, body, 0.04)); for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) P.push(box(sx * (w / 2 - 0.24) - 0.05, sx * (w / 2 - 0.24) + 0.05, 0.18 + k * 0.2, 0.2 + k * 0.2, d / 2 - 0.035, d / 2 - 0.025, BRASS, 0.02)); return P; }
+function pChair(col, back) { const P = []; P.push(box(-0.24, 0.24, 0.42, 0.5, -0.24, 0.24, col, 0.05)); P.push(box(-0.24, 0.24, 0.5, back || 1.05, -0.26, -0.18, col, 0.05)); P.push(cyl(V(0, 0.08, 0), V(0, 0.42, 0), 0.03, 0.03, [30, 30, 32], { n: 6 })); for (let k = 0; k < 5; k++) { const a = k * 2 * Math.PI / 5; P.push(cyl(V(0, 0.06, 0), V(Math.cos(a) * 0.28, 0.03, Math.sin(a) * 0.28), 0.018, 0.018, [30, 30, 32], { n: 4 })); } for (const s of [-1, 1]) P.push(box(s * 0.26 - 0.03, s * 0.26 + 0.03, 0.5, 0.68, -0.2, 0.14, col, 0.05)); return P; }
+function pGuestChair(col) { const P = []; P.push(box(-0.24, 0.24, 0.4, 0.48, -0.22, 0.22, col, 0.05)); P.push(box(-0.24, 0.24, 0.48, 0.92, -0.24, -0.18, col, 0.05)); for (const [a, b] of [[-0.2, -0.18], [0.2, -0.18], [-0.2, 0.18], [0.2, 0.18]]) P.push(box(a - 0.025, a + 0.025, 0, 0.4, b - 0.025, b + 0.025, WALNUT_D, 0.04)); return P; }
+// a beige '90s computer: CRT, keyboard, a box under it
+function pCRT(screen) { const P = [], L = []; P.push(box(-0.2, 0.2, 0, 0.08, -0.2, 0.18, BEIGE_D, 0.03)); P.push(loft([rring(0.08, 0.38, 0.36, 0, -0.02, 8, 2), rring(0.4, 0.38, 0.36, 0, -0.02, 8, 2)], BEIGE, { amt: 0.03 })); P.push(box(-0.13, 0.13, 0.12, 0.34, -0.3, -0.18, BEIGE_D, 0.03)); L.push(box(-0.15, 0.15, 0.12, 0.36, 0.165, 0.17, screen || [70, 180, 120], 0)); P.push(box(-0.22, 0.22, 0, 0.025, 0.24, 0.42, BEIGE, 0.03)); for (let k = 0; k < 4; k++) P.push(box(-0.2, 0.2, 0.025, 0.03, 0.26 + k * 0.035, 0.285 + k * 0.035, BEIGE_D, 0.02)); return { P, L }; }
+function placeCRT(x, y, z, yaw, screen) { const c = pCRT(screen); at(c.P, x, z, yaw, y); atG(c.L, x, z, yaw, y); }
+function pBankerLamp() { const P = [], L = []; P.push(box(-0.08, 0.08, 0, 0.03, -0.06, 0.06, BRASS, 0.03)); P.push(cyl(V(0, 0.03, -0.03), V(0, 0.36, -0.03), 0.012, 0.012, BRASS, { n: 5 })); P.push(loft([rring(0.34, 0.36, 0.13, 0, 0, 10, 2), rring(0.42, 0.3, 0.07, 0, 0, 10, 2)], [20, 96, 52], { amt: 0.03 })); L.push(box(-0.13, 0.13, 0.335, 0.34, -0.04, 0.04, [255, 230, 170], 0)); return { P, L }; }
+function placeLamp(x, y, z, yaw) { const c = pBankerLamp(); at(c.P, x, z, yaw, y); atG(c.L, x, z, yaw, y); }
+function pPhone() { const P = []; P.push(box(-0.1, 0.1, 0, 0.06, -0.08, 0.08, [24, 24, 26], 0.03)); P.push(box(-0.11, 0.11, 0.06, 0.1, -0.03, 0.03, [30, 30, 32], 0.03)); return P; }
+function pRolodex() { const P = []; P.push(box(-0.08, 0.08, 0, 0.03, -0.06, 0.06, [30, 30, 32], 0.03)); for (let k = 0; k < 10; k++) P.push(box(-0.06, 0.06, 0.03, 0.14 - (k % 3) * 0.01, -0.05 + k * 0.01, -0.045 + k * 0.01, [236, 230, 214], 0.02)); return P; }
+function pFicus(h) { const P = []; P.push(loft([rring(0, 0.34, 0.34, 0, 0, 10, 2), rring(0.42, 0.44, 0.44, 0, 0, 10, 2), rring(0.46, 0.46, 0.46, 0, 0, 10, 2)], [150, 110, 70], { amt: 0.05 })); P.push(cyl(V(0, 0.4, 0), V(0.05, h * 0.75, 0.02), 0.03, 0.02, [80, 56, 34], { n: 5 })); for (let k = 0; k < 9; k++) { const a = k * 2.3, r = 0.18 + (k % 3) * 0.08, y = h * (0.5 + (k % 4) * 0.13); P.push(cyl(V(Math.cos(a) * r * 0.4, y - 0.1, Math.sin(a) * r * 0.4), V(Math.cos(a) * r, y + 0.14, Math.sin(a) * r), 0.14, 0.03, [[34, 74, 36], [44, 90, 44], [28, 60, 30]][k % 3], { n: 5, amt: 0.1 })); } return P; }
+function pPaperStack(n) { const P = []; for (let k = 0; k < n; k++) P.push(box(-0.11 + (k % 2) * 0.01, 0.11, k * 0.012, k * 0.012 + 0.01, -0.15, 0.15, [236, 232, 220], 0.02)); return P; }
+function pCashBrick(col) { return [box(-0.08, 0.08, 0, 0.05, -0.04, 0.04, col || CASH, 0.06), box(-0.015, 0.015, 0, 0.052, -0.041, 0.041, CASH_BAND, 0)]; }
+function pCashPallet(nx, nz, ny) { const P = []; P.push(box(-0.6, 0.6, 0, 0.12, -0.5, 0.5, [120, 92, 56], 0.06)); for (let y = 0; y < ny; y++) for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) for (const p of pCashBrick(((i + j + y) % 4) ? CASH : CASH_D)) { p.tris = p.tris.map((t) => t.map((v) => [v[0] - 0.5 + i * 0.17, v[1] + 0.12 + y * 0.055, v[2] - 0.42 + j * 0.09])); P.push(p); } P.push(box(-0.6, 0.6, 0.12 + ny * 0.055, 0.125 + ny * 0.055, -0.5, 0.5, [200, 210, 220], 0)); return P; }
+function pMoneyBag(s) { const P = []; P.push(loft([rring(0, 0.3 * s, 0.3 * s, 0, 0, 10, 2), rring(0.18 * s, 0.42 * s, 0.42 * s, 0, 0, 10, 2), rring(0.36 * s, 0.3 * s, 0.3 * s, 0, 0, 10, 2), rring(0.44 * s, 0.06 * s, 0.06 * s, 0, 0, 10, 2), rring(0.52 * s, 0.1 * s, 0.1 * s, 0, 0, 10, 2)], [170, 150, 110], { smooth: true, amt: 0.08 })); P.push(cyl(V(0, 0.44 * s, 0), V(0, 0.47 * s, 0), 0.075 * s, 0.075 * s, [140, 30, 30], { n: 8 })); return P; }
+function pGoldBars(nx, nz, ny) { const P = []; for (let y = 0; y < ny; y++) for (let i = 0; i < nx - (y % 2); i++) for (let j = 0; j < nz; j++) P.push(loft([rring(y * 0.05, 0.22, 0.1, -0.24 + i * 0.24 + (y % 2) * 0.12, -0.12 + j * 0.12, 4, 2), rring(y * 0.05 + 0.05, 0.17, 0.07, -0.24 + i * 0.24 + (y % 2) * 0.12, -0.12 + j * 0.12, 4, 2)], GOLD, { amt: 0.05 })); return P; }
+function pWaterCooler() { const P = [], L = []; P.push(box(-0.16, 0.16, 0, 0.95, -0.16, 0.16, [220, 220, 216], 0.03)); P.push(box(-0.04, 0.04, 0.7, 0.76, 0.16, 0.2, [40, 90, 200], 0.02)); P.push(loft([rring(0.95, 0.24, 0.24, 0, 0, 12, 2), rring(1.32, 0.26, 0.26, 0, 0, 12, 2), rring(1.42, 0.12, 0.12, 0, 0, 12, 2)], [140, 190, 230], { smooth: true, amt: 0.02 })); L.push(box(-0.03, 0.03, 0.82, 0.85, 0.16, 0.165, [80, 255, 120], 0)); return { P, L }; }
+// a big brass chandelier: two rings of candle bulbs and crystal drops
+function chandelier(x, y, z, s, hang) {
+  const P = [], L = [];
+  P.push(cyl(V(x, y + 0.2 * s, z), V(x, y + hang, z), 0.02, 0.02, BRASS_D, { n: 4 }));
+  P.push(loft([rring(y - 0.25 * s, 0.1 * s, 0.1 * s, x, z, 8, 2), rring(y, 0.22 * s, 0.22 * s, x, z, 8, 2), rring(y + 0.25 * s, 0.1 * s, 0.1 * s, x, z, 8, 2)], BRASS, { smooth: true, amt: 0.03 }));
+  for (const [r, yy, n] of [[0.9 * s, y, 10], [0.55 * s, y + 0.35 * s, 7]]) {
+    const ring = []; for (let k = 0; k <= 24; k++) { const a = 2 * Math.PI * k / 24; ring.push(V(x + Math.cos(a) * r, yy, z + Math.sin(a) * r)); }
+    P.push(tube(ring, ring.map(() => 0.025 * s), BRASS, { n: 4 }));
+    for (let k = 0; k < n; k++) {
+      const a = 2 * Math.PI * (k + 0.5) / n, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+      P.push(cyl(V(x, yy, z), V(px, yy, pz), 0.012 * s, 0.012 * s, BRASS_D, { n: 4 }));
+      P.push(cyl(V(px, yy, pz), V(px, yy + 0.12 * s, pz), 0.03 * s, 0.03 * s, [236, 230, 214], { n: 6 }));
+      L.push(cyl(V(px, yy + 0.12 * s, pz), V(px, yy + 0.2 * s, pz), 0.025 * s, 0.005, [255, 226, 160], { n: 6, amt: 0 }));
+      L.push(cyl(V(px, yy - 0.05, pz), V(px, yy - 0.2 * s, pz), 0.012 * s, 0.004, [210, 230, 255], { n: 4, amt: 0 }));
+    }
+  }
+  S.push(...P); G.push(...L);
+}
+// a marble column with a gilded capital and base
+function column(x, z, h, r) {
+  bS(x - r - 0.12, x + r + 0.12, 0, 0.3, z - r - 0.12, z + r + 0.12, CREAM, 0.03);
+  S.push(cyl(V(x, 0.3, z), V(x, h - 0.7, z), r, r * 0.9, [204, 196, 176], { n: 14, amt: 0.03 }));
+  for (let k = 0; k < 14; k++) { const a = 2 * Math.PI * k / 14; S.push(cyl(V(x + Math.cos(a) * r * 0.97, 0.35, z + Math.sin(a) * r * 0.97), V(x + Math.cos(a) * r * 0.88, h - 0.75, z + Math.sin(a) * r * 0.88), 0.012, 0.012, [176, 168, 148], { n: 3 })); }
+  S.push(loft([rring(h - 0.7, r * 1.8, r * 1.8, x, z, 12, 2), rring(h - 0.45, r * 2.4, r * 2.4, x, z, 12, 2), rring(h - 0.3, r * 2.8, r * 2.8, x, z, 12, 8)], GOLD, { amt: 0.04 }));
+  bS(x - r * 1.5, x + r * 1.5, h - 0.3, h, z - r * 1.5, z + r * 1.5, CREAM, 0.03);
+}
+// an arched window high on a wall onto the night city (nx: which way the room is)
+function archWindow(x, z, nx, y0, y1, w) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, y1 - y0), new THREE.MeshBasicMaterial({ map: windowTex }));
+  m.position.set(x + nx * 0.02, (y0 + y1) / 2, z); m.rotation.y = nx > 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(m);
+  const fx = x + nx * 0.05;
+  bS(Math.min(fx, fx + nx * 0.12), Math.max(fx, fx + nx * 0.12), y0 - 0.15, y0, z - w / 2 - 0.15, z + w / 2 + 0.15, CREAM, 0.03);
+  for (const s of [-1, 1]) bS(Math.min(fx, fx + nx * 0.1), Math.max(fx, fx + nx * 0.1), y0, y1, z + s * (w / 2 + 0.04) - 0.06, z + s * (w / 2 + 0.04) + 0.06, BRASS_D, 0.03);
+  for (const zz of [z - w / 6, z + w / 6]) bS(Math.min(fx, fx + nx * 0.06), Math.max(fx, fx + nx * 0.06), y0, y1, zz - 0.02, zz + 0.02, BRASS_D, 0.03);
+  for (let k = 1; k < 4; k++) bS(Math.min(fx, fx + nx * 0.06), Math.max(fx, fx + nx * 0.06), y0 + (y1 - y0) * k / 4 - 0.02, y0 + (y1 - y0) * k / 4 + 0.02, z - w / 2, z + w / 2, BRASS_D, 0.03);
+  // the arch head: stepped keystones
+  for (let k = 0; k < 5; k++) { const a = Math.PI * k / 4, cx = z + Math.cos(a) * (w / 2 + 0.05), cy = y1 + Math.sin(a) * (w / 2) * 0.55; bS(Math.min(fx, fx + nx * 0.14), Math.max(fx, fx + nx * 0.14), cy - 0.12, cy + 0.12, cx - 0.14, cx + 0.14, k === 2 ? GOLD : CREAM, 0.03); }
+  const top = new THREE.Mesh(new THREE.CircleGeometry(w / 2, 10, 0, Math.PI), new THREE.MeshBasicMaterial({ map: windowTex }));
+  top.scale.set(1, 0.55, 1); top.position.set(x + nx * 0.02, y1, z); top.rotation.y = nx > 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(top);
+}
+// a sign on a wall (faces the way given by yaw: 0 = toward +z)
+function wallSign(text, x, y, z, yaw, w, h, o) {
+  const s = decoSign(text, Math.round(w * 64), Math.round(h * 64), o || {});
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), signMat(s)); m.position.set(x, y, z); m.rotation.y = yaw; scene.add(m); return m;
+}
+function bPlaque(text, x, y, z, yaw, w, h, o) { return wallSign(text, x, y, z, yaw, w, h, Object.assign({ bg: '#1a120a', rim: '#c8964a', font: 'Georgia, serif' }, o || {})); }
+
+// ================================================================ VERSION A: THE GRAND HALL
+{
+  const A = BKA, cx = 300;
+  bFloor(A.x0, A.x1, A.z0, A.z1, bankTex.checker, 1.6);
+  // walls: walnut wainscot below, plaster above, the front with the doors, the back with the vault and the staff door
+  const lowH = 3.2;
+  bWall(A.x0, A.z0, A.x1, A.z0, 0, 1, 0, lowH, bankMat.wainscot, 2, [[15.4, 18.6]], 2.8);
+  bWall(A.x0, A.z0, A.x1, A.z0, 0, 1, lowH, A.h, bankMat.plaster, 2.4, []);
+  bWall(A.x0, A.z1, A.x1, A.z1, 0, -1, 0, lowH, bankMat.wainscot, 2, [[15.6, 18.4]], 2.9);
+  bWall(A.x0, A.z1, A.x1, A.z1, 0, -1, lowH, A.h, bankMat.plaster, 2.4, []);
+  for (const [x, nx] of [[A.x0, 1], [A.x1, -1]]) { bWall(x, A.z0, x, A.z1, nx, 0, 0, lowH, bankMat.wainscot, 2, []); bWall(x, A.z0, x, A.z1, nx, 0, lowH, A.h, bankMat.plaster, 2.4, []); }
+  // the coffered ceiling, a deep cornice, three chandeliers
+  bCeil(A.x0, A.x1, A.z0, A.z1, A.h, bankTex.coffer, 1.6);
+  for (const [x0, x1, z0, z1] of [[A.x0, A.x1, A.z0, A.z0 + 0.4], [A.x0, A.x1, A.z1 - 0.4, A.z1], [A.x0, A.x0 + 0.4, A.z0, A.z1], [A.x1 - 0.4, A.x1, A.z0, A.z1]]) { bS(x0, x1, A.h - 0.5, A.h, z0, z1, CREAM, 0.03); bS(x0, x1, A.h - 0.56, A.h - 0.5, z0, z1, GOLD, 0.02); }
+  for (const x of [291.5, 300, 308.5]) chandelier(x, 5.5, 0.5, 1.15, A.h - 5.5);
+  // two rows of columns split the hall into the public floor and the side bays
+  for (const x of [292.6, 307.4]) for (const z of [-2.6, 1.6, 5.8]) column(x, z, A.h, 0.32);
+  // arched windows high on both side walls
+  for (const z of [-6.5, -0.5, 5.5]) { archWindow(A.x0, z, 1, 3.6, 6.0, 1.6); archWindow(A.x1, z, -1, 3.6, 6.0, 1.6); }
+  // a brass medallion set in the floor, and the red runner from the doors to the tellers
+  { const med = new THREE.Mesh(new THREE.CircleGeometry(1.5, 24), decal({ map: decoSign('SCB', 128, 128, { bg: '#16301f', rim: '#c8964a', font: signFont, px: 54 }).tex }));
+    med.rotation.x = -Math.PI / 2; med.position.set(cx, 0.012, 1.2); scene.add(med);
+    const ring = []; for (let k = 0; k <= 32; k++) { const a = 2 * Math.PI * k / 32; ring.push(V(cx + Math.cos(a) * 1.55, 0.015, 1.2 + Math.sin(a) * 1.55)); } S.push(tube(ring, ring.map(() => 0.03), BRASS, { n: 4 })); }
+  { const run = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 6.4), decal({ map: runnerTex })); run.rotation.x = -Math.PI / 2; run.position.set(cx, 0.01, 6.4); scene.add(run);
+    for (const s of [-1, 1]) bS(cx + s * 0.82 - 0.03, cx + s * 0.82 + 0.03, 0, 0.02, 3.2, 9.6, BRASS, 0.02); }
+
+  // ---- the vestibule: a revolving door in brass and glass, two side doors, a guard's podium, two ATMs
+  bS(294, 297.9, 0, 3.0, 7.9, 8.1, WALNUT, 0.03); bS(302.1, 306, 0, 3.0, 7.9, 8.1, WALNUT, 0.03); bS(297.9, 302.1, 2.6, 3.0, 7.9, 8.1, WALNUT, 0.03); bS(294, 306, 3.0, 3.25, 7.85, 8.15, BRASS, 0.02);
+  { const st = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.2), new THREE.MeshBasicMaterial({ map: windowTex })); st.position.set(cx, 1.6, 11.6); st.rotation.y = Math.PI; scene.add(st); }
+  // (the glass inner doors: an opening in the middle)
+  for (const x of [297.9, 302.1]) bS(x - 0.06, x + 0.06, 0, 3.0, 7.85, 8.15, BRASS, 0.02);
+  for (const s of [-1, 1]) { const g = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 2.6), shopGlassMat); g.position.set(cx + s * 1.0, 1.35, 8.0); scene.add(g); }
+  bS(294, 294.1, 0, 3.0, 8.1, 11, WALNUT, 0.03); bS(305.9, 306, 0, 3.0, 8.1, 11, WALNUT, 0.03);
+  // the revolving door: a glass drum with four leaves turning slowly
+  const rev = new THREE.Group(); rev.position.set(cx, 0, 10.2); scene.add(rev);
+  rev.add(new THREE.Mesh(toGeometry([cyl(V(0, 0, 0), V(0, 2.7, 0), 0.05, 0.05, BRASS, { n: 8 }), ...[0, 1, 2, 3].map((k) => placeParts([box(0.05, 0.95, 0.05, 2.65, -0.025, 0.025, BRASS_D, 0.02)], 0, 0, k * Math.PI / 2, 0)).flat()]), roomMat));
+  for (let k = 0; k < 4; k++) { const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.88, 2.5), shopGlassMat); leaf.position.set(Math.cos(k * Math.PI / 2) * 0.5, 1.35, -Math.sin(k * Math.PI / 2) * 0.5); leaf.rotation.y = k * Math.PI / 2; rev.add(leaf); }
+  S.push(cyl(V(cx, 2.7, 10.2), V(cx, 2.85, 10.2), 1.05, 1.05, BRASS, { n: 20 })); S.push(cyl(V(cx, 0, 10.2), V(cx, 0.02, 10.2), 1.05, 1.05, BRASS_D, { n: 20 }));
+  BANK_ANIM.push((dt) => { rev.rotation.y += dt * 0.35; });
+  for (const s of [-1, 1]) { bS(cx + s * 1.1 - 0.05, cx + s * 1.1 + 0.05, 0, 2.9, 9.9, 10.5, BRASS, 0.02); }
+  bPlaque('SH1DEN CITY BANK · EST. 1921', cx, 3.6, 10.94, Math.PI, 4.2, 0.5);
+  // ATMs: beige, green screens, a slot of receipts in the bin under them
+  for (const [x, yaw] of [[294.25, Math.PI / 2], [305.75, -Math.PI / 2]]) {
+    at([box(-0.4, 0.4, 0, 1.55, -0.18, 0.18, BEIGE, 0.03), box(-0.42, 0.42, 1.55, 1.85, -0.2, 0.2, [40, 70, 50], 0.03), box(-0.32, 0.32, 0.95, 1.0, 0.18, 0.36, BEIGE_D, 0.03), box(-0.12, 0.12, 0.85, 0.9, 0.18, 0.2, [20, 20, 20], 0), box(-0.2, 0.2, 0, 0.5, 0.3, 0.6, [30, 30, 32], 0.04)], x, 9.6, yaw);
+    atG([box(-0.24, 0.24, 1.15, 1.45, 0.18, 0.185, [60, 210, 120], 0), box(-0.38, 0.38, 1.62, 1.78, 0.2, 0.205, [255, 220, 120], 0)], x, 9.6, yaw);
+  }
+  wallSign('24-HOUR TELLER', 294.12, 2.4, 9.6, Math.PI / 2, 1.4, 0.24, { color: '#7dffb0', glow: '#30ff80', font: '"IBM Plex Mono", monospace' });
+  // the guard's podium inside the doors
+  at([box(-0.4, 0.4, 0, 1.15, -0.3, 0.3, WALNUT, 0.04), box(-0.45, 0.45, 1.15, 1.2, -0.35, 0.35, BRASS, 0.03), box(-0.3, 0.3, 1.2, 1.24, -0.2, 0.2, [236, 230, 214], 0.02)], 303.2, 6.8, Math.PI + 0.4);
+  // brass umbrella stand and a rubber mat by the doors
+  S.push(cyl(V(295, 0, 7.4), V(295, 0.6, 7.4), 0.16, 0.18, BRASS, { n: 10 })); for (let k = 0; k < 3; k++) S.push(cyl(V(295 + (k - 1) * 0.06, 0.4, 7.4), V(295 + (k - 1) * 0.1, 1.0, 7.38), 0.02, 0.012, [[20, 20, 24], [90, 20, 30], [20, 40, 70]][k], { n: 4 }));
+  bS(298.6, 301.4, 0, 0.012, 8.3, 9.0, [24, 24, 26], 0);
+
+  // ---- the teller line along the back: marble counter, brass grilles, six windows, a ticker above
+  const TC = { x0: 289.5, x1: 310.5, z: -4.2 };
+  bS(TC.x0, TC.x1, 0, 1.05, TC.z - 0.4, TC.z + 0.4, WALNUT, 0.04);
+  for (let x = TC.x0 + 0.5; x < TC.x1; x += 1.0) bS(x - 0.4, x + 0.4, 0.15, 0.9, TC.z + 0.4, TC.z + 0.43, WALNUT_D, 0.04);
+  bS(TC.x0 - 0.05, TC.x1 + 0.05, 1.05, 1.12, TC.z - 0.45, TC.z + 0.48, CREAM, 0.03);
+  bS(TC.x0, TC.x1, 0, 0.12, TC.z + 0.42, TC.z + 0.46, BRASS_D, 0.02);
+  S.push(cyl(V(TC.x0, 0.18, TC.z + 0.6), V(TC.x1, 0.18, TC.z + 0.6), 0.025, 0.025, BRASS, { n: 6 }));
+  const tellers = [];
+  for (let k = 0; k < 6; k++) {
+    const x = 291.5 + k * 3.4; tellers.push(x);
+    // the cage: vertical bars, an arched top and the window number
+    for (let b = -1.2; b <= 1.21; b += 0.08) { if (Math.abs(b) < 0.32) continue; S.push(cyl(V(x + b, 1.12, TC.z + 0.05), V(x + b, 2.5, TC.z + 0.05), 0.008, 0.008, BRASS, { n: 4 })); }
+    for (let b = -0.32; b <= 0.33; b += 0.08) S.push(cyl(V(x + b, 1.75, TC.z + 0.05), V(x + b, 2.5, TC.z + 0.05), 0.008, 0.008, BRASS, { n: 4 }));
+    bS(x - 1.25, x + 1.25, 2.5, 2.6, TC.z, TC.z + 0.1, BRASS, 0.02); bS(x - 0.36, x + 0.36, 1.72, 1.76, TC.z, TC.z + 0.1, BRASS, 0.02);
+    bS(x - 0.3, x + 0.3, 1.12, 1.16, TC.z + 0.1, TC.z + 0.4, [236, 230, 214], 0.02);
+    bPlaque('WINDOW ' + (k + 1), x, 2.8, TC.z + 0.12, 0, 0.9, 0.22, { px: 11 });
+    // the teller's side: a lamp, a CRT, a cash drawer and a receipt printer on the back counter
+    placeLamp(x - 0.7, 1.12, TC.z - 0.2, Math.PI);
+    bS(x - 0.9, x + 0.9, 0, 0.9, -5.6, -5.0, WALNUT_D, 0.04); bS(x - 0.92, x + 0.92, 0.9, 0.94, -5.62, -4.98, CREAM, 0.03);
+    placeCRT(x + 0.62, 1.12, TC.z - 0.15, Math.PI - 0.5, [80, 200, 130]);
+    bS(x - 0.5, x - 0.1, 0.94, 1.02, -5.4, -5.1, [40, 40, 44], 0.03); bS(x - 0.48, x - 0.12, 1.02, 1.03, -5.38, -5.12, CASH, 0.02);
+    for (let j = 0; j < 3; j++) at(pCashBrick(), x - 0.75 + j * 0.05, -5.15, 0.2, 0.94 + j * 0.05);
+  }
+  // the stock ticker over the tellers, a crawl of prices in red and green
+  { const tc = document.createElement('canvas'); tc.width = 512; tc.height = 16; const tt = new THREE.CanvasTexture(tc); tt.magFilter = THREE.NearestFilter; tt.wrapS = THREE.RepeatWrapping;
+    const cx2 = tc.getContext('2d'); cx2.fillStyle = '#060404'; cx2.fillRect(0, 0, 512, 16); cx2.font = 'bold 11px monospace'; cx2.textBaseline = 'middle';
+    const quotes = [['SCB', '+0.75'], ['STX', '-1.20'], ['MTR', '+2.10'], ['GLD', '+11.4'], ['OIL', '-0.35'], ['TRS', '+0.05'], ['HTL', '+1.60'], ['CRT', '-0.90']];
+    let px = 4; for (const [n, d] of quotes) { cx2.fillStyle = '#ffd060'; cx2.fillText(n, px, 8); px += 28; cx2.fillStyle = d[0] === '+' ? '#40ff70' : '#ff4040'; cx2.fillText((d[0] === '+' ? '▲' : '▼') + d.slice(1), px, 8); px += 36; }
+    tt.needsUpdate = true;
+    const tm = new THREE.Mesh(new THREE.PlaneGeometry(18, 0.32), new THREE.MeshBasicMaterial({ map: tt, fog: false })); tm.position.set(cx, 3.15, TC.z + 0.17); scene.add(tm);
+    bS(cx - 9.2, cx + 9.2, 2.95, 3.35, TC.z + 0.05, TC.z + 0.15, [20, 18, 16], 0.02);
+    BANK_ANIM.push((dt, t) => { tt.offset.x = (t * 0.03) % 1; });
+  }
+  // the big clock hanging over the middle of the line, two faces
+  for (const dz of [0.3, -0.3]) { G.push(cyl(V(cx, 4.4, TC.z + dz * 0.2), V(cx, 4.4, TC.z + dz), 0.55, 0.55, [240, 232, 206], { n: 18, amt: 0 })); }
+  S.push(cyl(V(cx, 4.4, TC.z - 0.2), V(cx, 4.4, TC.z + 0.2), 0.62, 0.62, BRASS, { n: 18 })); S.push(cyl(V(cx, 4.95, TC.z), V(cx, A.h, TC.z), 0.03, 0.03, BRASS_D, { n: 4 }));
+  const clockHands = new THREE.Group(); clockHands.position.set(cx, 4.4, TC.z + 0.31); scene.add(clockHands);
+  const hourH = new THREE.Mesh(toGeometry([box(-0.02, 0.02, 0, 0.3, 0, 0.01, [20, 16, 10], 0)]), roomMat), minH = new THREE.Mesh(toGeometry([box(-0.015, 0.015, 0, 0.45, 0, 0.01, [20, 16, 10], 0)]), roomMat);
+  clockHands.add(hourH, minH);
+  BANK_ANIM.push(() => { const d = new Date(), m = d.getMinutes() + d.getSeconds() / 60, h = (d.getHours() % 12) + m / 60; minH.rotation.z = -m / 60 * Math.PI * 2; hourH.rotation.z = -h / 12 * Math.PI * 2; });
+  // the staff gate at the left end of the counter, a sign
+  bS(283, 289.4, 0, 1.0, TC.z - 0.04, TC.z + 0.04, WALNUT, 0.04); bS(283, 289.4, 1.0, 1.05, TC.z - 0.06, TC.z + 0.06, BRASS, 0.02);
+  bPlaque('STAFF ONLY', 286.2, 1.25, TC.z + 0.06, 0, 1.0, 0.22, { px: 12, grad: ['#ffd0c0', '#e07060', '#902020'] });
+  // brass pneumatic tubes running from the teller line up the back wall to the vault
+  for (let k = 0; k < 3; k++) { const x = 296.2 + k * 0.18; S.push(cyl(V(x, 0.95, -5.0), V(x, 6.6, -10.9), 0.05, 0.05, BRASS, { n: 8 })); S.push(cyl(V(x, 6.6, -10.9), V(x + 2.8 + k * 0.18, 6.6, -10.9), 0.05, 0.05, BRASS, { n: 8 })); }
+
+  // ---- the vault door: a massive round door swung open against the back wall, a barred day gate in the doorway
+  { const vx = cx, vz = A.z0, R = 1.45;
+    // the round frame in the wall
+    const ring = []; for (let k = 0; k <= 28; k++) { const a = 2 * Math.PI * k / 28; ring.push(V(vx + Math.cos(a) * (R + 0.15), 1.5 + Math.sin(a) * (R + 0.15), vz + 0.06)); } S.push(tube(ring, ring.map(() => 0.16), STEEL_D, { n: 6 }));
+    // the day gate: bars across the opening
+    for (let b = -1.3; b <= 1.31; b += 0.13) S.push(cyl(V(vx + b, 0.02, vz + 0.12), V(vx + b, 2.78, vz + 0.12), 0.015, 0.015, [190, 190, 196], { n: 4 }));
+    for (const y of [0.4, 1.4, 2.4]) bS(vx - 1.4, vx + 1.4, y - 0.03, y + 0.03, vz + 0.1, vz + 0.14, [190, 190, 196], 0.02);
+    // the door itself: a thick steel disc, bolts round the edge, a spoked wheel, hinged on the right
+    const door = [];
+    door.push(cyl(V(0, 0, 0), V(0, 0, 0.62), R, R, STEEL, { n: 28, amt: 0.03 }));
+    door.push(cyl(V(0, 0, 0.62), V(0, 0, 0.68), R * 0.82, R * 0.82, [176, 180, 186], { n: 28, amt: 0.02 }));
+    for (let k = 0; k < 16; k++) { const a = 2 * Math.PI * k / 16; door.push(cyl(V(Math.cos(a) * (R - 0.05), Math.sin(a) * (R - 0.05), 0.2), V(Math.cos(a) * (R + 0.18), Math.sin(a) * (R + 0.18), 0.2), 0.06, 0.06, [200, 204, 210], { n: 6 })); }
+    for (let k = 0; k < 6; k++) { const a = 2 * Math.PI * k / 6; door.push(cyl(V(0, 0, 0.72), V(Math.cos(a) * 0.55, Math.sin(a) * 0.55, 0.72), 0.03, 0.03, BRASS, { n: 5 })); door.push(cyl(V(Math.cos(a) * 0.55, Math.sin(a) * 0.55, 0.68), V(Math.cos(a) * 0.55, Math.sin(a) * 0.55, 0.8), 0.04, 0.04, BRASS, { n: 6 })); }
+    door.push(cyl(V(0, 0, 0.68), V(0, 0, 0.8), 0.16, 0.16, BRASS, { n: 12 }));
+    door.push(box(-0.25, 0.25, 0.9, 1.12, 0.66, 0.7, [30, 30, 34], 0));
+    // hinge on the right edge, the door swung 105 degrees out into the teller area
+    const pivotX = vx + R + 0.15, swing = 1.85;
+    at(door.map((p) => { p.tris = p.tris.map((t) => t.map((v) => [v[0] - R - 0.15, v[1] + 1.5, v[2]])); return p; }), pivotX, vz + 0.1, swing, 0);
+    bS(pivotX - 0.12, pivotX + 0.12, 0.2, 2.8, vz + 0.05, vz + 0.3, STEEL_D, 0.03);
+    bPlaque('VAULT · TIME LOCK 09:00–17:00', vx, 3.4, vz + 0.05, 0, 2.6, 0.3, { px: 12 });
+  }
+
+  // ---- left bay: private bankers at walnut desks behind low partitions, on green carpet
+  bFloor(283.2, 292.0, -3.0, 7.6, bankTex.greenCarpet, 1.0, 0.012, 2);
+  const AGENTS = [];
+  for (const [k, z] of [[0, -1.6], [1, 1.4], [2, 4.4]]) {
+    const dx = 286.6; AGENTS.push({ x: dx, z });
+    at(pDesk(1.7, 0.85, 0.76, [50, 30, 18], WALNUT), dx, z, -Math.PI / 2);
+    bS(dx - 0.36, dx + 0.36, 0.76, 0.78, z - 0.79, z + 0.79, [26, 60, 40], 0.02);
+    placeLamp(dx + 0.05, 0.78, z - 0.6, Math.PI / 2);
+    placeCRT(dx - 0.05, 0.78, z + 0.35, -Math.PI / 2 - 0.3, [90, 140, 230]);
+    at(pPhone(), dx + 0.2, z - 0.25, 1.2, 0.78); at(pRolodex(), dx + 0.25, z + 0.05, Math.PI / 2, 0.78); at(pPaperStack(5), dx + 0.15, z - 0.05, 0.2, 0.78);
+    bPlaque(['MR. CARLOTTI · LOANS', 'MS. OKAFOR · ACCOUNTS', 'MR. LINDQVIST · PRIVATE CLIENTS'][k], dx + 0.43, 0.84, z, Math.PI / 2, 0.7, 0.12, { px: 7 });
+    at(pChair(LEATHER_G, 1.15), dx - 0.8, z, Math.PI / 2);
+    for (const s of [-1, 1]) at(pGuestChair(LEATHER_R), dx + 0.95, z + s * 0.38, -Math.PI / 2);
+    // a frosted partition between desks, walnut below and brass on top
+    if (k < 2) { bS(283.3, 290.6, 0, 1.0, z + 1.45, z + 1.55, WALNUT, 0.04); const g = new THREE.Mesh(new THREE.PlaneGeometry(7.3, 0.7), new THREE.MeshPhongMaterial({ color: 0xe8f0f0, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false })); g.position.set(286.95, 1.35, z + 1.5); scene.add(g); bS(283.3, 290.6, 1.7, 1.74, z + 1.43, z + 1.57, BRASS, 0.02); }
+    // a filing cabinet against the wall and a framed print
+    at([box(-0.25, 0.25, 0, 1.3, -0.3, 0.3, [80, 60, 40], 0.04), ...[0.3, 0.7, 1.1].map((y) => box(-0.06, 0.06, y, y + 0.03, 0.3, 0.32, BRASS, 0.02))], 283.6, z + 0.9, Math.PI / 2);
+    bS(283.02, 283.06, 1.5, 2.3, z - 0.4, z + 0.4, BRASS_D, 0.02); bS(283.06, 283.08, 1.55, 2.25, z - 0.35, z + 0.35, [[60, 90, 120], [120, 80, 50], [70, 100, 70]][k], 0.15);
+  }
+  at(pFicus(1.8), 291.6, -3.6); at(pFicus(1.8), 291.6, 7.3); at(pFicus(1.6), 283.6, 6.8);
+
+  // ---- the middle: a marble island for writing out slips, the velvet-rope queue
+  at([box(-1.3, 1.3, 0, 0.95, -0.35, 0.35, WALNUT, 0.04), box(-1.45, 1.45, 0.95, 1.05, -0.5, 0.5, CREAM, 0.03), box(-1.35, 1.35, 0, 0.1, -0.4, 0.4, BRASS_D, 0.02)], cx, 3.8);
+  for (const s of [-1, 1]) { placeLamp(cx + s * 1.0, 1.05, 3.8, s > 0 ? -Math.PI / 2 : Math.PI / 2); for (let k = 0; k < 3; k++) at([box(-0.06, 0.06, 0, 0.002, -0.09, 0.09, [236, 232, 220], 0)], cx + s * 0.4 + k * 0.15 - 0.15, 3.8 + s * 0.3, 0, 1.051); S.push(cyl(V(cx + s * 0.2, 1.05, 3.8 + s * 0.42), V(cx + s * 0.3, 1.07, 3.8 + s * 0.2), 0.006, 0.006, [20, 20, 22], { n: 3 })); }
+  at([box(-0.2, 0.2, 0, 0.35, -0.06, 0.06, BRASS_D, 0.02), ...['DEPOSIT', 'WITHDRAWAL', 'TRANSFER'].map((_, k) => box(-0.18 + k * 0.13, -0.08 + k * 0.13, 0.35, 0.5, -0.04, 0.04, [[236, 232, 220], [220, 230, 240], [240, 228, 210]][k], 0.02))], cx, 3.8, 0, 1.05);
+  { const posts = [[296.2, 0.2], [303.8, 0.2], [296.2, -1.4], [303.8, -1.4], [297.4, -2.8], [302.6, -2.8]];
+    for (const [x, z] of posts) { S.push(cyl(V(x, 0, z), V(x, 0.04, z), 0.14, 0.13, BRASS_D, { n: 8 })); S.push(cyl(V(x, 0.04, z), V(x, 0.95, z), 0.022, 0.022, BRASS, { n: 6 })); S.push(cyl(V(x, 0.95, z), V(x, 1.02, z), 0.04, 0.03, BRASS, { n: 6 })); }
+    for (const [a, b] of [[0, 2], [1, 3], [2, 4], [3, 5]]) { const p = posts[a], q = posts[b]; S.push(tube([V(p[0], 0.93, p[1]), V((p[0] + q[0]) / 2, 0.72, (p[1] + q[1]) / 2), V(q[0], 0.93, q[1])], [0.022, 0.022, 0.022], VELVET, { n: 5 })); }
+    bPlaque('PLEASE WAIT HERE', cx, 1.15, 0.2, 0, 1.4, 0.2, { px: 10 }); S.push(cyl(V(cx, 0, 0.2), V(cx, 1.05, 0.2), 0.02, 0.02, BRASS, { n: 5 })); }
+
+  // ---- right bay: the reception desk, the waiting lounge with a TV, the manager's office at the back
+  bFloor(308.0, 316.8, -3.0, 7.6, bankTex.redCarpet, 1.0, 0.012, 2);
+  { // a curved walnut-and-marble reception desk
+    const R0 = 1.6, cxr = 312.6, czr = -1.4;
+    for (let k = 0; k < 7; k++) { const a0 = Math.PI * (0.15 + k * 0.1), a1 = a0 + 0.1; const p = [V(Math.cos(a0) * R0, 0, Math.sin(a0) * R0), V(Math.cos(a1) * R0, 0, Math.sin(a1) * R0)];
+      S.push(loft([[V(cxr + p[0][0], 0, czr + p[0][2]), V(cxr + p[1][0], 0, czr + p[1][2]), V(cxr + p[1][0] * 0.82, 0, czr + p[1][2] * 0.82), V(cxr + p[0][0] * 0.82, 0, czr + p[0][2] * 0.82)], [V(cxr + p[0][0], 1.08, czr + p[0][2]), V(cxr + p[1][0], 1.08, czr + p[1][2]), V(cxr + p[1][0] * 0.82, 1.08, czr + p[1][2] * 0.82), V(cxr + p[0][0] * 0.82, 1.08, czr + p[0][2] * 0.82)]], WALNUT, { amt: 0.04 }));
+      S.push(loft([[V(cxr + p[0][0] * 1.04, 1.08, czr + p[0][2] * 1.04), V(cxr + p[1][0] * 1.04, 1.08, czr + p[1][2] * 1.04), V(cxr + p[1][0] * 0.76, 1.08, czr + p[1][2] * 0.76), V(cxr + p[0][0] * 0.76, 1.08, czr + p[0][2] * 0.76)], [V(cxr + p[0][0] * 1.04, 1.14, czr + p[0][2] * 1.04), V(cxr + p[1][0] * 1.04, 1.14, czr + p[1][2] * 1.04), V(cxr + p[1][0] * 0.76, 1.14, czr + p[1][2] * 0.76), V(cxr + p[0][0] * 0.76, 1.14, czr + p[0][2] * 0.76)]], CREAM, { amt: 0.03 }));
+    }
+    bPlaque('RECEPTION', cxr, 0.75, czr + R0 + 0.01, 0, 1.2, 0.22, { px: 12 });
+    S.push(cyl(V(cxr - 0.3, 1.14, czr + 1.3), V(cxr - 0.3, 1.18, czr + 1.3), 0.06, 0.07, BRASS, { n: 10 })); S.push(cyl(V(cxr - 0.3, 1.18, czr + 1.3), V(cxr - 0.3, 1.21, czr + 1.3), 0.012, 0.012, BRASS, { n: 4 }));
+    at(pPaperStack(3), cxr + 0.4, czr + 1.25, 0.3, 1.14);
+    placeCRT(cxr + 0.2, 0.76, czr + 0.2, Math.PI * 0.05, [90, 140, 230]); bS(cxr - 0.5, cxr + 0.7, 0, 0.76, czr - 0.1, czr + 0.4, WALNUT_D, 0.04);
+    at(pChair(LEATHER_G, 1.1), cxr, czr - 0.5, 0);
+    // a rack of brochures on a brass stand
+    at([box(-0.3, 0.3, 0, 1.4, -0.08, 0.08, BRASS_D, 0.03), ...[0.6, 0.9, 1.2].flatMap((y, j) => [-0.18, 0, 0.18].map((dx, i) => box(dx - 0.08, dx + 0.08, y, y + 0.22, 0.08, 0.1, [[200, 60, 50], [60, 120, 180], [230, 200, 80], [60, 160, 90]][(i + j) % 4], 0.03)))], 309.2, 0.6, 0.5);
+    wallSign('HOME LOANS FROM 7.25%', 316.95, 2.2, -1.4, -Math.PI / 2, 2.0, 0.3, { bg: '#16301f', rim: '#c8964a', font: 'Georgia, serif' });
+  }
+  { // the waiting lounge: two chesterfields, a low table with magazines, a CRT on a bracket showing the news, a water cooler
+    chesterfield(315.8, 3.6, -Math.PI / 2, 2.2, LEATHER_R); chesterfield(310.6, 3.6, Math.PI / 2, 2.2, LEATHER_R);
+    at([box(-0.45, 0.45, 0.34, 0.4, -0.8, 0.8, WALNUT, 0.04), ...[[-0.3, -0.6], [0.3, -0.6], [-0.3, 0.6], [0.3, 0.6]].map(([a, b]) => box(a - 0.03, a + 0.03, 0, 0.34, b - 0.03, b + 0.03, WALNUT_D, 0.03))], 313.2, 3.6);
+    for (let k = 0; k < 4; k++) at([box(-0.13, 0.13, 0, 0.01, -0.18, 0.18, [[200, 50, 40], [40, 80, 160], [230, 220, 200], [30, 30, 30]][k], 0.05)], 313.1 + (k % 2) * 0.12, 3.2 + k * 0.22, k * 0.4, 0.4 + k * 0.01);
+    // the TV on a bracket in the corner
+    at([box(-0.35, 0.35, 0, 0.5, -0.3, 0.25, [24, 24, 26], 0.03), box(-0.05, 0.05, 0.5, 0.9, -0.3, -0.2, [40, 40, 44], 0.02)], 316.4, 7.0, -Math.PI * 0.75, 2.2);
+    atG([box(-0.3, 0.3, 0.05, 0.45, 0.25, 0.26, [80, 130, 220], 0)], 316.4, 7.0, -Math.PI * 0.75, 2.2);
+    wallSign('NEWS 24 · MARKETS CLOSE HIGHER', 316.06, 2.45, 6.66, -Math.PI * 0.75, 0.62, 0.08, { color: '#ffffff', font: '"IBM Plex Mono", monospace', px: 8 });
+    const wc = pWaterCooler(); at(wc.P, 316.4, 7.6, -Math.PI / 2); atG(wc.L, 316.4, 7.6, -Math.PI / 2);
+    at(pFicus(1.9), 308.4, 7.3); at(pFicus(1.9), 316.4, -2.6);
+    planter(308.3, -3.0, 'cone');
+  }
+  { // the manager's office: glass walls on walnut, a big desk, a portrait of the founder, a safe, a drinks trolley
+    const M = { x0: 309.5, x1: 317, z0: -11, z1: -5.2 };
+    bS(M.x0, M.x0 + 0.1, 0, 1.0, M.z0, M.z1, WALNUT, 0.04); bS(M.x0, M.x1, 0, 1.0, M.z1 - 0.1, M.z1, WALNUT, 0.04);
+    for (const [a, b, c, d] of [[M.x0 + 0.05, M.z0, M.x0 + 0.05, M.z1], [M.x0, M.z1 - 0.05, M.x1, M.z1 - 0.05]]) { const len = Math.hypot(c - a, d - b), g = new THREE.Mesh(new THREE.PlaneGeometry(len, 1.6), shopGlassMat); g.position.set((a + c) / 2, 1.8, (b + d) / 2); g.rotation.y = a === c ? Math.PI / 2 : 0; scene.add(g); }
+    bS(M.x0, M.x0 + 0.1, 2.6, 2.7, M.z0, M.z1, BRASS, 0.02); bS(M.x0, M.x1, 2.6, 2.7, M.z1 - 0.1, M.z1, BRASS, 0.02);
+    for (let z = M.z0 + 1; z < M.z1; z += 1.2) bS(M.x0, M.x0 + 0.1, 1.0, 2.6, z - 0.03, z + 0.03, BRASS_D, 0.02);
+    for (let x = M.x0 + 1.2; x < M.x1; x += 1.2) bS(x - 0.03, x + 0.03, 1.0, 2.6, M.z1 - 0.1, M.z1, BRASS_D, 0.02);
+    bPlaque('BRANCH MANAGER', 313.2, 2.3, M.z1 + 0.01, 0, 1.6, 0.24, { px: 12 });
+    at(pDesk(2.0, 1.0, 0.78, [44, 26, 15], WALNUT), 313.4, -8.4, Math.PI);
+    bS(312.6, 314.2, 0.78, 0.8, -8.75, -8.05, [26, 60, 40], 0.02);
+    placeLamp(312.6, 0.8, -8.7, Math.PI); at(pPhone(), 314.1, -8.6, 2.6, 0.8); at(pPaperStack(8), 313.6, -8.3, 0.1, 0.8);
+    S.push(cyl(V(313.0, 0.8, -8.15), V(313.0, 0.9, -8.15), 0.035, 0.03, [180, 196, 210], { n: 8 })); S.push(cyl(V(313.15, 0.8, -8.2), V(313.15, 1.04, -8.2), 0.05, 0.04, [120, 70, 30], { n: 8 }));
+    at(pChair(LEATHER_G, 1.3), 313.4, -9.5, 0);
+    for (const s of [-1, 1]) at(pGuestChair(LEATHER_R), 313.4 + s * 0.55, -7.3, Math.PI);
+    // the founder in oils, a gilt frame
+    bS(312.2, 314.6, 1.6, 3.4, -10.98, -10.92, GOLD, 0.03);
+    { const pt = canvasTex(24, 32, (x, w, h) => { x.fillStyle = '#2a1e14'; x.fillRect(0, 0, w, h); x.fillStyle = '#4a3020'; x.fillRect(0, 20, w, 12); x.fillStyle = '#c8a080'; x.fillRect(8, 6, 8, 10); x.fillStyle = '#e8e0d0'; x.fillRect(6, 3, 12, 3); x.fillRect(5, 5, 2, 6); x.fillRect(17, 5, 2, 6); x.fillStyle = '#101010'; x.fillRect(4, 18, 16, 14); x.fillStyle = '#e0dcd0'; x.fillRect(10, 18, 4, 6); x.fillStyle = '#801010'; x.fillRect(11, 19, 2, 5); x.fillStyle = '#2a2018'; x.fillRect(9, 10, 2, 1); x.fillRect(13, 10, 2, 1); x.fillRect(10, 14, 4, 1); });
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 1.6), decal({ map: pt })); m.position.set(313.4, 2.5, -10.91); scene.add(m); }
+    bPlaque('THADDEUS SH1DEN · FOUNDER', 313.4, 1.5, -10.9, 0, 1.8, 0.16, { px: 9 });
+    // a black safe in the corner, a drinks trolley with a decanter, a globe
+    at([box(-0.45, 0.45, 0, 1.1, -0.4, 0.4, [24, 26, 30], 0.03), box(-0.38, 0.38, 0.08, 1.02, 0.4, 0.42, [34, 36, 40], 0.02), cyl(V(0.1, 0.6, 0.42), V(0.1, 0.6, 0.48), 0.1, 0.1, GOLD, { n: 10 }), box(-0.3, -0.25, 0.4, 0.8, 0.42, 0.46, GOLD, 0.02)], 316.3, -10.4, -Math.PI / 4);
+    at([box(-0.4, 0.4, 0.3, 0.33, -0.25, 0.25, BRASS, 0.02), box(-0.4, 0.4, 0.75, 0.78, -0.25, 0.25, BRASS, 0.02), ...[[-0.38, -0.23], [0.38, -0.23], [-0.38, 0.23], [0.38, 0.23]].map(([a, b]) => cyl(V(a, 0.05, b), V(a, 0.78, b), 0.015, 0.015, BRASS, { n: 4 })), cyl(V(-0.15, 0.78, 0), V(-0.15, 1.0, 0), 0.07, 0.04, [160, 90, 40], { n: 8 }), cyl(V(0.1, 0.78, 0.05), V(0.1, 0.86, 0.05), 0.035, 0.035, [190, 200, 210], { n: 6 }), cyl(V(0.22, 0.78, -0.08), V(0.22, 0.86, -0.08), 0.035, 0.035, [190, 200, 210], { n: 6 })], 310.4, -10.4, 0.2);
+    at([cyl(V(0, 0, 0), V(0, 0.75, 0), 0.03, 0.03, WALNUT_D, { n: 5 }), cyl(V(0, 0, 0), V(0, 0.03, 0), 0.25, 0.25, WALNUT_D, { n: 8 })], 316.3, -6.2); S.push(loft([rring(0.75, 0.05, 0.05, 316.3, -6.2, 10, 2), rring(0.95, 0.4, 0.4, 316.3, -6.2, 10, 2), rring(1.15, 0.05, 0.05, 316.3, -6.2, 10, 2)], [60, 90, 120], { smooth: true, amt: 0.1 }));
+    bFloor(M.x0 + 0.1, M.x1, M.z0, M.z1 - 0.1, bankTex.greenCarpet, 1.2, 0.012, 2);
+  }
+  // ---- the staff stair up the left wall at the back: oak treads, a brass rail, a door at the top
+  { for (let k = 0; k < 14; k++) { const y = (k + 1) * 0.26, z = -5.0 - k * 0.38; bS(283.05, 284.6, y - 0.05, y, z - 0.38, z, [78, 50, 28], 0.05); bS(283.05, 284.6, 0, y - 0.05, z - 0.38, z - 0.36, [50, 32, 20], 0.05); }
+    bS(283.05, 284.6, 3.6, 3.68, -11, -10.3, [78, 50, 28], 0.05);
+    const rail = [V(284.6, 1.2, -4.9), V(284.6, 4.85, -10.4)]; S.push(tube(rail, [0.025, 0.025], BRASS, { n: 5 }));
+    for (let k = 0; k < 14; k += 2) S.push(cyl(V(284.6, (k + 1) * 0.26, -5.0 - k * 0.38), V(284.6, (k + 1) * 0.26 + 0.95, -5.0 - k * 0.38), 0.012, 0.012, BRASS_D, { n: 4 }));
+    bS(283.4, 284.5, 3.68, 5.9, -10.98, -10.92, WALNUT, 0.03); bS(284.3, 284.36, 4.7, 4.9, -10.92, -10.88, BRASS, 0.02);
+    bPlaque('STAFF ONLY · AUTHORISED PERSONNEL', 283.95, 6.15, -10.9, 0, 1.6, 0.18, { px: 8, grad: ['#ffd0c0', '#e07060', '#902020'] });
+  }
+  // flags of the town either side of the vault, gilded letters over the tellers
+  for (const s of [-1, 1]) { S.push(cyl(V(cx + s * 3.6, 0, -10.5), V(cx + s * 3.6, 3.2, -10.5), 0.03, 0.03, BRASS, { n: 5 })); const f = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), new THREE.MeshLambertMaterial({ map: townFlag.tex, side: THREE.DoubleSide })); f.position.set(cx + s * 3.6 + 0.42, 2.55, -10.5); scene.add(f); }
+  wallSign('IN SH1DEN WE TRUST', cx, 6.2, A.z0 + 0.04, 0, 7.0, 0.7, { font: signFont });
+}
+
+// ================================================================ A's VAULT: steel walls, cash to the ceiling, deposit boxes, gold
+{
+  const Vv = BKV;
+  bFloor(Vv.x0, Vv.x1, Vv.z0, Vv.z1, bankTex.concrete, 1.2);
+  bRoomWalls(Vv, 0, 3.2, bankMat.steel, 1.0, { front: [[2.6, 5.4]] }, 2.8);
+  bCeil(Vv.x0, Vv.x1, Vv.z0, Vv.z1, 3.2, bankTex.steel, 1.0);
+  // safety deposit boxes floor to ceiling on the back wall, two open
+  for (let i = 0; i < 20; i++) for (let j = 0; j < 9; j++) { const x = Vv.x0 + 0.2 + i * 0.38, y = 0.2 + j * 0.32; bS(x, x + 0.36, y, y + 0.3, Vv.z0 + 0.02, Vv.z0 + 0.06, [176, 140, 70], 0.04); bS(x + 0.15, x + 0.21, y + 0.12, y + 0.18, Vv.z0 + 0.06, Vv.z0 + 0.08, [60, 50, 30], 0); }
+  // shelves of cash bricks down both sides
+  for (const [x, dir] of [[Vv.x0 + 0.35, 1], [Vv.x1 - 0.35, -1]]) {
+    for (const y of [0.1, 0.75, 1.4, 2.05]) { bS(x - 0.33, x + 0.33, y, y + 0.04, -17.2, -11.6, STEEL_D, 0.03); for (let k = 0; k < 13; k++) for (let j = 0; j < 3; j++) for (let l = 0; l < (k + j) % 3 + 2; l++) at(pCashBrick((k + l) % 3 ? CASH : CASH_D), x - 0.2 + j * 0.18, -17.0 + k * 0.42, Math.PI / 2, y + 0.04 + l * 0.052); }
+    for (const z of [-17.25, -14.4, -11.6]) bS(x - 0.35, x + 0.35, 0, 2.6, z - 0.03, z + 0.03, STEEL_D, 0.03);
+  }
+  // pallets of shrink-wrapped cash in the middle, gold bars on a trolley, money bags
+  at(pCashPallet(6, 10, 8), 299.0, -15.4, 0.1); at(pCashPallet(6, 10, 5), 300.6, -13.4, -0.15);
+  at([box(-0.5, 0.5, 0.3, 0.34, -0.3, 0.3, STEEL, 0.03), ...[[-0.45, -0.25], [0.45, -0.25], [-0.45, 0.25], [0.45, 0.25]].flatMap(([a, b]) => [cyl(V(a, 0.08, b), V(a, 0.3, b), 0.015, 0.015, STEEL_D, { n: 4 }), cyl(V(a, 0.08, b - 0.04), V(a, 0.08, b + 0.04), 0.06, 0.06, [20, 20, 20], { n: 8 })]), box(0.45, 0.5, 0.34, 0.9, -0.3, 0.3, STEEL_D, 0.02)], 301.6, -16.2, 0.3);
+  at(pGoldBars(4, 3, 4), 301.6, -16.2, 0.3, 0.34);
+  for (const [x, z, s] of [[297.6, -12.3, 1], [298.1, -12.0, 0.8], [302.7, -12.5, 1.1], [303.0, -15.0, 0.9]]) at(pMoneyBag(s), x, z, x * 3);
+  // a counting table with a cash counter and a lamp hanging over it
+  at([box(-0.8, 0.8, 0.85, 0.9, -0.4, 0.4, STEEL, 0.03), ...[[-0.75, -0.35], [0.75, -0.35], [-0.75, 0.35], [0.75, 0.35]].map(([a, b]) => box(a - 0.03, a + 0.03, 0, 0.85, b - 0.03, b + 0.03, STEEL_D, 0.03)), box(-0.2, 0.2, 0.9, 1.1, -0.15, 0.15, [70, 72, 78], 0.03), box(-0.12, 0.12, 1.1, 1.13, -0.1, 0.1, CASH, 0.03)], 297.6, -16.6, 0.2);
+  S.push(cyl(V(297.6, 3.2, -16.6), V(297.6, 2.2, -16.6), 0.008, 0.008, [20, 20, 20], { n: 3 })); S.push(loft([rring(2.2, 0.06, 0.06, 297.6, -16.6, 8, 2), rring(2.05, 0.3, 0.3, 297.6, -16.6, 8, 2)], [30, 60, 40], { amt: 0.03, cap: false })); G.push(cyl(V(297.6, 2.06, -16.6), V(297.6, 2.02, -16.6), 0.1, 0.1, [255, 236, 190], { n: 8, amt: 0 }));
+}
+
+// ================================================================ THE STAFF FLOOR (both versions): offices, a kitchen, lockers, toilets, a counting room
+{
+  const F = BK2, ox = 343;
+  // the corridor down the middle, rooms either side
+  const RM = {
+    office: { x0: 343, x1: 361, z0: -11, z1: -1.2 }, conf: { x0: 361, x1: 369, z0: -11, z1: -1.2 }, sec: { x0: 369, x1: 377, z0: -11, z1: -1.2 },
+    kitchen: { x0: 343, x1: 351, z0: 1.2, z1: 11 }, lockers: { x0: 351, x1: 358, z0: 1.2, z1: 11 }, wcm: { x0: 358, x1: 362, z0: 1.2, z1: 11 }, wcw: { x0: 362, x1: 366, z0: 1.2, z1: 11 }, count: { x0: 366, x1: 377, z0: 1.2, z1: 11 }
+  };
+  BK2.rooms = RM;
+  bFloor(F.x0, F.x1, -1.2, 1.2, bankTex.officeCarpet, 1.0);
+  const DOORS = { office: [351, 1.4], conf: [363, 1.4], sec: [371, 1.4], kitchen: [346, 1.4], lockers: [353.5, 1.4], wcm: [359.6, 1.0], wcw: [363.6, 1.0], count: [371, 1.4] };
+  const gapsOf = (keys) => keys.map((k) => [DOORS[k][0] - F.x0, DOORS[k][0] - F.x0 + DOORS[k][1]]);
+  bRoomWalls({ x0: F.x0, x1: F.x1, z0: -1.2, z1: 1.2 }, 0, F.h, bankMat.officeWall, 1.6, { back: gapsOf(['office', 'conf', 'sec']), front: gapsOf(['kitchen', 'lockers', 'wcm', 'wcw', 'count']) });
+  bCeil(F.x0, F.x1, -1.2, 1.2, F.h, bankTex.dropCeil, 0.6);
+  for (let x = 345; x < 377; x += 4) ceilLight(x, F.h - 0.015, 0, 1.2, 0.6);
+  for (const [k, r] of Object.entries(RM)) {
+    const floor = k === 'kitchen' ? bankTex.vinyl : k === 'wcm' || k === 'wcw' ? wcFloorTex : k === 'lockers' || k === 'count' ? bankTex.concrete : bankTex.officeCarpet;
+    bFloor(r.x0, r.x1, r.z0, r.z1, floor, k === 'kitchen' ? 0.8 : k.startsWith('wc') ? 0.6 : 1.0);
+    const toCorr = r.z0 < 0 ? 'front' : 'back', d0 = DOORS[k][0] - r.x0;
+    bRoomWalls(r, 0, F.h, k.startsWith('wc') ? bankMat.tile : bankMat.officeWall, k.startsWith('wc') ? 1.2 : 1.6, { [toCorr]: [[d0, d0 + DOORS[k][1]]] });
+    bCeil(r.x0, r.x1, r.z0, r.z1, F.h, bankTex.dropCeil, 0.6);
+    for (let x = r.x0 + 1.5; x < r.x1 - 0.8; x += 3) for (let z = r.z0 + 1.5; z < r.z1 - 0.8; z += 3) ceilLight(x, F.h - 0.015, z, 1.2, 0.6);
+  }
+  // the top of the stairs from the hall, at the corridor's west end
+  bS(343.05, 344.4, 0, 0.02, -1.0, 1.0, [78, 50, 28], 0.04);
+  bPlaque('▼ BANKING HALL', 343.06, 2.0, 0, Math.PI / 2, 1.4, 0.24, { px: 12 });
+  bPlaque('STAFF FLOOR · NO CUSTOMERS BEYOND THIS POINT', 349, 2.7, -1.17, 0, 3.2, 0.18, { px: 8 });
+  // corridor bits: a noticeboard, a fire extinguisher, a dying plant, a photocopier
+  bS(352, 354.4, 1.2, 2.2, -1.18, -1.15, [140, 100, 60], 0.06); for (let k = 0; k < 7; k++) bS(352.15 + k * 0.32, 352.4 + k * 0.32, 1.35 + (k % 3) * 0.25, 1.6 + (k % 3) * 0.25, -1.15, -1.14, [[240, 236, 220], [250, 230, 120], [220, 240, 250], [250, 200, 200]][k % 4], 0.03);
+  wallSign('EMPLOYEE OF THE MONTH: DORIS', 353.2, 2.4, -1.14, 0, 1.6, 0.16, { color: '#2a1a0a', font: '"IBM Plex Mono", monospace', px: 9 });
+  at([cyl(V(0, 0, 0), V(0, 0.5, 0), 0.08, 0.08, [200, 30, 30], { n: 8 }), cyl(V(0, 0.5, 0), V(0, 0.58, 0), 0.03, 0.03, [30, 30, 30], { n: 6 })], 356.5, -1.05, 0, 0.8);
+  at(pFicus(1.2), 375.2, 0.7);
+  at([box(-0.45, 0.45, 0, 1.0, -0.35, 0.35, [210, 206, 196], 0.03), box(-0.4, 0.4, 1.0, 1.05, -0.3, 0.3, [60, 60, 66], 0.02), box(-0.3, 0.3, 1.05, 1.2, -0.25, 0.2, [196, 192, 182], 0.03), box(-0.5, -0.45, 0.6, 0.65, -0.3, 0.3, [220, 220, 216], 0)], 365, -0.7, 0);
+  G.push(box(364.75, 364.95, 1.03, 1.04, -0.62, -0.6, [80, 255, 120], 0));
+
+  // ---- the back office: grey cubicles, CRTs, a dot-matrix printer, the fax, a whiteboard of targets
+  { const r = RM.office;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
+      const x = 345.2 + i * 3.6, z = -9.0 + j * 4.2;
+      bS(x - 1.5, x + 1.5, 0, 1.45, z - 1.5, z - 1.44, [120, 124, 132], 0.04); bS(x + 1.44, x + 1.5, 0, 1.45, z - 1.5, z + 1.2, [120, 124, 132], 0.04); bS(x - 1.5, x + 1.5, 1.45, 1.5, z - 1.52, z - 1.42, [70, 72, 78], 0.02);
+      bS(x - 1.4, x + 1.4, 0.72, 0.75, z - 1.4, z - 0.7, [200, 192, 172], 0.03); bS(x + 0.7, x + 1.4, 0.72, 0.75, z - 0.7, z + 0.5, [200, 192, 172], 0.03);
+      placeCRT(x - 0.3, 0.75, z - 1.1, 0, [[90, 200, 130], [200, 170, 90], [100, 140, 230]][(i + j) % 3]);
+      at(pPhone(), x + 0.6, z - 1.0, -0.4, 0.75); at(pPaperStack(3 + i), x + 1.05, z - 0.2, 0.2, 0.75); at(pChair([40, 44, 60]), x - 0.2, z - 0.25, Math.PI);
+      if ((i + j) % 2) { bS(x - 1.38, x - 1.0, 0.75, 0.9, z - 1.38, z - 1.3, [240, 240, 236], 0.02); bS(x - 1.37, x - 1.2, 0.9, 1.05, z - 1.37, z - 1.33, [250, 220, 100], 0.02); }
+    }
+    // the printer with a tail of fan-fold paper, the fax, a water cooler, a whiteboard
+    at([box(-0.35, 0.35, 0.75, 0.95, -0.25, 0.25, BEIGE, 0.03), box(-0.3, 0.3, 0.95, 0.98, -0.2, 0.1, BEIGE_D, 0.02), box(-0.4, 0.4, 0, 0.75, -0.3, 0.3, [90, 92, 98], 0.03)], 356.6, -10.4, 0);
+    for (let k = 0; k < 6; k++) bS(356.3, 356.9, 0.95 - k * 0.15, 0.98 - k * 0.15, -10.1 + (k % 2) * 0.05, -10.05 + (k % 2) * 0.05, [240, 238, 226], 0.02);
+    at([box(-0.25, 0.25, 0.75, 0.9, -0.2, 0.2, [40, 40, 44], 0.03), box(-0.18, 0.18, 0.9, 0.92, -0.1, 0.15, [236, 232, 220], 0.02)], 358.2, -10.4, 0.1);
+    const wcl = pWaterCooler(); at(wcl.P, 360.4, -10.5, 0); atG(wcl.L, 360.4, -10.5, 0);
+    bS(355, 359.5, 1.0, 2.3, -10.98, -10.95, [236, 236, 232], 0.02); bS(354.95, 359.55, 0.98, 2.32, -10.99, -10.97, [150, 150, 156], 0.02);
+    wallSign('Q3 TARGETS  ✓ CDs  ✓ LOANS  ✗ GOLD CARDS', 357.25, 1.9, -10.94, 0, 4.2, 0.3, { color: '#1a3a8a', font: '"IBM Plex Mono", monospace', px: 11 });
+    wallSign('MEET TARGET = PIZZA FRIDAY', 357.25, 1.4, -10.94, 0, 3.0, 0.24, { color: '#a02020', font: '"IBM Plex Mono", monospace', px: 10 });
+    for (let k = 0; k < 4; k++) at([box(-0.25, 0.25, 0, 1.32, -0.32, 0.32, [150, 152, 160], 0.03), ...[0.25, 0.6, 0.95].map((y) => box(-0.08, 0.08, y, y + 0.04, 0.32, 0.34, [190, 190, 196], 0.02))], 343.4, -10.2 + k * 0.7, Math.PI / 2);
+  }
+  // ---- the conference room: a long table, a projector screen with a pie chart, a speakerphone
+  { const r = RM.conf, cx = 365, cz = -6;
+    at([box(-2.4, 2.4, 0.74, 0.78, -0.8, 0.8, [60, 36, 22], 0.04), box(-2.0, 2.0, 0, 0.74, -0.4, 0.4, [40, 24, 14], 0.04)], cx, cz, 0);
+    for (let k = 0; k < 4; k++) for (const s of [-1, 1]) at(pChair([30, 30, 34], 1.0), cx - 1.8 + k * 1.2, cz + s * 1.15, s > 0 ? Math.PI : 0);
+    S.push(cyl(V(cx, 0.78, cz), V(cx, 0.82, cz), 0.16, 0.12, [30, 30, 32], { n: 3 }));
+    bS(362.3, 367.7, 1.1, 2.9, -10.98, -10.95, [240, 240, 236], 0.02);
+    { const pie = canvasTex(32, 32, (x, w, h) => { x.fillStyle = '#f0f0ec'; x.fillRect(0, 0, w, h); const sl = [[0.45, '#c83030'], [0.25, '#3060c0'], [0.18, '#e0b030'], [0.12, '#30a060']]; let a = -Math.PI / 2; for (const [f, c] of sl) { x.fillStyle = c; x.beginPath(); x.moveTo(16, 16); x.arc(16, 16, 12, a, a + f * Math.PI * 2); x.fill(); a += f * Math.PI * 2; } });
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), decal({ map: pie })); m.position.set(363.6, 2.0, -10.94); scene.add(m); }
+    wallSign('WHERE THE MONEY GOES', 366.2, 2.4, -10.94, 0, 2.4, 0.3, { color: '#202020', font: '"IBM Plex Mono", monospace', px: 11 });
+    at(pFicus(1.4), 368.4, -1.8);
+  }
+  // ---- the security room: a desk of CCTV monitors, a guard's coffee, keys on hooks
+  { const r = RM.sec;
+    bS(369.3, 376.7, 0, 0.8, -10.8, -10.0, [60, 62, 68], 0.03);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { const x = 370.4 + i * 1.7, y = 1.1 + j * 0.75; bS(x - 0.38, x + 0.38, y, y + 0.6, -10.95, -10.6, [30, 30, 32], 0.03); bG(x - 0.32, x + 0.32, y + 0.05, y + 0.55, -10.59, -10.58, [[90, 130, 110], [110, 120, 150], [100, 140, 100], [130, 130, 130]][(i + j) % 4]); }
+    at(pChair([30, 30, 34]), 373, -9.3, Math.PI);
+    S.push(cyl(V(374.2, 0.8, -10.3), V(374.2, 0.9, -10.3), 0.04, 0.035, [236, 232, 220], { n: 8 }));
+    bS(376.95, 376.98, 1.4, 2.0, -8.5, -7.5, [120, 90, 50], 0.05); for (let k = 0; k < 6; k++) S.push(cyl(V(376.94, 1.85 - (k % 2) * 0.3, -8.4 + k * 0.17), V(376.9, 1.7 - (k % 2) * 0.3, -8.4 + k * 0.17), 0.012, 0.012, BRASS, { n: 4 }));
+    wallSign('SECURITY', 373, 2.75, -10.94, 0, 1.6, 0.24, { color: '#d0d0d0', font: '"IBM Plex Mono", monospace' });
+  }
+  // ---- the break kitchen: a counter with a sink, the coffee machine, a microwave, the fridge, a little table
+  { const r = RM.kitchen;
+    bS(343.1, 343.8, 0, 0.9, 1.4, 7.8, [170, 160, 140], 0.04); bS(343.05, 343.85, 0.9, 0.95, 1.35, 7.85, [220, 216, 206], 0.03);
+    bS(343.1, 343.75, 0.95, 1.0, 3.2, 3.9, [180, 186, 190], 0.02); S.push(cyl(V(343.3, 0.95, 3.55), V(343.3, 1.3, 3.55), 0.015, 0.015, [190, 194, 200], { n: 5 })); S.push(cyl(V(343.3, 1.3, 3.55), V(343.5, 1.28, 3.55), 0.012, 0.012, [190, 194, 200], { n: 4 }));
+    // coffee machine with a half-full pot
+    at([box(-0.17, 0.17, 0, 0.45, -0.15, 0.15, [30, 30, 32], 0.03), box(-0.17, 0.17, 0.4, 0.45, -0.15, 0.25, [30, 30, 32], 0.03)], 343.45, 5.0, Math.PI / 2, 0.95);
+    S.push(loft([rring(0.95, 0.09, 0.09, 343.6, 5.0, 8, 2), rring(1.08, 0.11, 0.11, 343.6, 5.0, 8, 2), rring(1.18, 0.07, 0.07, 343.6, 5.0, 8, 2)], [60, 36, 18], { amt: 0.04 }));
+    G.push(box(343.6, 343.62, 1.1, 1.12, 4.88, 4.92, [255, 60, 40], 0));
+    for (let k = 0; k < 5; k++) S.push(cyl(V(343.5 + (k % 2) * 0.12, 0.95, 5.5 + k * 0.12), V(343.5 + (k % 2) * 0.12, 1.04, 5.5 + k * 0.12), 0.035, 0.035, [[236, 232, 220], [200, 60, 50], [60, 100, 170]][k % 3], { n: 6 }));
+    at([box(-0.28, 0.28, 0, 0.3, -0.2, 0.2, [210, 210, 206], 0.03)], 343.45, 6.5, Math.PI / 2, 0.95); bG(343.73, 343.74, 1.0, 1.2, 6.3, 6.55, [255, 210, 120]);
+    // the fridge, magnets and a passive-aggressive note
+    at([box(-0.4, 0.4, 0, 1.8, -0.35, 0.35, [226, 224, 218], 0.03), box(0.3, 0.34, 0.9, 1.4, 0.35, 0.38, [160, 160, 160], 0.02)], 343.5, 9.4, Math.PI / 2);
+    for (let k = 0; k < 4; k++) bS(343.86, 343.88, 1.1 + k * 0.15, 1.2 + k * 0.15, 9.2 + (k % 2) * 0.2, 9.32 + (k % 2) * 0.2, [[200, 40, 40], [40, 120, 200], [240, 200, 60], [60, 160, 80]][k], 0);
+    wallSign('LABEL YOUR FOOD!!', 343.9, 1.55, 9.42, Math.PI / 2, 0.5, 0.12, { color: '#202020', font: '"IBM Plex Mono", monospace', px: 8 });
+    // a round table with chairs, a vending machine glowing in the corner
+    S.push(cyl(V(347.6, 0, 6.2), V(347.6, 0.72, 6.2), 0.05, 0.05, [40, 40, 44], { n: 6 })); S.push(cyl(V(347.6, 0.72, 6.2), V(347.6, 0.76, 6.2), 0.6, 0.6, [220, 210, 190], { n: 14 }));
+    for (let k = 0; k < 4; k++) at(pGuestChair([180, 60, 50]), 347.6 + Math.cos(k * Math.PI / 2) * 0.85, 6.2 + Math.sin(k * Math.PI / 2) * 0.85, -k * Math.PI / 2 - Math.PI / 2);
+    S.push(cyl(V(347.5, 0.76, 6.1), V(347.5, 0.82, 6.1), 0.12, 0.13, [240, 236, 226], { n: 8 })); for (let k = 0; k < 3; k++) S.push(cyl(V(347.45 + k * 0.05, 0.82, 6.08), V(347.45 + k * 0.05, 0.84, 6.08), 0.025, 0.025, [180, 120, 60], { n: 6 }));
+    at([box(-0.45, 0.45, 0, 1.85, -0.4, 0.4, [160, 30, 30], 0.04)], 350.4, 10.5, Math.PI);
+    atG([box(-0.35, 0.15, 0.6, 1.6, -0.41, -0.4, [255, 240, 200])], 350.4, 10.5, Math.PI);
+    wallSign('SNACKS', 350.4, 1.72, 10.08, Math.PI, 0.8, 0.18, { color: '#ffffff', glow: '#ffffff', font: signFont });
+    wallSign('BREAK ROOM', 347, 2.7, 1.23, Math.PI, 1.8, 0.24, { color: '#303030', font: '"IBM Plex Mono", monospace' });
+  }
+  // ---- lockers: two rows of grey lockers, one ajar, a bench
+  { const r = RM.lockers;
+    for (const [z, yaw] of [[10.8, Math.PI], [5.2, 0]]) for (let k = 0; k < 10; k++) {
+      const x = 351.6 + k * 0.6;
+      at([box(-0.29, 0.29, 0, 1.9, -0.25, 0.25, [120, 128, 136], 0.04), box(-0.26, 0.26, 0.1, 1.8, 0.25, 0.27, [134, 142, 150], 0.03), ...[1.55, 1.6, 1.65].map((y) => box(-0.12, 0.12, y, y + 0.015, 0.27, 0.275, [80, 86, 92], 0)), box(0.17, 0.2, 0.9, 1.05, 0.27, 0.29, [40, 40, 44], 0)], x, z, yaw);
+      wallSign(String(101 + k + (z > 6 ? 0 : 10)), x, 1.82, z + (yaw ? -0.28 : 0.28), yaw, 0.18, 0.08, { color: '#101010', font: '"IBM Plex Mono", monospace', px: 8 });
+    }
+    // one locker left open: a jacket, a photo, a suspicious envelope
+    at([box(-0.27, 0.27, 0.1, 1.8, 0, 0.03, [134, 142, 150], 0.03)], 352.5 + 0.27, 5.47, -1.2);
+    bS(352.25, 352.65, 0.9, 1.6, 5.3, 5.4, [30, 30, 50], 0.06); bS(352.3, 352.5, 1.4, 1.6, 5.42, 5.43, [210, 200, 180], 0.03); bS(352.45, 352.6, 0.4, 0.6, 5.35, 5.45, [230, 220, 190], 0.03);
+    bS(353, 357, 0.4, 0.46, 7.8, 8.2, [150, 110, 70], 0.05); for (const x of [353.2, 356.8]) bS(x - 0.04, x + 0.04, 0, 0.4, 7.85, 8.15, [40, 40, 44], 0.03);
+    wallSign('LOCKERS', 354.5, 2.7, 1.23, Math.PI, 1.4, 0.22, { color: '#303030', font: '"IBM Plex Mono", monospace' });
+  }
+  // ---- toilets: two stalls each, sinks under a long mirror
+  for (const [k, sign] of [['wcm', 'MEN'], ['wcw', 'WOMEN']]) {
+    const r = RM[k];
+    for (const j of [0, 1]) {
+      const z0 = 8.0 + j * 1.5;
+      bS(r.x0 + 0.05, r.x1 - 0.05, 0.1, 2.0, z0 - 0.03, z0, [150, 70, 60], 0.03);
+      at([box(-0.2, 0.2, 0, 0.4, -0.3, 0.2, [236, 236, 232], 0.03), box(-0.2, 0.2, 0.4, 0.45, -0.3, 0.25, [40, 40, 44], 0.02), box(-0.22, 0.22, 0.4, 0.75, -0.42, -0.3, [236, 236, 232], 0.03)], r.x0 + 2.0, z0 + 0.95 + 0.0, Math.PI);
+    }
+    bS(r.x0 + 0.05, r.x0 + 1.6, 0.1, 2.0, 8.0, 11, [150, 70, 60], 0.03);
+    for (const z of [3.0, 4.6]) { bS(r.x0 + 0.05, r.x0 + 0.5, 0.82, 0.88, z - 0.3, z + 0.3, [236, 236, 232], 0.03); S.push(cyl(V(r.x0 + 0.12, 0.88, z), V(r.x0 + 0.12, 1.05, z), 0.012, 0.012, [190, 194, 200], { n: 4 })); }
+    const mm = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.9), decal({ color: 0x6a7684 })); mm.position.set(r.x0 + 0.03, 1.6, 3.8); mm.rotation.y = Math.PI / 2; scene.add(mm);
+    wallSign(sign, (r.x0 + r.x1) / 2, 2.7, 1.23, Math.PI, 1.0, 0.22, { color: '#303030', font: '"IBM Plex Mono", monospace' });
+    if (k === 'wcm') wallSign('OUT OF ORDER', r.x0 + 2.0, 1.5, 9.49, 0, 0.7, 0.14, { color: '#c02020', font: '"IBM Plex Mono", monospace', px: 8 });
+  }
+  // ---- the counting room: cash counters, coin wrappers, sacks; and behind the bookcase, stairs going down...
+  { const r = RM.count;
+    for (let k = 0; k < 2; k++) { const z = 4.2 + k * 3.2; bS(368, 374, 0.85, 0.9, z - 0.5, z + 0.5, STEEL, 0.03); for (const [a, b] of [[368.1, z - 0.45], [373.9, z - 0.45], [368.1, z + 0.45], [373.9, z + 0.45]]) bS(a - 0.03, a + 0.03, 0, 0.85, b - 0.03, b + 0.03, STEEL_D, 0.03);
+      for (let j = 0; j < 3; j++) { const x = 369 + j * 2; at([box(-0.22, 0.22, 0, 0.22, -0.18, 0.18, [70, 72, 78], 0.03), box(-0.15, 0.15, 0.22, 0.25, -0.1, 0.12, CASH, 0.03)], x, z, 0, 0.9); G.push(box(x - 0.08, x + 0.08, 1.02, 1.06, z + 0.181, z + 0.185, [255, 80, 60], 0)); at(pChair([30, 30, 34]), x, z + 0.9, Math.PI); for (let l = 0; l < 4; l++) at(pCashBrick(), x + 0.4, z - 0.2, 0.3, 0.9 + l * 0.052); }
+      for (let l = 0; l < 10; l++) S.push(cyl(V(372.4 + l * 0.06, 0.9, z - 0.3), V(372.4 + l * 0.06, 1.0, z - 0.3), 0.012, 0.012, [[200, 120, 60], [190, 190, 196], [220, 180, 60]][l % 3], { n: 5 }));
+    }
+    for (const [x, z, s] of [[375.8, 2.0, 1], [376.3, 2.6, 0.9], [375.6, 3.2, 1.1]]) at(pMoneyBag(s), x, z, x);
+    wallSign('COUNTING ROOM · TWO PERSONS AT ALL TIMES', 371.5, 2.7, 1.23, Math.PI, 3.0, 0.18, { color: '#303030', font: '"IBM Plex Mono", monospace', px: 8 });
+    // the bookcase on the end wall stands an inch out from the wall; behind it, a red light and steps going down
+    const bx = 376.4, bz = 9.4;
+    at([box(-0.2, 0.2, 0, 2.3, -0.9, 0.9, [70, 44, 26], 0.04), ...[0.45, 0.95, 1.45, 1.95].map((y) => box(-0.2, 0.2, y, y + 0.04, -0.85, 0.85, [50, 32, 20], 0.04)), ...[0.49, 0.99, 1.49].flatMap((y, j) => [...Array(9)].map((_, k) => box(-0.16, 0.14, y, y + 0.28 + (k % 3) * 0.06, -0.8 + k * 0.18, -0.68 + k * 0.18, [[110, 30, 30], [30, 60, 90], [140, 120, 70], [40, 70, 50]][(k + j) % 4], 0.08)))], bx, bz, -0.32);
+    G.push(box(376.85, 376.95, 0.3, 2.0, 10.2, 10.35, [180, 20, 20]));
+    for (let k = 0; k < 4; k++) bS(376.6, 376.95, 0.02 - k * 0.0, 0.03, 10.0 + k * 0.08, 10.08 + k * 0.08, [20, 10, 10], 0);
+  }
+}
+
+// ================================================================ VERSION B: THE '94 BRANCH (drop ceiling, teal carpet, bulletproof glass)
+{
+  const B = BKB, cx = 420;
+  bFloor(B.x0, B.x1, B.z0, B.z1, bankTex.teal, 1.0);
+  bRoomWalls(B, 0, B.h, bankMat.wallB, 1.6, { front: [[15.5, 18.5]], back: [[15.6, 18.4], [2, 3.2]] }, 2.6);
+  bCeil(B.x0, B.x1, B.z0, B.z1, B.h, bankTex.dropCeil, 0.6);
+  for (let x = B.x0 + 2; x < B.x1 - 1; x += 3.2) for (let z = B.z0 + 2; z < B.z1 - 1; z += 3.2) ceilLight(x, B.h - 0.015, z, 1.2, 0.6);
+  // the vestibule: two ATMs, a night deposit drop, glass doors
+  for (const x of [cx - 1.6, cx + 1.6]) { const g = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.4), shopGlassMat); g.position.set(x, 1.2, 8); scene.add(g); bS(x - 0.72, x + 0.72, 2.4, 2.5, 7.95, 8.05, [180, 180, 186], 0.02); }
+  bS(B.x0, cx - 2.4, 0, B.h, 7.95, 8.05, [200, 196, 188], 0.02); bS(cx + 2.4, B.x1, 0, B.h, 7.95, 8.05, [200, 196, 188], 0.02);
+  for (const x of [cx - 3.3, cx + 3.3]) { at([box(-0.4, 0.4, 0, 1.6, -0.2, 0.2, [70, 74, 82], 0.03), box(-0.42, 0.42, 1.6, 1.9, -0.22, 0.22, [30, 90, 110], 0.03)], x, 10.7, Math.PI); atG([box(-0.25, 0.25, 1.15, 1.45, -0.21, -0.2, [70, 200, 255]), box(-0.38, 0.38, 1.66, 1.84, -0.23, -0.22, [255, 255, 255])], x, 10.7, Math.PI); }
+  wallSign('ATM', cx - 3.3, 1.75, 10.47, Math.PI, 0.6, 0.14, { color: '#0a3040', font: '"IBM Plex Mono", monospace', px: 10 });
+  wallSign('ATM', cx + 3.3, 1.75, 10.47, Math.PI, 0.6, 0.14, { color: '#0a3040', font: '"IBM Plex Mono", monospace', px: 10 });
+  // the teller counter: laminate, a wall of bulletproof glass with speaker grilles and deposit trays
+  const TZ = -4.6;
+  bS(410, 430, 0, 1.05, TZ - 0.4, TZ + 0.4, [196, 186, 170], 0.03); bS(409.95, 430.05, 1.05, 1.1, TZ - 0.45, TZ + 0.45, [120, 60, 100], 0.02);
+  { const g = new THREE.Mesh(new THREE.PlaneGeometry(20, 1.9), new THREE.MeshPhongMaterial({ color: 0x9cd8d0, transparent: true, opacity: 0.25, shininess: 90, side: THREE.DoubleSide, depthWrite: false })); g.position.set(cx, 2.05, TZ); g.renderOrder = 3; scene.add(g); }
+  bS(410, 430, 3.0, 3.4, TZ - 0.1, TZ + 0.1, [200, 196, 188], 0.02);
+  for (let k = 0; k < 5; k++) {
+    const x = 412 + k * 4;
+    bS(x - 2.0, x - 1.95, 1.1, 3.0, TZ - 0.06, TZ + 0.06, [150, 150, 156], 0.02);
+    S.push(cyl(V(x, 1.55, TZ + 0.02), V(x, 1.55, TZ + 0.05), 0.07, 0.07, [60, 60, 66], { n: 10 })); for (let j = 0; j < 4; j++) bS(x - 0.05, x + 0.05, 1.5 + j * 0.03, 1.51 + j * 0.03, TZ + 0.05, TZ + 0.055, [20, 20, 20], 0);
+    bS(x - 0.3, x + 0.3, 1.05, 1.12, TZ + 0.05, TZ + 0.42, [120, 124, 130], 0.02);
+    wallSign(String(k + 1), x, 2.75, TZ + 0.11, 0, 0.3, 0.3, { bg: '#16505a', rim: '#c8e0e0', color: '#ffffff', font: '"IBM Plex Mono", monospace' });
+    placeCRT(x + 0.4, 0.9, TZ - 0.9, 0, [70, 200, 255]); bS(x - 1.0, x + 1.0, 0, 0.9, TZ - 1.3, TZ - 0.7, [180, 172, 160], 0.03);
+  }
+  // take-a-number: a red LED "NOW SERVING" and the ticket dispenser
+  { const s = citySign(64, 16, (x, w, h) => { x.fillStyle = '#100404'; x.fillRect(0, 0, w, h); x.fillStyle = '#ff3020'; x.font = 'bold 10px monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('NOW 47', w / 2, h / 2 + 1); });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.3), new THREE.MeshBasicMaterial({ map: s.tex, fog: false })); m.position.set(cx, 3.15, TZ + 0.12); scene.add(m); }
+  at([cyl(V(0, 0, 0), V(0, 1.1, 0), 0.03, 0.03, [150, 150, 156], { n: 5 }), box(-0.12, 0.12, 1.1, 1.35, -0.1, 0.1, [200, 30, 30], 0.03), box(-0.04, 0.04, 1.2, 1.24, 0.1, 0.13, [240, 240, 236], 0)], cx - 3.6, 4.4);
+  // retractable queue belts in navy
+  { const posts = [[cx - 2.4, 1.6], [cx + 2.4, 1.6], [cx - 2.4, 0], [cx + 2.4, 0], [cx - 2.4, -1.6], [cx + 2.4, -1.6]];
+    for (const [x, z] of posts) { S.push(cyl(V(x, 0, z), V(x, 0.03, z), 0.16, 0.16, [40, 40, 44], { n: 8 })); S.push(cyl(V(x, 0.03, z), V(x, 0.95, z), 0.03, 0.03, [170, 172, 178], { n: 6 })); }
+    for (const [a, b] of [[0, 1], [2, 3], [0, 2]]) { const p = posts[a], q = posts[b]; bS(Math.min(p[0], q[0]), Math.max(p[0], q[0]), 0.88, 0.93, Math.min(p[1], q[1]) - 0.01, Math.max(p[1], q[1]) + 0.01, [30, 40, 90], 0.02); } }
+  // personal bankers in mauve cubicles on the left; a coffee-and-cookies station
+  for (let k = 0; k < 3; k++) {
+    const z = -1.6 + k * 3.0, x = 406.6;
+    bS(B.x0 + 0.05, 410.2, 0, 1.4, z + 1.35, z + 1.45, [150, 100, 130], 0.04); bS(410.1, 410.2, 0, 1.4, z - 0.8, z + 1.4, [150, 100, 130], 0.04);
+    at(pDesk(1.6, 0.8, 0.74, [210, 200, 180], [180, 170, 150]), x, z, -Math.PI / 2);
+    placeCRT(x - 0.1, 0.74, z + 0.4, -Math.PI / 2 - 0.3, [70, 200, 255]); at(pPhone(), x + 0.2, z - 0.3, 1.0, 0.74); at(pPaperStack(4), x + 0.1, z - 0.05, 0.3, 0.74);
+    at(pChair([60, 60, 90]), x - 0.75, z, Math.PI / 2); for (const s of [-1, 1]) at(pGuestChair([90, 110, 150]), x + 0.9, z + s * 0.35, -Math.PI / 2);
+    wallSign(['NEW ACCOUNTS', 'LOANS & MORTGAGES', 'INVESTMENTS'][k], 403.05, 2.0, z + 0.4, Math.PI / 2, 1.6, 0.22, { color: '#6a2050', font: '"IBM Plex Mono", monospace', px: 11 });
+  }
+  at([box(-0.5, 0.5, 0, 0.9, -0.3, 0.3, [180, 170, 150], 0.03), box(-0.52, 0.52, 0.9, 0.93, -0.32, 0.32, [120, 60, 100], 0.02)], 433.8, 6.8, -Math.PI / 2);
+  S.push(cyl(V(433.8, 0.93, 6.6), V(433.8, 1.25, 6.6), 0.1, 0.1, [190, 194, 200], { n: 10 })); S.push(cyl(V(433.8, 0.93, 7.0), V(433.8, 0.97, 7.0), 0.15, 0.15, [240, 236, 226], { n: 10 }));
+  wallSign('FREE COFFEE · HAVE A COOKIE!', 436.95, 1.6, 6.8, -Math.PI / 2, 1.8, 0.2, { color: '#6a2050', font: '"IBM Plex Mono", monospace', px: 9 });
+  // waiting chairs in a row, a rack of brochures, posters with '90s rates
+  for (let k = 0; k < 5; k++) at(pGuestChair([40, 110, 120]), 434 + 0, -0.5 + k * 0.7, -Math.PI / 2);
+  for (const [t, z] of [['CDs 5.5% APY!', -6], ['GET A GOLD CARD TODAY', -1.2], ['MORTGAGES FROM 6.9%', 3.5]]) wallSign(t, 436.95, 2.1, z, -Math.PI / 2, 2.6, 0.5, { bg: '#16505a', rim: '#e0c060', color: '#ffffff', font: '"IBM Plex Mono", monospace' });
+  for (const [x, z] of [[404, 6.6], [436, -3.5], [411, -9], [429, -9]]) at(pFicus(1.5), x, z);
+  // the manager's glass box with blinds, back right
+  bS(429.5, 429.6, 0, 3.0, -11, -6.5, [200, 196, 188], 0.02); bS(429.5, 437, 0, 3.0, -6.6, -6.5, [200, 196, 188], 0.02);
+  for (let k = 0; k < 20; k++) bS(429.62, 429.64, 0.9 + k * 0.1, 0.93 + k * 0.1, -10.8, -6.8, [226, 222, 214], 0);
+  at(pDesk(1.8, 0.9, 0.76, [120, 80, 50], [90, 60, 40]), 433, -9, Math.PI); at(pChair([40, 40, 44]), 433, -9.8, 0); placeCRT(433.4, 0.76, -9.2, Math.PI, [70, 200, 255]);
+  wallSign('BRANCH MANAGER', 433, 2.6, -6.49, 0, 1.6, 0.22, { color: '#303030', font: '"IBM Plex Mono", monospace' });
+  // the staff door and a small square vault door behind the tellers
+  wallSign('EMPLOYEES ONLY', 405.2 + 0.4, 2.85, -10.95, 0, 1.4, 0.2, { color: '#a02020', font: '"IBM Plex Mono", monospace', px: 10 });
+  bS(418.4, 421.6, 0, 3.0, -10.98, -10.9, [140, 144, 150], 0.03); bS(418.6, 421.4, 0.2, 2.8, -10.9, -10.86, [80, 84, 90], 0.02);
+  for (let b = 418.7; b < 421.4; b += 0.15) S.push(cyl(V(b, 0.1, -10.8), V(b, 2.9, -10.8), 0.012, 0.012, [190, 190, 196], { n: 4 }));
+  wallSign('VAULT', cx, 3.2, -10.95, 0, 1.0, 0.18, { color: '#303030', font: '"IBM Plex Mono", monospace' });
+  { const Vv = BKBV; bFloor(Vv.x0, Vv.x1, Vv.z0, Vv.z1, bankTex.concrete, 1.2); bRoomWalls(Vv, 0, 3.0, bankMat.steel, 1.0, { front: [[2.4, 5.6]] }, 2.8); bCeil(Vv.x0, Vv.x1, Vv.z0, Vv.z1, 3.0, bankTex.steel, 1.0);
+    for (let i = 0; i < 20; i++) for (let j = 0; j < 8; j++) { const x = Vv.x0 + 0.2 + i * 0.38, y = 0.2 + j * 0.34; bS(x, x + 0.36, y, y + 0.32, Vv.z0 + 0.02, Vv.z0 + 0.06, [150, 154, 160], 0.04); }
+    at(pCashPallet(6, 10, 6), 418.6, -14.4, 0); at(pCashPallet(6, 10, 4), 421.4, -14.6, 0.3); at(pMoneyBag(1), 417, -12, 0); at(pMoneyBag(0.9), 423, -12.4, 1); }
+}
+
+{ // all the ceiling panels in one mesh
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(CEIL_LIGHTS, 3));
+  scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xeef4ff, fog: false })));
+}
+
+ROOMS.bkA = { x0: BKA.x0, x1: BKA.x1, z0: BKA.z0, z1: BKA.z1, name: 'Bank · banking hall' };
+ROOMS.bkAv = { x0: BKV.x0, x1: BKV.x1, z0: BKV.z0, z1: BKV.z1, name: 'Bank vault' };
+ROOMS.bk2 = { x0: BK2.x0, x1: BK2.x1, z0: BK2.z0, z1: BK2.z1, name: 'Bank · staff floor' };
+ROOMS.bkB = { x0: BKB.x0, x1: BKB.x1, z0: BKB.z0, z1: BKB.z1, name: 'Bank · banking hall' };
+ROOMS.bkBv = { x0: BKBV.x0, x1: BKBV.x1, z0: BKBV.z0, z1: BKBV.z1, name: 'Bank vault' };
 ROOMS.base = { x0: BASE.x0, x1: BASE.x1, z0: BASE.z0, z1: BASE.z1, name: 'Basement' };
 ROOMS.f2 = { x0: HF.x0, x1: HF.x1, z0: HF.z0, z1: HF.z1, name: 'Hotel corridor' };
 for (const R of HOTEL_ROOMS) ROOMS['h' + R.i] = { x0: R.x0, x1: R.x1, z0: R.z0, z1: R.z1, name: 'Room ' + R.num };
@@ -5214,6 +5861,99 @@ const VIEWS = {
   mansions: { tx: 60, ty: 0, tz: 31, d: 40, yaw: Math.PI - 0.25, pitch: 0.8, free: true }
 };
 VIEWS.basement = { tx: 100, ty: 0.9, tz: 0, d: 6.5, yaw: 0.7, pitch: 0.6 };
+// ================================================================ THE BANK, inside: views, spots, staff, the way in and out
+const bankVersion = () => { try { const v = localStorage.getItem('sh1den-bank-v'); if (v === 'A' || v === 'B') return v; } catch (e) { } const c = window.BAR_CONFIG && window.BAR_CONFIG.bankVersion; return c === 'B' ? 'B' : 'A'; };
+const bankStaff = () => isMod || !!(window.CAREERS && window.CAREERS.mine && window.CAREERS.mine() && window.CAREERS.mine().place === 'bank');
+Object.assign(VIEWS, {
+  bankA: { tx: 300, ty: 1.8, tz: 2, d: 12, yaw: 0, pitch: 0.3 },
+  bankAtell: { tx: 300, ty: 1.4, tz: -4.4, d: 6.5, yaw: 0.3, pitch: 0.24 },
+  bankAdesks: { tx: 287.2, ty: 1.0, tz: 1.4, d: 6.2, yaw: 1.2, pitch: 0.42 },
+  bankAlounge: { tx: 313, ty: 1.0, tz: 1.6, d: 6.2, yaw: -1.15, pitch: 0.42 },
+  bankAmgr: { tx: 313.4, ty: 1.0, tz: -8.6, d: 5.0, yaw: 0.5, pitch: 0.45 },
+  bankAvault: { tx: 300, ty: 1.0, tz: -14.6, d: 5.4, yaw: 0.35, pitch: 0.42 },
+  bank2: { tx: 360, ty: 0, tz: 0, d: 24, yaw: 0, pitch: 1.05, free: true },
+  bank2office: { tx: 351.5, ty: 1.0, tz: -6.5, d: 7, yaw: 0.35, pitch: 0.55 },
+  bank2kitchen: { tx: 347, ty: 1.0, tz: 6, d: 5.4, yaw: -0.55, pitch: 0.45 },
+  bank2lockers: { tx: 354.5, ty: 1.0, tz: 8, d: 4.6, yaw: 0.6, pitch: 0.45 },
+  bank2count: { tx: 372, ty: 1.0, tz: 6, d: 5.6, yaw: -0.45, pitch: 0.45 },
+  bankB: { tx: 420, ty: 1.5, tz: 1, d: 9.5, yaw: 0, pitch: 0.16 },
+  bankBtell: { tx: 420, ty: 1.4, tz: -4.8, d: 6.5, yaw: 0.3, pitch: 0.24 },
+  bankBvault: { tx: 420, ty: 1.0, tz: -14, d: 4.6, yaw: 0.35, pitch: 0.42 }
+});
+for (const k of Object.keys(VIEWS)) if (k.startsWith('bank') && k !== 'bank') VIEWS[k].free = !!VIEWS[k].free;
+// the spots: customers anywhere in the hall, staff behind the counters and upstairs
+function addBankSpots() {
+  const lean = (id, cat, x, z, yaw, label, extra) => addSpot(id, cat, 'lean', x, z, yaw, label, standHit(x, z), extra);
+  const seat = (id, cat, x, z, yaw, label, extra) => addSpot(id, cat, 'sitlow', x, z, yaw, label, hitBox(x, 0.45, z, 0.55, 0.9, 0.55), extra);
+  // version A
+  [[299, 6.6], [301, 6.6], [300.9, 5.3]].forEach(([x, z], i) => lean('bkA-in-' + i, 50, x, z, Math.PI, 'Stand inside the doors'));
+  [[298.8, 1.0], [301.2, 0.2], [298.8, -0.8], [301.2, -1.8], [299.8, -2.4]].forEach(([x, z], i) => lean('bkA-q-' + i, 50, x, z, Math.PI, 'Wait in line'));
+  [292.9, 296.3, 299.7, 303.1, 306.5, 309.9].forEach((x, i) => lean('bkA-win-' + i, 50, x - 0.4 + 0.4, -3.25, Math.PI, 'Step up to window ' + (i + 1)));
+  [[299.2, 3.0, 0], [300.8, 3.0, 0], [299.2, 4.6, Math.PI], [300.8, 4.6, Math.PI]].forEach(([x, z, yaw], i) => lean('bkA-isl-' + i, 50, x, z, yaw, 'Fill out a slip'));
+  [-1.6, 1.4, 4.4].forEach((z, k) => [-1, 1].forEach((s, j) => seat('bkA-cli-' + k + j, 50, 287.55, z + s * 0.38, -Math.PI / 2, 'See the banker')));
+  [[315.6, 3.0, -Math.PI / 2], [315.6, 4.2, -Math.PI / 2], [310.8, 3.0, Math.PI / 2], [310.8, 4.2, Math.PI / 2]].forEach(([x, z, yaw], i) => seat('bkA-sofa-' + i, 50, x, z, yaw, 'Wait on the sofa'));
+  // staff: the tellers' side of the counter, the bankers' chairs, reception, the guard's post, the manager's chair, the vault
+  [296.3, 303.1, 309.9].forEach((x, i) => lean('bkA-tel-' + i, 50, x, -4.95, 0, 'Work window ' + (2 + i * 2), { staff: true }));
+  [-1.6, 1.4].forEach((z, i) => seat('bkA-agt-' + i, 50, 285.8, z, Math.PI / 2, 'Take the banker\'s chair', { staff: true }));
+  lean('bkA-guard', 50, 304.0, 6.2, Math.PI + 0.3, 'Stand guard at the door', { staff: true });
+  seat('bkA-mgr', 50, 313.4, -9.5, 0, "Sit in the manager's chair", { staff: true });
+  [[298.2, -13.0, 0.5], [301.8, -12.6, -0.5]].forEach(([x, z, yaw], i) => lean('bkA-v-' + i, 51, x, z, yaw, 'Count the cash in the vault', { staff: true }));
+  // version B
+  [[419, 6.6], [421, 6.6]].forEach(([x, z], i) => lean('bkB-in-' + i, 53, x, z, Math.PI, 'Stand inside the doors'));
+  [[418.8, 1.0], [421.2, 0.6], [418.8, -0.8], [421.2, -1.2]].forEach(([x, z], i) => lean('bkB-q-' + i, 53, x, z, Math.PI, 'Wait in line'));
+  [412, 416, 420, 424, 428].forEach((x, i) => lean('bkB-win-' + i, 53, x, -3.7, Math.PI, 'Step up to window ' + (i + 1)));
+  [-1.6, 1.4, 4.4].forEach((z, k) => [-1, 1].forEach((s, j) => seat('bkB-cli-' + k + j, 53, 407.5, z + s * 0.35, -Math.PI / 2, 'See a banker')));
+  [0.2, 0.9, 1.6].forEach((z, i) => seat('bkB-wait-' + i, 53, 434, z, -Math.PI / 2, 'Take a seat'));
+  [416, 424].forEach((x, i) => lean('bkB-tel-' + i, 53, x, -5.3, 0, 'Work the window', { staff: true }));
+  [-1.6, 1.4].forEach((z, i) => seat('bkB-agt-' + i, 53, 405.85, z, Math.PI / 2, 'Take the banker\'s chair', { staff: true }));
+  [[418.6, -12.4, 0.4], [421.6, -12.4, -0.4]].forEach(([x, z, yaw], i) => lean('bkB-v-' + i, 54, x, z, yaw, 'Count the cash in the vault', { staff: true }));
+  // the staff floor (everything here is staff only)
+  [[347.6, 7.05, Math.PI], [348.45, 6.2, -Math.PI / 2], [347.6, 5.35, 0], [346.75, 6.2, Math.PI / 2]].forEach(([x, z, yaw], i) => seat('bk2-kit-' + i, 52, x, z, yaw, 'Take a break', { staff: true }));
+  [353.6, 356.4].forEach((x, i) => seat('bk2-lck-' + i, 52, x, 8.0, i ? Math.PI : 0, 'Sit on the locker-room bench', { staff: true }));
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) seat('bk2-cub-' + i + j, 52, 345.0 + i * 3.6, -9.25 + j * 4.2, Math.PI, 'Sit at a desk', { staff: true });
+  for (let k = 0; k < 4; k++) for (const s of [-1, 1]) seat('bk2-conf-' + k + (s > 0 ? 'b' : 'a'), 52, 363.2 + k * 1.2, -6 + s * 1.15, s > 0 ? Math.PI : 0, 'Join the meeting', { staff: true });
+  seat('bk2-sec', 52, 373, -9.3, Math.PI, 'Watch the cameras', { staff: true });
+  for (let k = 0; k < 2; k++) for (let j = 0; j < 3; j++) seat('bk2-cnt-' + k + j, 52, 369 + j * 2, 4.2 + k * 3.2 + 0.9, Math.PI, 'Count money', { staff: true });
+  [[345.2, 0.3, Math.PI / 2], [356, -0.6, 0], [368, 0.5, Math.PI]].forEach(([x, z, yaw], i) => lean('bk2-lean-' + i, 52, x, z, yaw, 'Hang about in the corridor', { staff: true }));
+}
+// the people who work here (the tellers count notes, the guard stands with his arms folded)
+const BANK_NPCS = [
+  { name: 'Doris', act: 'deal', x: 292.9, z: -4.95, yaw: 0, look: { body: 1, skin: 1, head: 4, hair: 2, top: 1, jacket: 2, bottom: 3, shoes: 2, eyes: 1 } },
+  { name: 'Mr. Pennywhistle', act: 'deal', x: 299.7, z: -4.95, yaw: 0, look: { body: 0, skin: 0, head: 0, hair: 1, beard: 3, top: 1, jacket: 0, bottom: 2, shoes: 2, eyes: 1 } },
+  { name: 'Carmen', act: 'deal', x: 306.5, z: -4.95, yaw: 0, look: { body: 1, skin: 3, head: 5, hair: 0, top: 2, jacket: 5, bottom: 2, shoes: 2 } },
+  { name: 'Big Sal', act: 'bouncer', x: 303.4, z: 6.4, yaw: Math.PI + 0.4, look: { body: 0, skin: 2, head: 0, hair: 1, top: 1, jacket: 2, bottom: 2, shoes: 0, eyes: 2 } },
+  { name: 'Ms. Okafor', act: 'sitlow', x: 285.8, z: 4.4, yaw: Math.PI / 2, look: { body: 1, skin: 4, head: 4, hair: 1, top: 2, jacket: 6, bottom: 3, shoes: 2 } },
+  { name: 'Gloria', act: 'sitlow', x: 312.6, z: -1.95, yaw: 0, look: { body: 1, skin: 1, head: 6, hair: 3, top: 2, jacket: 5, bottom: 3, shoes: 2, eyes: 1 } },
+  { name: 'Teller Kim', act: 'deal', x: 420, z: -5.3, yaw: 0, look: { body: 1, skin: 1, head: 5, hair: 1, top: 3, jacket: 4, bottom: 1, shoes: 1 } },
+  { name: 'Officer Dunn', act: 'bouncer', x: 423.8, z: 6.4, yaw: Math.PI, look: { body: 0, skin: 2, head: 3, hair: 1, top: 4, jacket: 4, bottom: 0, shoes: 0 } },
+  { name: 'Mr. Vance', act: 'sitlow', x: 405.85, z: 4.4, yaw: Math.PI / 2, look: { body: 0, skin: 0, head: 1, hair: 2, top: 1, jacket: 2, bottom: 2, shoes: 2, eyes: 1 } }
+];
+const bankNpcHook = () => {
+  for (const N of BANK_NPCS) {
+    const lk = Object.assign(randomLook(rngFrom(hashStr(N.name))), N.look, { smoke: 0, spot: 1 });
+    for (const k in lk) if (LOOK[k]) lk[k] = Math.max(0, Math.min(LOOK[k].length - 1, lk[k] | 0));
+    const ch = addChar(lk, N.name, { npc: true, seedName: N.name.toLowerCase(), staff: true });
+    ch.act = N.act; ch.root.position.set(N.x, 0, N.z); ch.root.rotation.y = N.yaw;
+  }
+};
+// in and out
+function enterBank() {
+  const v = bankVersion();
+  setView(v === 'B' ? 'bankB' : 'bankA');
+  if (hasCharacter()) { const free = ['0', '1', '2'].map((k) => 'bk' + v + '-in-' + k).find((id) => SPOT_BY_ID[id] && !spotOwner.has(id)); if (free) goTo(free); }
+  try { if (!localStorage.getItem('sh1den-bank-in')) { localStorage.setItem('sh1den-bank-in', '1'); setTimeout(() => toast('Sh1den City Bank. Mind the velvet rope.'), 600); } } catch (e) { }
+}
+function leaveBank() {
+  setView('bank');
+  if (hasCharacter() && window.TRAVEL) window.TRAVEL.standAt('bank');
+}
+function goBankUp() {
+  if (!bankStaff()) { toast('Staff only. Get a job at the bank first.'); return; }
+  setView('bank2'); if (hasCharacter()) { const id = ['bk2-lean-0', 'bk2-lean-1', 'bk2-lean-2'].find((k) => !spotOwner.has(k)); if (id) goTo(id); }
+}
+function goBankDown() { enterBank(); }
+const isBankZone = (z) => z === 'bank' || z === 'bank2' || z === 'bankb';
+
 VIEWS.f2 = { tx: 208.5, ty: 0, tz: 0, d: 13, yaw: 0, pitch: 1.05, free: true };
 for (const R of HOTEL_ROOMS) VIEWS['room' + R.i] = { tx: R.x0 + 2.5, ty: 0.9, tz: R.side * 4.1, d: 6, yaw: R.side > 0 ? Math.PI - 0.6 : -0.6, pitch: 0.6 };
 for (const k in VIEWS) VIEWS[k].free = !!VIEWS[k].free;
@@ -5240,6 +5980,7 @@ function setView(name) {
   if ((name === 'vip' || name === 'viptv') && !vipOk()) return;
   if ((name === 'f2' || /^room\d$/.test(name)) && !floor2Ok()) { toast('The second floor is under construction. Come back soon.'); return; }
   if (/^room\d$/.test(name) && !roomOk(+name.slice(4))) { toast(window.HOTEL && window.HOTEL.ownerOf(+name.slice(4)) ? "That room's taken. The door's locked." : 'That room is free. Ask Charon at the bar to rent it.'); return; }
+  if (name.startsWith('bank2') && !bankStaff()) { toast('Staff only. Get a job at the bank first.'); return; }
   if (name === 'card' && !cardOpen && !isMod) { toast('Casino Royale is closed. Poker nights only happen when sh1den is in.'); return; }
   follow = null; velYaw = velPitch = 0;
   cutTo(() => Object.assign(camT, VIEWS[name]));
@@ -5317,9 +6058,12 @@ window.addEventListener('keyup', (e) => {
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 const BIRD = { pitch: 1.3, d: 14, x0: -84, x1: 86, z0: -50, z1: 56 };
 // which floor the camera is on: the bar, the basement or the hotel, each with its own bounds for free looking
-const zoneOf = (x) => (x > 150 ? 'f2' : x > 80 ? 'base' : 'main');
+const zoneOf = (x) => (x > 460 ? 'dev' : x > 390 ? 'bankb' : x > 340 ? 'bank2' : x > 280 ? 'bank' : x > 150 ? 'f2' : x > 80 ? 'base' : 'main');
 function zoneBounds() {
   const z = zoneOf(camT.tx);
+  if (z === 'bank') return { x0: 283.5, x1: 316.5, z0: -17.5, z1: 10.5 };
+  if (z === 'bank2') return { x0: 343.5, x1: 376.5, z0: -10.5, z1: 10.5 };
+  if (z === 'bankb') return { x0: 403.5, x1: 436.5, z0: -16.5, z1: 10.5 };
   return z === 'f2' ? { x0: 196.5, x1: 220.5, z0: -6.5, z1: 6.5 } : z === 'base' ? { x0: 97, x1: 103, z0: -2.6, z1: 2.6 } : BIRD;
 }
 function keyboardPan(dt) {
@@ -5359,6 +6103,8 @@ function placeLabels() {
       const r = roomAt(ch.root.position.x, ch.root.position.z);
       // tags only for people in the room you're looking at (walls don't hide HTML tags, so others would show through)
       if (here && r !== here) show = false;
+      // and never someone on another floor or building far away
+      if (zoneOf(ch.root.position.x) !== zoneOf(cam.tx)) show = false;
       if (hiddenInVip(ch)) show = false;
     }
     if (el) {
@@ -5499,6 +6245,12 @@ OBJECTS.push({ id: 'stairsdown', label: 'Back downstairs to the bar', hit: hitBo
 OBJECTS.push({ id: 'baseup', label: 'Climb back up', hit: hitBox(102.0, 1.2, -2.55, 3.0, 2.4, 0.9), cat: 12, floor: [101.0, -2.0], size: 0.6 });
 OBJECTS.push({ id: 'dj', label: 'Talk to the DJ', hit: hitBox(22.85, 1.1, 0, 0.6, 1.9, 0.7), cat: 0, floor: [21.6, 0], size: 0.5 });
 // the people to ask about work around town
+OBJECTS.push({ id: 'bankdoor', label: 'Go into the bank', hit: hitBox(-16, 1.6, 22.0, 3.6, 3.4, 0.9), cat: 40, floor: [-16, 21.4], size: 1.2 });
+OBJECTS.push({ id: 'bankupA', label: 'Staff stairs (employees only)', hit: hitBox(283.8, 1.8, -7.5, 1.6, 3.6, 5.6), cat: 50, floor: [283.8, -5.4], size: 0.6 });
+OBJECTS.push({ id: 'bankupB', label: 'Employees only (stairs up)', hit: hitBox(405.6, 1.2, -10.6, 1.6, 2.4, 0.8), cat: 53, floor: [405.6, -10.0], size: 0.6 });
+OBJECTS.push({ id: 'bankdown', label: 'Down to the banking hall', hit: hitBox(343.6, 1.2, 0, 0.8, 2.4, 2.0), cat: 52, floor: [344.2, 0], size: 0.6 });
+OBJECTS.push({ id: 'bankexitA', label: 'Leave the bank', hit: hitBox(300, 1.4, 10.2, 2.2, 2.8, 1.2), cat: 50, floor: [300, 9.0], size: 0.8 });
+OBJECTS.push({ id: 'bankexitB', label: 'Leave the bank', hit: hitBox(420, 1.2, 10.8, 3.0, 2.4, 0.6), cat: 53, floor: [420, 9.8], size: 0.8 });
 for (const N of PLACE_NPCS) OBJECTS.push({ id: N.id, label: N.title, hit: hitBox(N.x, N.y + 0.95, N.z, 0.9, 1.9, 0.9), cat: 40, floor: [N.x, N.z], size: 0.5, y: N.y });
 // (pushed into REBUILD_HOOKS once that list exists, further down)
 const placeNpcHook = () => {
@@ -5509,7 +6261,128 @@ const placeNpcHook = () => {
     ch.act = 'lean'; ch.root.position.set(N.x, N.y, N.z); ch.root.rotation.y = N.yaw;
   }
 };
-const CAT_ROOM = { 15: ROOMS.wcW, 11: ROOMS.lounge, 12: ROOMS.base, 13: ROOMS.f2, 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley, 8: ROOMS.change, 9: ROOMS.wcM, 10: ROOMS.card };
+// ================================================================ GETTING AROUND: a taxi waits outside every place; fast travel from anywhere costs more
+// where each place's sidewalk is, which way you face standing there, and where its taxi waits on Main Street's parking lane
+const POIS = {
+  bar: { name: "Sh1den's bar", view: 'street', spots: ['street-wall-0', 'street-wall-1', 'street-wall-2', 'street-wall-3'], x: 0, z: 4.6, taxi: -15.5 },
+  bank: { name: 'Bank', view: 'bank', x: -16, z: 14.6, yaw: 0, along: [-19.5, -18, -14, -12.5], taxi: -21.5 },
+  court: { name: 'Courthouse', view: 'court', x: 18, z: 14.6, yaw: 0, along: [14.5, 16, 20, 21.5], taxi: 21.5 },
+  cardealer: { name: 'Sh1den Motors', view: 'carshop', x: 60, z: 5.3, yaw: Math.PI, along: [55, 56.5, 63.5, 65], taxi: 53.5 },
+  clothes: { name: 'Threads & Co.', view: 'clothes', x: -65.5, z: 5.3, yaw: Math.PI, along: [-69, -67.5, -63.5, -62], taxi: -66 },
+  realty: { name: 'Hearth & Key', view: 'realty', x: -49, z: 5.3, yaw: Math.PI, along: [-52, -50.5, -47.5, -46], taxi: -49.5 },
+  homes: { name: 'Residential street', view: 'homes', x: -58, z: 14.6, yaw: 0, along: [-62, -60.5, -56, -54.5], taxi: -58 },
+  mansions: { name: 'Mansion row', view: 'mansions', x: 60, z: 14.6, yaw: 0, along: [50, 51.5, 66, 67.5], taxi: 70 }
+};
+const TAXI_Z = 7.75;
+// standing spots on each place's sidewalk (the bar uses the ones outside its door)
+function addPoiSpots() {
+  for (const [k, P] of Object.entries(POIS)) {
+    if (!P.along) continue;
+    P.spots = P.along.map((x, i) => { const id = 'poi-' + k + '-' + i; addSpot(id, 40, 'lean', x, P.z, P.yaw, 'Stand outside ' + P.name, standHit(x, P.z)); return id; });
+  }
+}
+// where you are now: which place, and how many doors between you and its sidewalk
+function myPlace() {
+  const s = SPOT_BY_ID[myState.s]; if (!s) return null;
+  const m = s.id.match(/^poi-([a-z]+)-/); if (m) return { k: m[1], steps: 0 };
+  if (s.id.startsWith('street-wall')) return { k: 'bar', steps: 0 };
+  if (/^bk[AB]-v-/.test(s.id)) return { k: 'bank', steps: 2 };
+  if (/^bk[AB]-/.test(s.id)) return { k: 'bank', steps: 1 };
+  if (s.id.startsWith('bk2-')) return { k: 'bank', steps: 2 };
+  if (s.cat === 12) return { k: 'bar', steps: 2 };              // the basement: up the ladder, out through the bar
+  if (s.cat === 13 || s.cat >= 20 && s.cat < 40) return { k: 'bar', steps: 2 };   // the hotel: downstairs, then out
+  if (s.cat === 7) return { k: 'bar', steps: 1 };                // the courtyard out back
+  return { k: 'bar', steps: 1 };
+}
+const poiDist = (a, b) => Math.hypot(POIS[a].x - POIS[b].x, POIS[a].z - POIS[b].z);
+const taxiFee = (a, b) => (a === b ? 0 : 3 + Math.round(poiDist(a, b) / 8));
+const carFee = (a, b) => (a === b ? 0 : 1 + Math.round(poiDist(a, b) / 20));
+function fastFee(b) {
+  const me = myPlace(); if (!me) return 0;
+  if (me.k === b && me.steps === 0) return 0;
+  return Math.round(taxiFee(me.k, b) * 1.5) + 6 + me.steps * 5;
+}
+const ownsCar = () => !!(window.EXTRAS && window.EXTRAS.myCar && window.EXTRAS.myCar());
+function standAt(k) {
+  const P = POIS[k]; if (!P || !hasCharacter()) return;
+  const free = P.spots.find((id) => SPOT_BY_ID[id] && !spotOwner.has(id)) || P.spots[0];
+  goTo(free);
+}
+async function travelTo(k, fee, how) {
+  if (!hasCharacter()) { setView(POIS[k].view); return; }
+  if (fee > 0) {
+    const ok = window.EXTRAS && window.EXTRAS.spend ? await window.EXTRAS.spend(fee) : true;
+    if (!ok) { toast('Not enough sh1den coins for that (' + fee + ').'); return; }
+  }
+  standAt(k); setView(POIS[k].view);
+  toast((how === 'car' ? '🚗 You drive' : how === 'taxi' ? '🚕 The taxi drops you' : '⚡ You arrive') + ' at ' + POIS[k].name + (fee > 0 && !isMod ? ' · −' + fee + ' 🪙' : '') + '.');
+}
+// the taxis: a yellow sedan with a lit roof sign outside every place; yours shows your own car instead once you own one
+const taxis = {};
+for (const [k, P] of Object.entries(POIS)) {
+  const g = carGroup(carParts('sedan', [214, 170, 30]));
+  g.add(new THREE.Mesh(toGeometry([box(-0.28, 0.28, 1.36, 1.56, -0.12, 0.12, [255, 226, 120], 0)]), glowMat));
+  g.add(new THREE.Mesh(toGeometry([box(-1.2, 1.2, 0.55, 0.62, -0.905, 0.905, [20, 20, 20], 0)]), roomMat));
+  g.position.set(P.taxi, ROAD_Y, TAXI_Z); scene.add(g);
+  taxis[k] = g;
+  OBJECTS.push({ id: 'taxi-' + k, label: 'Take a taxi', hit: hitBox(P.taxi, 0.8, TAXI_Z, 4.6, 1.6, 2.0), cat: 40, floor: [P.taxi, TAXI_Z], size: 1.2 });
+}
+let myCarModel = null, myCarKey = '';
+setInterval(() => {
+  const me = myPlace(), own = ownsCar();
+  const spec = own && window.EXTRAS.myCarSpec ? window.EXTRAS.myCarSpec() : null;
+  const key = spec ? spec.style + spec.color + (spec.name || '') : '';
+  if (key !== myCarKey) {
+    if (myCarModel) { scene.remove(myCarModel); myCarModel = null; }
+    myCarKey = key;
+    if (spec) { const sig = signatureCar(spec.name), col = CAR_COLORS[spec.color] || CAR_COLORS[0]; myCarModel = sig ? carGroup(carParts(sig.style, TUXES[sig.gem].jacket.map((v) => Math.round(v * 0.78))), null, sig.gem) : carGroup(carParts(CAR_STYLES.includes(spec.style) ? spec.style : 'coupe', col[1])); scene.add(myCarModel); myCarModel.visible = false; }
+  }
+  for (const k in taxis) {
+    const mine = !!(myCarModel && me && me.k === k && me.steps === 0);
+    taxis[k].visible = !mine;
+    if (mine) { myCarModel.position.set(POIS[k].taxi, ROAD_Y + 0.02, TAXI_Z); myCarModel.rotation.y = 0; myCarModel.visible = true; }
+  }
+  if (myCarModel && !(me && me.steps === 0)) myCarModel.visible = false;
+}, 700);
+// the taxi menu: where to, and what it costs from here
+let taxiMenu = null;
+function openTaxiMenu(k, x, y) {
+  if (!hasCharacter()) { openCreator(); return; }
+  const me = myPlace();
+  if (!me || me.k !== k || me.steps > 0) { toast("You're not standing out here. Walk out to the street first, or fast-travel from Places (it costs more)."); return; }
+  if (!taxiMenu) { taxiMenu = document.createElement('div'); taxiMenu.className = 'popmenu'; taxiMenu.id = 'taxiMenu'; taxiMenu.hidden = true; document.getElementById('stage').appendChild(taxiMenu); document.addEventListener('pointerdown', (e) => { if (taxiMenu && !taxiMenu.hidden && !taxiMenu.contains(e.target)) taxiMenu.hidden = true; }, true); }
+  const car = ownsCar();
+  taxiMenu.textContent = '';
+  const h = document.createElement('div'); h.className = 'dmTitle'; h.textContent = car ? '🚗 Your car · where to?' : '🚕 Taxi · where to?'; taxiMenu.appendChild(h);
+  for (const [d, P] of Object.entries(POIS)) {
+    if (d === k) continue;
+    const fee = car ? carFee(k, d) : taxiFee(k, d);
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = P.name + ' · ' + (isMod ? 'free' : fee + ' 🪙');
+    b.onclick = () => { taxiMenu.hidden = true; travelTo(d, fee, car ? 'car' : 'taxi'); };
+    taxiMenu.appendChild(b);
+  }
+  const r = document.getElementById('stage').getBoundingClientRect();
+  taxiMenu.hidden = false;
+  taxiMenu.style.left = Math.max(12, Math.min(r.width - 240, x - r.left + 10)) + 'px';
+  taxiMenu.style.top = Math.max(60, Math.min(r.height - taxiMenu.offsetHeight - 70, y - r.top - 40)) + 'px';
+}
+// the Places menu: travel options carry the fast-travel fee from wherever you are now
+const PLACE_OPT = { street: 'bar', carshop: 'cardealer', clothes: 'clothes', realty: 'realty', bank: 'bank', court: 'court', homes: 'homes', mansions: 'mansions' };
+function labelPlaces() {
+  const sel = document.getElementById('roomSelect'); if (!sel) return;
+  const me = hasCharacter() ? myPlace() : null;
+  for (const o of sel.options) {
+    const k = PLACE_OPT[o.value]; if (!k) continue;
+    if (!o.dataset.base) o.dataset.base = o.textContent;
+    if (!me) { o.textContent = o.dataset.base; continue; }
+    const f = fastFee(k);
+    o.textContent = o.dataset.base + (me.k === k && me.steps === 0 ? ' · you\'re here' : ' · ' + (isMod ? 'free' : f + ' 🪙'));
+  }
+}
+window.TRAVEL = { POIS, myPlace, fastFee, taxiFee, travelTo, standAt, labelPlaces };
+
+addPoiSpots(); addBankSpots();
+const CAT_ROOM = { 50: ROOMS.bkA, 51: ROOMS.bkAv, 52: ROOMS.bk2, 53: ROOMS.bkB, 54: ROOMS.bkBv, 15: ROOMS.wcW, 11: ROOMS.lounge, 12: ROOMS.base, 13: ROOMS.f2, 0: ROOMS.dance, 1: ROOMS.bar, 2: ROOMS.tv, 3: ROOMS.pool, 4: ROOMS.vip, 5: ROOMS.swim, 6: ROOMS.street, 7: ROOMS.alley, 8: ROOMS.change, 9: ROOMS.wcM, 10: ROOMS.card };
 for (const R of HOTEL_ROOMS) CAT_ROOM[20 + R.i] = ROOMS['h' + R.i];
 const targets = SPOT_LIST.map((s) => ({ kind: 'spot', s, box: new THREE.Box3(new THREE.Vector3(s.hit.x - s.hit.sx / 2, s.hit.y - s.hit.sy / 2, s.hit.z - s.hit.sz / 2), new THREE.Vector3(s.hit.x + s.hit.sx / 2, s.hit.y + s.hit.sy / 2, s.hit.z + s.hit.sz / 2)) }))
   .concat(OBJECTS.map((o) => ({ kind: 'object', o, box: new THREE.Box3(new THREE.Vector3(o.hit.x - o.hit.sx / 2, o.hit.y - o.hit.sy / 2, o.hit.z - o.hit.sz / 2), new THREE.Vector3(o.hit.x + o.hit.sx / 2, o.hit.y + o.hit.sy / 2, o.hit.z + o.hit.sz / 2)) })));
@@ -5541,6 +6414,7 @@ function describe(tg) {
   const s = tg.s, owner = spotOwner.get(s.id);
   if (owner && owner.mine) return { ok: false, text: "You're here" };
   if (s.hostOnly) return { ok: !!(myChar() && myChar().host) && !owner, text: owner ? (owner.name || 'Taken') + "'s spot" : (s.lockText || "The host's chair") };
+  if (s.staff && !bankStaff() && !(owner && owner.mine)) return { ok: false, text: 'Staff only · bank employees' };
   if (s.cat === 4 && !vipOk()) return { ok: false, text: 'VIP only: spend 1,000 coins to get in' };
   if (s.cat === 10 && !cardOpen && !(myChar() && myChar().host)) return { ok: false, text: 'Closed · private game' };
   if (owner && owner.uid && !owner.npc) return { ok: true, text: owner.name + ' · options', player: owner };
@@ -5556,7 +6430,7 @@ function pickTarget(clientX, clientY) {
   let best = null, bestD = Infinity;
   for (const tg of targets) {
     const room = tg.kind === 'spot' ? CAT_ROOM[tg.s.cat] : CAT_ROOM[tg.o.cat];
-    if (here && room !== here) continue;
+    if (here && room && room !== here) continue;
     if (!vipOk() && room === ROOMS.vip && !(tg.kind === 'spot' && tg.s.hostOnly && myChar() && myChar().host)) continue;
     if (raycaster.ray.intersectBox(tg.box, hitPoint)) {
       const d = hitPoint.distanceTo(raycaster.ray.origin);
@@ -5615,6 +6489,11 @@ function activate(tg, x, y) {
   if (id0 === 'slots') { if (window.SOCIAL) window.SOCIAL.openSlots(); showHover(null); return; }
   if (id0 === 'beggar') { if (window.SOCIAL) window.SOCIAL.openBeggar(); showHover(null); return; }
   if (id0 === 'bouncer-front' || id0 === 'bouncer-back') { bouncerTalk(id0.slice(8)); showHover(null); return; }
+  if (id0.startsWith('taxi-')) { openTaxiMenu(id0.slice(5), x, y); showHover(null); return; }
+  if (id0 === 'bankdoor') { enterBank(); showHover(null); return; }
+  if (id0 === 'bankupA' || id0 === 'bankupB') { goBankUp(); showHover(null); return; }
+  if (id0 === 'bankdown') { goBankDown(); showHover(null); return; }
+  if (id0 === 'bankexitA' || id0 === 'bankexitB') { leaveBank(); showHover(null); return; }
   if (id0 === 'trapdoor') { enterBasement(); showHover(null); return; }
   if (id0 === 'baseup') { leaveBasement(); showHover(null); return; }
   if (id0 === 'stairs2') { goUpstairs(); showHover(null); return; }
@@ -5762,6 +6641,7 @@ function toast(text) {
 // ================================================================ v42: restroom, VIP glass, Charon, card room, coins, lot, events
 const PRE_HOOKS = [], POST_HOOKS = [], REBUILD_HOOKS = [];
 REBUILD_HOOKS.push(placeNpcHook);
+REBUILD_HOOKS.push(bankNpcHook);
 POST_HOOKS.push(cinemaHook);
 PRE_HOOKS.push((dt, t) => fountainTick(dt, t));
 // who is sitting at which lounge table (they toast together when two or more share one)
@@ -6202,6 +7082,7 @@ function applyVipAccess() {
   const ok = vipOk();
   $('v-vip').hidden = !ok;
   if (roomSel) { const o = roomSel.querySelector('option[value="vip"]'); if (o) o.hidden = o.disabled = !ok; }
+  if (roomSel) for (const o of roomSel.querySelectorAll('[data-admin]')) o.hidden = o.disabled = !isMod;
 }
 // ---- the gold tuxedo: a shining gold suit with a warm glow around whoever wears it
 let perks = {};
@@ -6609,6 +7490,7 @@ function tick() {
   fireLight.intensity = 1.3 + 0.12 * Math.sin(t * 0.8);
   neonLight.intensity = 0.7;
   driveTraffic(dt); walkPeds(dt, t);
+  if (isBankZone(zoneOf(cam.tx))) for (const f of BANK_ANIM) f(dt, t);
   backLight.intensity = Math.random() < 0.02 ? 0.25 : 1.1;
   waterTex.offset.set((t * 0.03) % 1, (t * 0.017) % 1);
   waterLight.intensity = 0.9 + 0.15 * Math.sin(t * 1.7);
@@ -6660,7 +7542,7 @@ const roomTints = HOTEL_ROOMS.map((R2) => { const m = new THREE.Mesh(new THREE.B
 POST_HOOKS.push((dt, t) => {
   const r = roomAt(cam.tx, cam.tz), zone = zoneOf(cam.tx);
   const HR = camT.free ? null : HOTEL_ROOMS.find((Q) => ROOMS['h' + Q.i] === r);
-  const key = zone === 'base' ? 'base' : HR ? 'h' : zone === 'f2' ? 'f2' : '';
+  const key = zone === 'base' ? 'base' : HR ? 'h' : zone === 'f2' ? 'f2' : isBankZone(zone) ? zone : '';
   for (const R2 of HOTEL_ROOMS) roomTints[R2.i].visible = zone === 'f2' && !roomOk(R2.i);
   const [A, B] = floorLights;
   const swing = 0.12 * Math.sin(t * 0.9), swing2 = 0.06 * Math.sin(t * 1.3 + 1);
@@ -6674,6 +7556,15 @@ POST_HOOKS.push((dt, t) => {
   } else if (key === 'h') {
     A.color.setHex(0xffd0a0); A.position.set(HR.x0 + 2.5, 2.7, HR.side * 4.1); A.distance = 7; A.intensity = 0.95;
     B.color.setHex(0xffb070); B.position.set(HR.x0 + 1.5, 1.0, HR.side * 6.5); B.distance = 4; B.intensity = 0.7;
+  } else if (key === 'bank') {
+    A.color.setHex(0xffd8a8); A.position.set(300, 5.0, 1.5); A.distance = 26; A.intensity = 1.5;
+    B.color.setHex(0xfff0d0); B.position.set(cam.tx < 296 ? 288 : cam.tx > 304 ? 312 : 300, 2.6, cam.tz < -8 ? -14 : -6); B.distance = 12; B.intensity = 1.0;
+  } else if (key === 'bank2') {
+    A.color.setHex(0xeef4ff); A.position.set(cam.tx, 2.9, -5.5); A.distance = 14; A.intensity = 1.2;
+    B.color.setHex(0xeef4ff); B.position.set(cam.tx, 2.9, 5.5); B.distance = 14; B.intensity = 1.2;
+  } else if (key === 'bankb') {
+    A.color.setHex(0xf0f6ff); A.position.set(420, 3.1, 0); A.distance = 24; A.intensity = 1.4;
+    B.color.setHex(0xf6faff); B.position.set(420, 2.6, cam.tz < -8 ? -13 : -6); B.distance = 12; B.intensity = 1.0;
   } else { A.intensity = 0; B.intensity = 0; }
   const room = HR ? HR.i : -1;
   if (roomCss && room !== floorRoom) {
@@ -6685,10 +7576,16 @@ POST_HOOKS.push((dt, t) => {
 });
 function updateFloorUI() {
   const ex = $('exitBase'); if (ex) ex.hidden = floorKey !== 'base';
-  const fb = $('floorBtn'); if (fb) { fb.textContent = floorKey === 'f2' || floorKey === 'h' ? '⇣ Downstairs' : '⇡ Upstairs'; fb.hidden = floorKey === 'base'; }
+  const eb = $('exitBank'); if (eb) eb.hidden = !isBankZone(floorKey);
+  const fb = $('floorBtn');
+  if (fb) {
+    if (isBankZone(floorKey)) { fb.textContent = floorKey === 'bank2' ? '⇣ Banking hall' : '⇡ Staff floor'; fb.hidden = !bankStaff(); }
+    else { fb.textContent = floorKey === 'f2' || floorKey === 'h' ? '⇣ Downstairs' : '⇡ Upstairs'; fb.hidden = floorKey === 'base'; }
+  }
 }
 if ($('exitBase')) $('exitBase').onclick = () => leaveBasement();
-if ($('floorBtn')) $('floorBtn').onclick = () => (floorKey === 'f2' || floorKey === 'h' ? goDownstairs() : goUpstairs());
+if ($('floorBtn')) $('floorBtn').onclick = () => (floorKey === 'bank2' ? goBankDown() : isBankZone(floorKey) ? goBankUp() : floorKey === 'f2' || floorKey === 'h' ? goDownstairs() : goUpstairs());
+if ($('exitBank')) $('exitBank').onclick = () => leaveBank();
 updateFloorUI();
 function updateRosterUI() {
   const people = crowd.filter((c) => !c.host && !c.npc && c !== draftChar);
@@ -6843,7 +7740,18 @@ $('track').onclick = () => { if (hasCharacter() || !(window.NET && window.NET.on
 for (const v of ['bar', 'lounge', 'dance', 'swim', 'tv', 'pool', 'card', 'sec', 'vip', 'change', 'street', 'alley', 'map']) $('v-' + v).onclick = () => setView(v);
 // phones: one dropdown instead of a row of room buttons
 const roomSel = $('roomSelect');
-if (roomSel) roomSel.onchange = () => { const v = roomSel.value; if (v) setView(v); setTimeout(() => { roomSel.value = ''; }, 300); };
+if (roomSel) {
+  roomSel.onchange = () => {
+    const v = roomSel.value; setTimeout(() => { roomSel.value = ''; }, 300);
+    if (!v) return;
+    if (v === 'bankpickA' || v === 'bankpickB') { try { localStorage.setItem('sh1den-bank-v', v.slice(-1)); } catch (e) { } toast('Bank hall: version ' + v.slice(-1) + ' (on this device).'); enterBank(); return; }
+    const k = PLACE_OPT[v];
+    if (k && hasCharacter()) { const me = myPlace(); if (!(me && me.k === k && me.steps === 0)) { travelTo(k, fastFee(k), 'fast'); return; } }
+    setView(v);
+  };
+  for (const ev of ['focus', 'mousedown', 'touchstart', 'pointerdown']) roomSel.addEventListener(ev, labelPlaces);
+  setInterval(labelPlaces, 5000);
+}
 $('findMe').onclick = () => { const me = crowd.find((c) => c.mine); if (me) focusChar(me); else openCreator(); };
 
 // ---------------------------------------------------------------- API for the room layer (net.js)
@@ -6858,6 +7766,7 @@ window.BAR = {
   setExtJazz(on) { extJazz = !!on; updateTrackUI(); },
   jukeInfo: () => ({ track: trackIdx, jazz: JAZZ_TRACKS.includes(trackIdx), ducked, muted, extJazz, running: !!(actx && actx.state === 'running') }),
   setView(v) { setView(v); },
+  enterBank, leaveBank, bankVersion,
   isHost: () => isHostEntry(),
   myUid: () => myUid,
   hotelRooms: () => HOTEL_ROOMS.map((R) => ({ i: R.i, num: R.num })),
@@ -6885,6 +7794,7 @@ window.BAR = {
   _lot: () => [...lotCars.entries()].map(([u, g]) => [u, g.position.x, g.position.z, g.rotation.y]),
   _peds: () => PEDS.map((p) => [p.ch.root.position.x, p.ch.root.position.z]),
   _cam(o) { follow = null; Object.assign(camT, o); },
+  _show(kind, col, gem, x, z) { const g = carGroup(carParts(kind, col || [120, 120, 126]), null, gem); g.position.set(x || 500, 0, z || 500); scene.add(g); const l = new THREE.PointLight(0xffffff, 1.4, 14, 1.5); l.position.set((x || 500) + 2, 3, (z || 500) + 3); scene.add(l); return true; },
   _traffic: (n, dt) => { for (let i = 0; i < (n || 0); i++) driveTraffic(dt || 0.05); return traffic.map((c) => [c.x, c.z, c.v, c.hx, c.hz]); },
   _pose(look, act, t, ph, extra) { const ch = Object.assign({ bones: {}, phase: ph || 0, look }, extra || {}); for (const k of ZERO) ch.bones[k] = { rotation: { x: 0, y: 0, z: 0, set(a, b, c) { this.x = a; this.y = b; this.z = c; } }, position: { x: 0, y: 0, z: 0, set(a, b, c) { this.x = a; this.y = b; this.z = c; } } }; pose(ch, act, 0, t); const o = {}; for (const k of ZERO) o[k] = [ch.bones[k].rotation.x, ch.bones[k].rotation.y, ch.bones[k].rotation.z, ch.bones[k].position.x, ch.bones[k].position.y, ch.bones[k].position.z]; return { o, PIV, PARENT }; },
   _car(kind, color) { const K = carParts(kind, color || [176, 18, 24]); const out = []; for (const [k, arr] of Object.entries(K)) for (const part of arr) part.tris.forEach((t, i) => out.push([t.map((v) => v.slice()), part.shade ? part.shade(t[0], norm(cross(sub(t[1], t[0]), sub(t[2], t[0]))), part.cols[i]) : part.cols[i], k])); return out; },

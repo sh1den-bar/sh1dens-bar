@@ -339,7 +339,8 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
   background: var(--panel); border: 1px solid rgba(226, 180, 103, 0.45); box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
 #npcMenu .dmTitle { font-family: var(--deco); color: var(--neon); font-size: 18px; margin: 0 0 4px; }
 #npcMenu button { text-align: left; }
-#floorBtn, #exitBase { pointer-events: auto; }
+#floorBtn, #exitBase, #exitBank { pointer-events: auto; }
+#exitBank { background: #10261a; border-color: #c8964a; color: #f0deb0; }
 #exitBase { background: #2a0a0e; border-color: #c8143c; color: #ffd6de; }
 /* v61: custom cursors everywhere (cursors.js draws them) */
 html, body, #stage, canvas { cursor: var(--cur, default); }
@@ -480,9 +481,19 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
         <option value="tv">Cinema</option><option value="pool">Billiards</option><option value="card">Casino Royale</option><option value="sec">Security</option><option value="vip" hidden disabled>VIP</option>
         <option value="street">Front door</option><option value="alley">Backstreet</option>
       </optgroup>
+      <optgroup label="Bank · inside (host preview)" data-admin hidden>
+        <option value="bankpickA" data-admin hidden>Banking hall · version A (Grand Hall)</option>
+        <option value="bankpickB" data-admin hidden>Banking hall · version B ('94 Branch)</option>
+        <option value="bankAtell" data-admin hidden>A · teller line</option><option value="bankAdesks" data-admin hidden>A · private bankers</option>
+        <option value="bankAlounge" data-admin hidden>A · reception &amp; lounge</option><option value="bankAmgr" data-admin hidden>A · manager's office</option>
+        <option value="bankAvault" data-admin hidden>A · the vault</option><option value="bankBtell" data-admin hidden>B · teller line</option><option value="bankBvault" data-admin hidden>B · the vault</option>
+        <option value="bank2" data-admin hidden>Staff floor (overview)</option><option value="bank2office" data-admin hidden>Staff floor · back office</option>
+        <option value="bank2kitchen" data-admin hidden>Staff floor · kitchen</option><option value="bank2lockers" data-admin hidden>Staff floor · lockers</option><option value="bank2count" data-admin hidden>Staff floor · counting room</option>
+      </optgroup>
     </select>
     <button id="floorBtn" type="button">⇡ Upstairs</button>
     <button id="exitBase" type="button" hidden>Exit basement</button>
+    <button id="exitBank" type="button" hidden>⇠ Leave the bank</button>
     </div>
   </div>
 
@@ -681,16 +692,16 @@ input[type="text"], input:not([type]), input[type="number"], textarea { cursor: 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <!-- bump ?v= after each update so browsers load the new files right away -->
-<script src="config.js?v=64"></script>
-<script src="net.js?v=64"></script>
-<script src="bar.js?v=64"></script>
-<script src="pool.js?v=64"></script>
-<script src="extras.js?v=64"></script>
-<script src="poker.js?v=64"></script>
-<script src="cursors.js?v=64"></script>
-<script src="social.js?v=64"></script>
-<script src="hotel.js?v=64"></script>
-<script src="careers.js?v=64"></script>
+<script src="config.js?v=65"></script>
+<script src="net.js?v=65"></script>
+<script src="bar.js?v=65"></script>
+<script src="pool.js?v=65"></script>
+<script src="extras.js?v=65"></script>
+<script src="poker.js?v=65"></script>
+<script src="cursors.js?v=65"></script>
+<script src="social.js?v=65"></script>
+<script src="hotel.js?v=65"></script>
+<script src="careers.js?v=65"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);

@@ -309,6 +309,7 @@ window.EXTRAS = {
   isOwner: () => isOwner(),
   myCoins: () => (mine && mine.n) || 0,
   myCar: () => !!cars[myUid()],
+  myCarSpec: () => (cars[myUid()] ? Object.assign({ name: NET().myName && NET().myName() }, cars[myUid()]) : null),
   mySpent: spent,
   hasCoinsRecord: () => !!mine,
   start, openCoins, adminChanged: () => { start(); adminChanged(); renderCard(); renderDonate(); renderMods(); },
