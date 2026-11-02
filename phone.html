@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#07080a">
 <title>SH1DEN'S · Phone</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://sh1den-bar-default-rtdb.europe-west1.firebasedatabase.app" crossorigin>
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=Limelight&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -164,7 +167,7 @@ function wireLogin() {
   $('lgGo').onclick = async () => { $('lgM').textContent = ''; try { await a.signInWithEmailAndPassword($('lgE').value.trim(), $('lgP').value); } catch (e) { $('lgM').textContent = nice(e); } };
   $('lgP').onkeydown = (e) => { if (e.key === 'Enter') $('lgGo').click(); };
   $('lgF').onclick = async () => { const em = $('lgE').value.trim(); if (!em) { $('lgM').textContent = 'Type your email first.'; return; } try { await a.sendPasswordResetEmail(em); toast('Reset link sent. Check your inbox.'); } catch (e) { $('lgM').textContent = nice(e); } };
-  $('lgG').onclick = async () => { const p = new firebase.auth.GoogleAuthProvider(); try { await a.signInWithPopup(p); } catch (e) { if (/popup-blocked|not-supported/.test(e.code || '')) a.signInWithRedirect(p); else $('lgM').textContent = nice(e); } };
+  $('lgG').onclick = async () => { const p = new firebase.auth.GoogleAuthProvider(); try { await a.signInWithPopup(p); } catch (e) { if (/popup-blocked|not-supported/.test(e.code || '')) { try { sessionStorage.setItem('sh1den-redirect', '1'); } catch (er) { } a.signInWithRedirect(p); } else $('lgM').textContent = nice(e); } };
   $('lgGuest').onclick = (e) => { e.preventDefault(); a.signInAnonymously().catch((er) => { $('lgM').textContent = nice(er); }); };
 }
 
@@ -271,7 +274,8 @@ function start() {
   db = firebase.database(); TS = firebase.database.ServerValue.TIMESTAMP;
   db.ref('.info/serverTimeOffset').on('value', (s) => { offset = s.val() || 0; });
   db.ref('.info/connected').on('value', (s) => { $('sig').classList.toggle('off', !s.val()); });
-  firebase.auth().getRedirectResult().catch(() => { });
+  // only coming back from a Google redirect needs this (it pulls in a heavy Google script, so skip it otherwise)
+  try { if (sessionStorage.getItem('sh1den-redirect')) { sessionStorage.removeItem('sh1den-redirect'); firebase.auth().getRedirectResult().catch(() => { }); } } catch (e) { }
   firebase.auth().onAuthStateChanged((u) => {
     stopAll(); me = u; uid = u ? u.uid : null;
     $('who').textContent = u ? (u.isAnonymous ? 'guest' : '') : '';
