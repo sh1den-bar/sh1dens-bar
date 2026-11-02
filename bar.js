@@ -4424,7 +4424,8 @@ const zoneOf = zoneAtX;
 // ---------------------------------------------------------------- only draw the floor you're on
 // every static thing gets tagged with its floor once; the other floors switch off, anything past the fog is skipped,
 // and only the nearest few lights stay on (a fixed number, so phones never recompile shaders as you move around)
-const LITE = !/[?&]full\b/.test(location.search) && (/[?&]lite\b/.test(location.search) || /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform)));
+// phones and tablets always get the gentle settings, even when they open the full bar (add ?lite to try them on a computer)
+const LITE = /[?&]lite\b/.test(location.search) || /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
 const LIGHT_BUDGET = LITE ? 6 : 12;
 let cullZone = null, cullTagged = false, lightTimer = 0;
 const _bb = new THREE.Box3();
@@ -5713,7 +5714,15 @@ new ResizeObserver(resize).observe(stage); resize();
 const clock = new THREE.Clock();
 const creatorEl = document.getElementById('creator'), formEl = document.getElementById('form');
 let sHead = 0;
+// phones: draw at most 30 frames a second, 12 when nobody has touched the screen for a while, and nothing while the tab is hidden
+let lastFrameAt = 0, lastInputAt = performance.now();
+for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart']) addEventListener(ev, () => { lastInputAt = performance.now(); }, { passive: true, capture: true });
 function tick() {
+  if (LITE) {
+    const n = performance.now(), idle = n - lastInputAt > 15000;
+    if (document.hidden || n - lastFrameAt < (idle ? 80 : 32)) { requestAnimationFrame(tick); return; }
+    lastFrameAt = n;
+  }
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime, beat = beatNow();
   for (const f of PRE_HOOKS) f(dt, t, beat);
   // while you're editing your look, hide your old character (never the bartender) so only the preview shows
