@@ -1018,6 +1018,18 @@ function pose(ch, act, beat, t) {
     b.knL.rotation.x = 0.5 * Math.max(0, k); b.knR.rotation.x = 0.5 * Math.max(0, -k);
     b.shL.rotation.x = 0.35 * k; b.shR.rotation.x = -0.35 * k; b.elL.rotation.x = b.elR.rotation.x = -0.3;
     b.hips.position.y = 0.95 - 0.02 * Math.abs(Math.cos(w)); b.spine.rotation.x = 0.04;
+  } else if (act === 'run') {
+    const w = t * 11 + ph * 4, k = Math.sin(w);
+    b.thL.rotation.x = -0.75 * k; b.thR.rotation.x = 0.75 * k;
+    b.knL.rotation.x = 0.25 + 0.95 * Math.max(0, k); b.knR.rotation.x = 0.25 + 0.95 * Math.max(0, -k);
+    b.shL.rotation.x = 0.75 * k; b.shR.rotation.x = -0.75 * k; b.elL.rotation.x = b.elR.rotation.x = -1.25;
+    b.hips.position.y = 0.92 - 0.05 * Math.abs(Math.cos(w)); b.spine.rotation.x = 0.16;
+  } else if (act === 'stand') {
+    // just standing about: weight on one leg, breathing, a slow look round
+    b.spine.rotation.x = 0.015 * Math.sin(t * 1.6 + ph * 7);
+    b.thL.rotation.z = 0.05; b.thR.rotation.z = -0.02; b.knL.rotation.x = 0.12; b.thL.rotation.x = -0.06;
+    b.shL.rotation.z = -0.06; b.shR.rotation.z = 0.06; b.elL.rotation.x = b.elR.rotation.x = -0.12;
+    b.head.rotation.y = 0.35 * Math.sin(t * 0.3 + ph * 5); b.head.rotation.x = 0.03 * Math.sin(t * 0.9 + ph);
   } else if (act === 'bt_wipe') {
     // wiping the counter in slow circles
     const w = t * 2.2 + ph;
@@ -1466,7 +1478,9 @@ const S = [], G = [];
 const tubeB = (pts, r, col) => S.push(tube(pts, pts.map(() => r), col, { n: 4, smooth: false, amt: 0.04 }));
 
 // brass door frames: posts and lintel, visible from both sides
+const DOORWAYS = [];   // every doorway in the building: the walk map always leaves these open
 function doorFrame(x0, z0, x1, z1) {
+  DOORWAYS.push([x0, z0, x1, z1]);
   const alongX = Math.abs(x1 - x0) > Math.abs(z1 - z0);
   for (const [px, pz] of [[x0, z0], [x1, z1]]) {
     if (alongX) S.push(box(px - 0.05, px + 0.05, 0, DOOR_H + 0.05, pz - 0.08, pz + 0.08, BRASS_D, 0.03));
@@ -1668,10 +1682,13 @@ for (const x of [-2, 0, 2]) {
   G.push(cyl(V(x, 2.39, -2.6), V(x, 2.33, -2.6), 0.07, 0.05, [255, 210, 150], { n: 8, amt: 0 }));
 }
 // entrance: double doors in the front wall with a canopy light
-S.push(box(-0.9, -0.02, 0, 2.4, 3.94, 3.99, [28, 18, 14]));
-S.push(box(0.02, 0.9, 0, 2.4, 3.94, 3.99, [28, 18, 14]));
-for (const x of [-0.12, 0.12]) S.push(box(x - 0.015, x + 0.015, 0.9, 1.4, 3.89, 3.945, BRASS, 0.02));
-for (const [x0, x1] of [[-0.8, -0.12], [0.12, 0.8]]) S.push(box(x0, x1, 1.5, 2.25, 3.915, 3.945, [60, 50, 40], 0.05));
+// (they stand open all night, swung in flat against the walls of the entry, so anyone can walk in)
+for (const e of [-1, 1]) {
+  const x0 = e < 0 ? -0.9 : 0.85, x1 = x0 + 0.05, xin = e < 0 ? x1 : x0;   // the leaf, and its face towards the middle
+  S.push(box(x0, x1, 0, 2.4, 3.06, 3.9, [28, 18, 14]));
+  S.push(box(Math.min(xin, xin - e * 0.03), Math.max(xin, xin - e * 0.03), 0.9, 1.4, 3.16, 3.2, BRASS, 0.02));
+  S.push(box(Math.min(xin, xin - e * 0.015), Math.max(xin, xin - e * 0.015), 1.5, 2.25, 3.14, 3.84, [60, 50, 40], 0.05));
+}
 doorFrame(-0.9, 4, 0.9, 4);
 G.push(cyl(V(0, 2.62, 3.95), V(0, 2.62, 3.8), 0.09, 0.07, [255, 210, 150], { n: 8, amt: 0 }));
 // sconces
@@ -2315,7 +2332,7 @@ for (const [ax, az, bx, bz] of [[-16.97, -10.97, -16.97, -4.03], [-16.97, -10.97
   const m = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), new THREE.MeshLambertMaterial({ map: tex }));
   m.position.set(-15.55, 1.71, -10.955); scene.add(m);
 }
-const cardClosed = new THREE.Group(); scene.add(cardClosed);
+const cardClosed = new THREE.Group(); cardClosed.userData.nonav = true; scene.add(cardClosed);
 {
   const P = [box(-11.84, -11.76, 0, DOOR_H, 2.22, 2.89, [20, 16, 18]), box(-11.84, -11.76, 0, DOOR_H, 2.91, 3.58, [20, 16, 18])];
   for (const z of [2.84, 2.96]) P.push(box(-11.74, -11.7, 1.0, 1.35, z - 0.012, z + 0.012, LUX_GOLD, 0.02));
@@ -3289,7 +3306,7 @@ for (const tc of TRAFFIC) {
   const beam = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 2.4), beamMat);
   beam.rotation.x = -Math.PI / 2; beam.position.set(2.3 + 2.75, 0.02, 0); grp.add(beam);
   tc.r = tc.z - TCZ; tc.L = laneLen(tc.r); tc.s = tc.x - TR_X0;
-  scene.add(grp); traffic.push({ grp, tc });
+  grp.userData.nonav = true; scene.add(grp); traffic.push({ grp, tc });
 }
 function driveTraffic(dt) {
   for (const { grp, tc } of traffic) {
@@ -4919,10 +4936,10 @@ function golfSurface(x, z) {
     // ducks: white body, green head, orange beak, paddling slow circles
     const duckParts = (h) => [loft([rring(0.0, 0.1, 0.16, 0, 0, 8, 2), rring(0.1, 0.14, 0.22, 0, 0, 8, 2), rring(0.18, 0.08, 0.14, 0, -0.02, 8, 2)], h ? [236, 232, 220] : [120, 92, 60], { smooth: true, amt: 0.05 }), loft([rring(0.18, 0.05, 0.05, 0, 0.13, 6, 2), rring(0.28, 0.065, 0.065, 0, 0.15, 6, 2), rring(0.36, 0.01, 0.01, 0, 0.15, 6, 2)], h ? [30, 90, 50] : [110, 84, 56], { smooth: true, amt: 0.05 }), box(-0.025, 0.025, 0.27, 0.3, 0.2, 0.28, [240, 150, 40], 0.02)];
     const ducks = [];
-    for (const h of GOLF.holes) for (const w of h.water) for (let k = 0; k < 3; k++) { const g = new THREE.Mesh(toGeometry(duckParts(k !== 2)), roomMat); scene.add(g); ducks.push({ g, w, ph: k * 2.1 + w[0], sp: 0.08 + k * 0.03 }); }
+    for (const h of GOLF.holes) for (const w of h.water) for (let k = 0; k < 3; k++) { const g = new THREE.Mesh(toGeometry(duckParts(k !== 2)), roomMat); g.userData.nonav = true; scene.add(g); ducks.push({ g, w, ph: k * 2.1 + w[0], sp: 0.08 + k * 0.03 }); }
     GOLF.life.push((t) => { for (const d of ducks) { const a = t * d.sp + d.ph, x = d.w[0] + Math.cos(a) * d.w[2] * 0.55, z = d.w[1] + Math.sin(a) * d.w[3] * 0.55; d.g.position.set(x, 0.03 + 0.01 * Math.sin(t * 2 + d.ph), z); d.g.rotation.y = Math.atan2(-Math.sin(a), Math.cos(a)) + Math.PI; } });
     // the greenkeeper on a ride-on mower, headlight on, going up and down the fourth fairway
-    const mower = new THREE.Group();
+    const mower = new THREE.Group(); mower.userData.nonav = true;
     mower.add(new THREE.Mesh(toGeometry([box(-0.55, 0.55, 0.18, 0.55, -0.9, 0.7, [190, 40, 30], 0.04), box(-0.62, 0.62, 0.0, 0.2, -0.95, 0.75, [40, 40, 44], 0.03), box(-0.25, 0.25, 0.55, 0.85, -0.6, -0.1, [30, 30, 34], 0.03), box(-0.24, 0.24, 0.85, 1.35, -0.55, -0.25, [70, 90, 120], 0.05), loft([rring(1.35, 0.13, 0.13, 0, -0.4, 8, 2), rring(1.6, 0.11, 0.11, 0, -0.4, 8, 2)], [210, 170, 130], { smooth: true }), box(-0.16, 0.16, 1.62, 1.68, -0.56, -0.24, [230, 200, 60], 0.03)]), roomMat));
     for (const [ox, oz, rad] of [[-0.6, 0.55, 0.2], [0.6, 0.55, 0.2], [-0.6, -0.75, 0.28], [0.6, -0.75, 0.28]]) mower.add(new THREE.Mesh(toGeometry([cyl(V(ox - 0.06, rad, oz), V(ox + 0.06, rad, oz), rad, rad, [16, 16, 18], { n: 8 })]), roomMat));
     mower.add(new THREE.Mesh(toGeometry([box(-0.1, 0.1, 0.35, 0.45, 0.72, 0.76, [255, 240, 200], 0)]), glowMat));
@@ -5021,7 +5038,7 @@ let golfCamFollow = null;
 function golfCam(o) {
   golfCamFollow = o && o.follow ? o : null;
   if (!o) return;
-  follow = null; velYaw = velPitch = 0;
+  follow = null; walkCam = false; velYaw = velPitch = 0;
   const apply = () => Object.assign(camT, { free: false, tx: o.x, ty: o.ty || 0.9, tz: o.z, d: o.d || 6.5, yaw: o.yaw, pitch: o.pitch || 0.24 });
   if (o.cut) cutTo(apply); else apply();
 }
@@ -5348,8 +5365,9 @@ function placeAll() {
   const vic = victimNow();
   if (vic) { const ch = people.find((c) => c.uid && c.uid === vic.uid); if (ch) claim(ch, SPOT_BY_ID[ch.look && ch.look.body === 1 ? 'wc-stall-w' : 'wc-stall-m']); }
   // 1. people who clicked somewhere, earliest click first (a seat goes to whoever took it first)
-  const chosen = people.filter((ch) => ch.want && SPOT_BY_ID[ch.want]).sort((a, b) => (a.wantT || 0) - (b.wantT || 0));
+  const chosen = people.filter((ch) => ch.want && (SPOT_BY_ID[ch.want] || FREE_SPOT.test(ch.want))).sort((a, b) => (a.wantT || 0) - (b.wantT || 0));
   for (const ch of chosen) {
+    if (!SPOT_BY_ID[ch.want]) { putAt(ch, freeSpot(ch.want)); ch.placed = true; continue; }   // standing where they walked to: nobody owns a bit of floor
     const s = SPOT_BY_ID[ch.want];
     if (ch.placed || spotOwner.has(s.id) || (s.hostOnly && !ch.host) || (s.cat === 10 && !cardOpen && !ch.host)) continue;
     claim(ch, s);
@@ -5415,6 +5433,7 @@ function addChar(look, name, opts) {
 }
 
 let roster = [];
+const MOVE = new Map();   // per person: where they are on screen and the walk they're on (see the walking section)
 let myEntry = null, myUid = null;
 const lastSpots = new Map(), lastDrinks = new Map();
 // smokes aren't part of a look any more: a cigarette from the bartender (10 min) or a cigar from the VIP humidor (30 min)
@@ -5436,9 +5455,12 @@ function giveSmoke(kind) {
 }
 // when a smoke burns out, take it away
 setInterval(() => { const t = serverNow(); if (crowd.some((c) => c.smokeUntil && c.smokeUntil < t)) rebuild(); }, 10000);
+// a free place on the floor, from walking there ('@x,z') or teleporting ('^x,z')
+const FREE_SPOT = /^[@^]-?\d{1,3}(\.\d)?,-?\d{1,3}(\.\d)?$/;
+function freeSpot(id) { const [x, z] = id.slice(1).split(',').map(Number); return { id, cat: -1, act: 'stand', x, z, yaw: 0 }; }
 function wantFrom(ch, e) {
   if (!ch || !e) return ch;
-  ch.want = e.s && SPOT_BY_ID[e.s] ? e.s : null; ch.wantT = e.t || 0; ch.drink = e.d || '';
+  ch.want = e.s && (SPOT_BY_ID[e.s] || FREE_SPOT.test(e.s)) ? e.s : null; ch.wantT = e.t || 0; ch.drink = e.d || '';
   return ch;
 }
 const HOST_NAME = 'sh1denfps';
@@ -5476,12 +5498,15 @@ function rebuild() {
   }
   if (!(window.NET && window.NET.online)) { const me = crowd.find((c) => c.mine); if (me && !me.want) wantFrom(me, { s: myState.s, d: myState.d, t: 1 }); }
   placeAll();
-  // pop people in when they moved, and hand out their drinks
+  // people walk from where they were to where they're going (or flash there when they teleported)
+  for (const ch of crowd) if (!ch.npc && ch !== draftChar) moveFor(ch);
+  moveSweep();
+  // pop people in when they jumped somewhere, and hand out their drinks
   for (const ch of crowd) {
     if (ch.npc || ch === draftChar) continue;
     const key = ch.uid || ch.name;
     const prev = lastSpots.get(key);
-    if (prev && prev !== ch.spot) ch.pop = 0;
+    if (prev && prev !== ch.spot && ch.jumped) ch.pop = 0;
     lastSpots.set(key, ch.spot);
     const sp = SPOT_BY_ID[ch.spot];
     swapOutfit(ch, sp && (sp.cat === 5 || sp.cat === 8) ? 'swim' : tuxFor(ch));
@@ -5727,7 +5752,7 @@ VIEWS.basement = { tx: 100, ty: 0.9, tz: 0, d: 6.5, yaw: 0.7, pitch: 0.6 };
 VIEWS.f2 = { tx: 208.5, ty: 0, tz: 0, d: 13, yaw: 0, pitch: 1.05, free: true };
 for (const R of HOTEL_ROOMS) VIEWS['room' + R.i] = { tx: R.x0 + 2.5, ty: 0.9, tz: R.side * 4.1, d: 6, yaw: R.side > 0 ? Math.PI - 0.6 : -0.6, pitch: 0.6 };
 for (const k in VIEWS) VIEWS[k].free = !!VIEWS[k].free;
-let cam = Object.assign({}, VIEWS.bar), camT = Object.assign({}, VIEWS.bar), follow = null;
+let cam = Object.assign({}, VIEWS.bar), camT = Object.assign({}, VIEWS.bar), follow = null, walkCam = false;
 let camDist = cam.d, velYaw = 0, velPitch = 0, lastMoveT = 0, idleT = 0;
 let isMod = false, vipMember = false;
 const vipOk = () => isMod || vipMember;
@@ -5751,7 +5776,7 @@ function setView(name) {
   if ((name === 'f2' || /^room\d$/.test(name)) && !floor2Ok()) { toast('The second floor is under construction. Come back soon.'); return; }
   if (/^room\d$/.test(name) && !roomOk(+name.slice(4))) { toast(window.HOTEL && window.HOTEL.ownerOf(+name.slice(4)) ? "That room's taken. The door's locked." : 'That room is free. Ask Charon at the bar to rent it.'); return; }
   if (name === 'card' && !cardOpen && !isMod) { toast('Casino Royale is closed. Poker nights only happen when sh1den is in.'); return; }
-  follow = null; velYaw = velPitch = 0;
+  follow = null; walkCam = false; velYaw = velPitch = 0;
   cutTo(() => Object.assign(camT, VIEWS[name]));
 }
 function inVip(ch) { return roomAt(ch.root.position.x, ch.root.position.z) === ROOMS.vip; }
@@ -5759,7 +5784,7 @@ function focusChar(ch) {
   if (inVip(ch) && !vipOk() && !ch.mine) return;
   velYaw = velPitch = 0;
   cutTo(() => {
-    follow = ch; camT.free = false; camT.d = 2.4; camT.pitch = 0.18;
+    follow = ch; walkCam = false; camT.free = false; camT.d = 2.4; camT.pitch = 0.18;
     camT.yaw = ch.root.rotation.y + (/sit|lounge/.test(ch.act) ? 0.6 : 0.3);
     ch.bones.head.getWorldPosition(tmpV); camT.tx = tmpV.x; camT.ty = tmpV.y - 0.25; camT.tz = tmpV.z;
   });
@@ -5885,7 +5910,7 @@ function keyboardPan(dt) {
   if (!mx && !mz && !rot) return;
   if (!camT.free) {
     // switch into the bird's-eye view right above where you were looking
-    follow = null; velYaw = velPitch = 0;
+    follow = null; walkCam = false; velYaw = velPitch = 0;
     camT.free = true; camT.pitch = BIRD.pitch; camT.d = Math.max(camT.d, BIRD.d); camT.ty = 0;
   }
   if (rot) camT.yaw += rot * dt * 1.6;
@@ -5931,6 +5956,7 @@ function placeLabels() {
     if (ch.bubbleEl && show) ch.bubbleEl.style.zIndex = String(2000 - Math.round(dist * 10));
   }
 }
+const insideBar = (x, z) => (x > -17.2 && x < 14 && z < 4.2 && z > (x > 5 ? -12.2 : -11.2)) || (x >= 14 && x < 23.2 && z < 4.2 && z > -4.2);
 function updateCamera(dt, t) {
   keyboardPan(dt);
   if (!drag) {
@@ -5941,10 +5967,15 @@ function updateCamera(dt, t) {
   if (follow) {
     follow.bones.head.getWorldPosition(tmpV);
     camT.tx = tmpV.x; camT.ty = tmpV.y - 0.25; camT.tz = tmpV.z;
+  } else if (walkCam && !camT.free) {
+    const me = crowd.find((c) => c.mine && c !== draftChar);
+    if (me) { camT.tx = me.root.position.x; camT.ty = 1.0; camT.tz = me.root.position.z; }
   }
   // smooth, frame-rate independent easing; turning responds faster while you drag
   const kPos = 1 - Math.exp(-dt * 5), kRot = 1 - Math.exp(-dt * (drag ? 16 : 7)), kZoom = 1 - Math.exp(-dt * 6);
   for (const key of ['tx', 'ty', 'tz']) cam[key] += (camT[key] - cam[key]) * kPos;
+  // following you on foot: stay right on you (a lagging camera drifts into rooms you're only walking past)
+  if (walkCam && !camT.free && Math.hypot(camT.tx - cam.tx, camT.tz - cam.tz) < 3) { cam.tx = camT.tx; cam.tz = camT.tz; }
   cam.pitch += (camT.pitch - cam.pitch) * kRot;
   let dy = camT.yaw - cam.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); cam.yaw += dy * kRot;
   camDist += (camT.d - camDist) * kZoom;
@@ -5966,7 +5997,17 @@ function updateCamera(dt, t) {
   if (roomAt(cam.tx, cam.tz) === ROOMS.golf || golfCamFollow) { scene.fog.near = Math.max(scene.fog.near, 28); scene.fog.far = Math.max(scene.fog.far, 125); }   // you need to see the flag
   // the outside walls only show from street level outside the building
   const cx = camera.position.x, cz = camera.position.z;
-  const inBuilding = (cx > -17 && cx < 14 && cz < 4 && cz > (cx > 5 ? -12 : -11)) || (cx >= 14 && cx < 23 && cz < 4 && cz > -4);
+  const inBuilding = insideBar(cx, cz);
+  // following you outside: never sit inside the building looking at the back of a wall, lift up over the roof instead
+  if (walkCam && !camT.free && inBuilding && camera.position.y < 8) {
+    const me = crowd.find((c) => c.mine && c !== draftChar);
+    if (me && !insideBar(me.root.position.x, me.root.position.z)) {
+      // swing round to the open side, away from the middle of the building, and look down a little more
+      const want = Math.atan2(me.root.position.x - 3, me.root.position.z + 4);
+      let dy = want - camT.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); camT.yaw += dy * Math.min(1, dt * 4);
+      camT.pitch = Math.min(0.75, Math.max(camT.pitch, camT.pitch + dt * 0.6));
+    }
+  }
   const showFacade = camera.position.y < 7.5 && !inBuilding;
   if (FACADES[0].visible !== showFacade) for (const f of FACADES) f.visible = showFacade;
   camera.lookAt(cam.tx, cam.ty, cam.tz);
@@ -6162,14 +6203,15 @@ canvas.addEventListener('pointerup', (e) => {
   const tg = pickTarget(e.clientX, e.clientY);
   if (e.pointerType === 'touch') {
     armed = null;
-    if (!tg) { showHover(null); closeCtx(); return; }
+    if (!tg) { showHover(null); closeCtx(); walkClick(e.clientX, e.clientY); return; }
     showHover(tg, e.clientX, e.clientY, true);
     openActions(tg, e.clientX, e.clientY, true);
     return;
   }
   if (e.button === 2) { if (tg) openActions(tg, e.clientX, e.clientY, false); else closeCtx(); return; }
   closeCtx();
-  if (tg && tg.kind === 'npc') npcTalk(tg);
+  if (tg && tg.kind === 'npc') { clickCross(e.clientX, e.clientY, true); npcTalk(tg); return; }
+  walkClick(e.clientX, e.clientY);
 });
 // ---- people of the house: a line when you click them, their own menu on right click
 const OBJ_NPC = { bartender: 'bartender', beggar: 'beggar', dealer: 'minos', dj: 'dj', djbooth: 'dj', 'bouncer-front': 'cerberus', 'bouncer-back': 'plutus' };
@@ -6207,7 +6249,7 @@ function ctxShow(title, opts, x, y) {
   const h = document.createElement('div'); h.className = 'dmTitle'; h.textContent = title; ctxMenu.appendChild(h);
   for (const [label, fn, off] of opts) {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.disabled = !!off;
-    b.onclick = () => { closeCtx(); fn(); };
+    b.onclick = () => { closeCtx(); if (!off) clickCross(x, y, true); fn(); };
     ctxMenu.appendChild(b);
   }
   placeMenu(ctxMenu, x, y);
@@ -6556,6 +6598,413 @@ let victim = null;   // { uid, until }
 const victimNow = () => (victim && victim.until > serverNow() ? victim : null);
 const lockOverlay = document.createElement('div'); lockOverlay.id = 'lockOverlay'; lockOverlay.hidden = true; stage.appendChild(lockOverlay);
 function myLock() { const v = victimNow(); return v && myUid && v.uid === myUid ? v : null; }
+
+// ================================================================ walking: click anywhere and your character walks there
+// A walk map of the whole place in 25 cm cells, baked once from the scene itself: anything solid between knee and head
+// height (walls, counters, furniture, cars, hedges, fences, tree trunks) is blocked, and so is any hole (the pool) or pond.
+// A* finds the way round, then the route is pulled straight wherever there's a clear line. Only where you clicked goes to
+// the room (as your spot, '@x,z'); everyone works out the same walk on their own screen. '^x,z' is a teleport: no walk, a flash.
+const NAV_C = 0.25;   // cell size
+const NAV_GRIDS = [
+  { zone: 'main', x0: -100, x1: 124, z0: -280, z1: 34 },
+  { zone: 'base', x0: 95, x1: 105, z0: -4, z1: 4 },
+  { zone: 'f2', x0: 195, x1: 222, z0: -8, z1: 8 }
+];
+const ROOM_KEYS = Object.keys(ROOMS);
+let navBuilt = false;
+function navGridAt(x, z) { for (const g of NAV_GRIDS) if (x >= g.x0 && x < g.x1 && z >= g.z0 && z < g.z1) return g; return null; }
+// built a slice at a time in the background (a phone shouldn't freeze), or all at once if someone needs it right now
+let navIt = null;
+function navBuild() { if (navBuilt) return; if (!navIt) navIt = navGen(); while (!navIt.next().done); navBuilt = true; }
+function navBuildSoon() {
+  if (navBuilt) return;
+  if (!navIt) navIt = navGen();
+  const t = performance.now();
+  while (performance.now() - t < 8) if (navIt.next().done) { navBuilt = true; return; }
+  setTimeout(navBuildSoon, 40);
+}
+function* navGen() {
+  const t0 = performance.now();
+  for (const g of NAV_GRIDS) { g.W = Math.round((g.x1 - g.x0) / NAV_C); g.H = Math.round((g.z1 - g.z0) / NAV_C); g.raw = new Uint8Array(g.W * g.H); }
+  const mark = (x, z) => {
+    const g = navGridAt(x, z); if (!g) return;
+    const i = Math.floor((x - g.x0) / NAV_C), j = Math.floor((z - g.z0) / NAV_C);
+    if (i >= 0 && j >= 0 && i < g.W && j < g.H) g.raw[j * g.W + i] = 1;
+  };
+  const edge = (p, q) => { const n = Math.ceil(Math.hypot(q.x - p.x, q.z - p.z) / 0.1); for (let k = 0; k <= n; k++) { const u = n ? k / n : 0; mark(p.x + (q.x - p.x) * u, p.z + (q.z - p.z) * u); } };
+  const tri = (p, q, r) => {
+    const y0 = Math.min(p.y, q.y, r.y), y1 = Math.max(p.y, q.y, r.y);
+    const ux = q.x - p.x, uy = q.y - p.y, uz = q.z - p.z, vx = r.x - p.x, vy = r.y - p.y, vz = r.z - p.z;
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, up = Math.abs(ny) / (Math.hypot(nx, ny, nz) || 1);
+    // a flat surface blocks if it's a table/seat/car top (above a step) or a hole; anything upright blocks in the body's height
+    const block = up > 0.7 ? (y0 > 0.42 && y0 < 2.0) || y1 < -0.3 : y1 > 0.25 && y0 < 1.7;
+    if (!block) return;
+    edge(p, q); edge(q, r); edge(r, p);
+    if (up <= 0.7) return;
+    const xa = Math.min(p.x, q.x, r.x), xb = Math.max(p.x, q.x, r.x), za = Math.min(p.z, q.z, r.z), zb = Math.max(p.z, q.z, r.z);
+    const d = (q.z - r.z) * (p.x - r.x) + (r.x - q.x) * (p.z - r.z);
+    if ((xb - xa) * (zb - za) < 0.04 || Math.abs(d) < 1e-9) return;
+    for (let z = za + NAV_C / 2; z < zb; z += NAV_C) for (let x = xa + NAV_C / 2; x < xb; x += NAV_C) {
+      const l1 = ((q.z - r.z) * (x - r.x) + (r.x - q.x) * (z - r.z)) / d, l2 = ((r.z - p.z) * (x - r.x) + (p.x - r.x) * (z - r.z)) / d;
+      if (l1 >= 0 && l2 >= 0 && l1 + l2 <= 1) mark(x, z);
+    }
+  };
+  const people = new Set(crowd.map((c) => c.root));
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), m4 = new THREE.Matrix4(), im = new THREE.Matrix4();
+  scene.updateMatrixWorld(true);
+  const meshes = [], collect = (o) => { if (o.userData.nonav || people.has(o)) return; if (o.isMesh) meshes.push(o); for (const ch of o.children) collect(ch); };
+  collect(scene);
+  for (const o of meshes) {
+    yield;
+    if (o.geometry && o.geometry.attributes.position) {
+      const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+      const solid = mat && (!mat.transparent || mat.alphaTest > 0) && (mat.blending === undefined || mat.blending === THREE.NormalBlending) && !(o.isInstancedMesh && mat.alphaTest > 0);
+      if (solid) {
+        const pos = o.geometry.attributes.position, idx = o.geometry.index, cnt = idx ? idx.count : pos.count, n = o.isInstancedMesh ? o.count : 1;
+        for (let k = 0; k < n; k++) {
+          if (o.isInstancedMesh) { o.getMatrixAt(k, im); m4.multiplyMatrices(o.matrixWorld, im); } else m4.copy(o.matrixWorld);
+          for (let i = 0; i + 2 < cnt; i += 3) {
+            a.fromBufferAttribute(pos, idx ? idx.getX(i) : i).applyMatrix4(m4);
+            b.fromBufferAttribute(pos, idx ? idx.getX(i + 1) : i + 1).applyMatrix4(m4);
+            c.fromBufferAttribute(pos, idx ? idx.getX(i + 2) : i + 2).applyMatrix4(m4);
+            tri(a, b, c);
+          }
+        }
+      }
+    }
+  }
+  // the golf ponds are flat water at ground level: nobody walks on those
+  for (const h of GOLF.holes) for (const w of h.water) for (let z = w[1] - w[3]; z <= w[1] + w[3]; z += NAV_C) for (let x = w[0] - w[2]; x <= w[0] + w[2]; x += NAV_C) {
+    if (((x - w[0]) / w[2]) ** 2 + ((z - w[1]) / w[3]) ** 2 <= 1) mark(x, z);
+  }
+  // every doorway stays open (some have doors drawn shut in them)
+  for (const [x0, z0, x1, z1] of DOORWAYS) {
+    const alongX = Math.abs(x1 - x0) > Math.abs(z1 - z0), L = Math.hypot(x1 - x0, z1 - z0);
+    const g = navGridAt((x0 + x1) / 2, (z0 + z1) / 2); if (!g) continue;
+    for (let d = 0.12; d <= L - 0.12; d += NAV_C / 2) for (let o = -0.4; o <= 0.4; o += NAV_C / 2) {
+      const x = x0 + (x1 - x0) * d / L + (alongX ? 0 : o), z = z0 + (z1 - z0) * d / L + (alongX ? o : 0);
+      const i = Math.floor((x - g.x0) / NAV_C), j = Math.floor((z - g.z0) / NAV_C);
+      if (i >= 0 && j >= 0 && i < g.W && j < g.H) g.raw[j * g.W + i] = 0;
+    }
+  }
+  // the walls are exact (the bar is snug, its gaps are narrow); brushing past things costs a little extra, so routes keep to the middle
+  for (const g of NAV_GRIDS) {
+    const { W, H, raw } = g, blk = new Uint8Array(W * H), near = new Uint8Array(W * H);
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      if (!i && !(j & 63)) yield;
+      const k = j * W + i;
+      blk[k] = raw[k] || i < 1 || j < 1 || i >= W - 1 || j >= H - 1 ? 1 : 0;
+      if (blk[k]) continue;
+      let n = 0; for (let dj = -1; dj <= 1 && !n; dj++) for (let di = -1; di <= 1; di++) if (raw[(j + dj) * W + i + di]) { n = 1; break; }
+      near[k] = n;
+    }
+    g.near = near;
+    g.blk = blk;
+    // which room each cell is in, so a route can keep out of places you're not let in (the VIP lounge, a closed card room)
+    g.room = new Uint8Array(W * H);
+    // (only the building has rooms anyone can be kept out of)
+    if (g.zone === 'main') for (let j = Math.floor((-14 - g.z0) / NAV_C); j < (6 - g.z0) / NAV_C; j++) for (let i = Math.floor((-20 - g.x0) / NAV_C); i < (25 - g.x0) / NAV_C; i++) { const r = roomAt(g.x0 + (i + 0.5) * NAV_C, g.z0 + (j + 0.5) * NAV_C); g.room[j * W + i] = r ? ROOM_KEYS.findIndex((k) => ROOMS[k] === r) + 1 : 0; }
+    // which open cells join up with which (so a seat's nearest bit of floor is one you can actually get to)
+    const comp = new Int32Array(W * H).fill(-1), q = new Int32Array(W * H); let nc = 0;
+    for (let s0 = 0; s0 < W * H; s0++) {
+      if (!(s0 & 65535)) yield;
+      if (blk[s0] || comp[s0] >= 0) continue;
+      let h = 0, t = 0; q[t++] = s0; comp[s0] = nc;
+      while (h < t) { const c = q[h++], i = c % W; for (const n of [c - 1, c + 1, c - W, c + W]) if (n >= 0 && n < W * H && !blk[n] && comp[n] < 0 && Math.abs((n % W) - i) <= 1) { comp[n] = nc; q[t++] = n; } }
+      nc++;
+    }
+    g.comp = comp; g.raw = null;
+    g.gs = new Float32Array(W * H); g.par = new Int32Array(W * H); g.seen = new Uint32Array(W * H); g.stamp = 0;
+  }
+  window._navMs = Math.round(performance.now() - t0);
+}
+// rooms you may not walk into right now
+function myForbid() {
+  const out = new Set();
+  const me = myChar();
+  if (!vipOk() && !(me && me.host)) { out.add(ROOM_KEYS.indexOf('vip') + 1); out.add(ROOM_KEYS.indexOf('vest') + 1); }
+  if (!cardOpen && !(me && me.host) && !isMod) out.add(ROOM_KEYS.indexOf('card') + 1);
+  return out;
+}
+const navFree = (g, i, j, forbid) => i >= 0 && j >= 0 && i < g.W && j < g.H && !g.blk[j * g.W + i] && !(forbid && forbid.size && forbid.has(g.room[j * g.W + i]));
+// the nearest open cell to a point, looking up to r cells away
+function navNearest(g, x, z, r, forbid, comp) {
+  const ci = Math.floor((x - g.x0) / NAV_C), cj = Math.floor((z - g.z0) / NAV_C);
+  const ok = (i, j) => navFree(g, i, j, forbid) && (comp === undefined || g.comp[j * g.W + i] === comp);
+  if (ok(ci, cj)) return [ci, cj];
+  for (let d = 1; d <= r; d++) {
+    let best = null, bd = Infinity;
+    for (let dj = -d; dj <= d; dj++) for (let di = -d; di <= d; di++) {
+      if (Math.max(Math.abs(di), Math.abs(dj)) !== d || !ok(ci + di, cj + dj)) continue;
+      const dd = di * di + dj * dj; if (dd < bd) { bd = dd; best = [ci + di, cj + dj]; }
+    }
+    if (best) return best;
+  }
+  return null;
+}
+const navX = (g, i) => g.x0 + (i + 0.5) * NAV_C, navZ = (g, j) => g.z0 + (j + 0.5) * NAV_C;
+function navLine(g, ax, az, bx, bz, forbid) {
+  const L = Math.hypot(bx - ax, bz - az), n = Math.ceil(L / (NAV_C * 0.4)), px = L ? -(bz - az) / L * 0.14 : 0, pz = L ? (bx - ax) / L * 0.14 : 0;
+  for (let k = 1; k < n; k++) {
+    const u = k / n, x = ax + (bx - ax) * u, z = az + (bz - az) * u;
+    for (const o of [0, 1, -1]) if (!navFree(g, Math.floor((x + px * o - g.x0) / NAV_C), Math.floor((z + pz * o - g.z0) / NAV_C), forbid)) return false;
+  }
+  return true;
+}
+let navMemo = null;
+// the way from one point to another on the same floor, as a list of [x, z] turns (null when there's no way)
+function navPath(sx, sz, tx, tz, forbid) {
+  navBuild();
+  const key = [sx.toFixed(2), sz.toFixed(2), tx.toFixed(2), tz.toFixed(2), forbid ? [...forbid].join('.') : ''].join(',');
+  if (navMemo && navMemo.key === key) return navMemo.path && navMemo.path.map((p) => p.slice());
+  const g = navGridAt(sx, sz);
+  let path = null;
+  if (g && g === navGridAt(tx, tz)) {
+    const s = navNearest(g, sx, sz, 10, forbid), t = s && navNearest(g, tx, tz, 16, forbid, g.comp[s[1] * g.W + s[0]]);
+    if (s && t) path = navAStar(g, s, t, forbid);
+    if (path) {
+      // start from exactly where they stand, end exactly on the spot (a seat sits inside its own furniture)
+      path = navSmooth(g, path, forbid);
+      path[0] = [sx, sz]; path.push([tx, tz]);
+      if (path.length > 2 && Math.hypot(path[1][0] - sx, path[1][1] - sz) < 0.05) path.splice(1, 1);
+    }
+  }
+  navMemo = { key, path };
+  return path && path.map((p) => p.slice());
+}
+function navAStar(g, s, t, forbid) {
+  const W = g.W, start = s[1] * W + s[0], goal = t[1] * W + t[0];
+  if (start === goal) return [[navX(g, s[0]), navZ(g, s[1])]];
+  const stamp = ++g.stamp, gs = g.gs, par = g.par, seen = g.seen, tx = t[0], tz = t[1];
+  // a binary heap of (cell, f)
+  let hc = new Int32Array(4096), hf = new Float32Array(4096), hn = 0;
+  const push = (c, f) => {
+    if (hn === hc.length) { const nc = new Int32Array(hn * 2), nf = new Float32Array(hn * 2); nc.set(hc); nf.set(hf); hc = nc; hf = nf; }
+    let i = hn++; while (i > 0) { const p = (i - 1) >> 1; if (hf[p] <= f) break; hc[i] = hc[p]; hf[i] = hf[p]; i = p; }
+    hc[i] = c; hf[i] = f;
+  };
+  const pop = () => {
+    const top = hc[0], lc = hc[--hn], lf = hf[hn]; let i = 0;
+    for (;;) { let k = 2 * i + 1; if (k >= hn) break; if (k + 1 < hn && hf[k + 1] < hf[k]) k++; if (hf[k] >= lf) break; hc[i] = hc[k]; hf[i] = hf[k]; i = k; }
+    hc[i] = lc; hf[i] = lf; return top;
+  };
+  const H = (c) => { const dx = Math.abs((c % W) - tx), dz = Math.abs(((c / W) | 0) - tz); return (dx + dz) + (Math.SQRT2 - 2) * Math.min(dx, dz); };
+  seen[start] = stamp; gs[start] = 0; par[start] = -1; push(start, H(start));
+  const closed = stamp + 0x80000000 >>> 0;
+  let n = 0;
+  while (hn) {
+    const cur = pop();
+    if (cur === goal) break;
+    if (seen[cur] === closed) continue;
+    seen[cur] = closed;
+    if (++n > 900000) return null;
+    const ci = cur % W, cj = (cur / W) | 0, g0 = gs[cur];
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      if (!di && !dj) continue;
+      const ni = ci + di, nj = cj + dj;
+      if (!navFree(g, ni, nj, forbid)) continue;
+      if (di && dj && (!navFree(g, ci + di, cj, forbid) || !navFree(g, ci, cj + dj, forbid))) continue;   // no cutting corners
+      const nc = nj * W + ni; if (seen[nc] === closed) continue;
+      const ng = g0 + (di && dj ? Math.SQRT2 : 1) + (g.near[nc] ? 1.2 : 0);
+      if (seen[nc] !== stamp || ng < gs[nc]) { seen[nc] = stamp; gs[nc] = ng; par[nc] = cur; push(nc, ng + H(nc) * 1.001); }
+    }
+  }
+  if (seen[goal] !== stamp && seen[goal] !== closed) return null;
+  const out = []; for (let c = goal; c !== -1; c = par[c]) out.push([navX(g, c % W), navZ(g, (c / W) | 0)]);
+  return out.reverse();
+}
+// pull the route tight: skip every turn you can see past
+function navSmooth(g, pts, forbid) {
+  if (pts.length < 3) return pts;
+  const out = [pts[0]]; let a = 0;
+  while (a < pts.length - 1) {
+    let b = pts.length - 1;
+    while (b > a + 1 && !navLine(g, pts[a][0], pts[a][1], pts[b][0], pts[b][1], forbid)) b--;
+    out.push(pts[b]); a = b;
+  }
+  return out;
+}
+const pathLen = (p) => { let L = 0; for (let k = 1; k < p.length; k++) L += Math.hypot(p[k][0] - p[k - 1][0], p[k][1] - p[k - 1][1]); return L; };
+
+// ---- where everyone is on screen right now, and the walk they're on (kept across rebuilds, by person)
+const WALK_SPEED = 1.9, RUN_SPEED = 4.4, RUN_FROM = 12;
+function moveFor(ch) {
+  const key = ch.uid || ch.name; if (!key) return;
+  const p = ch.root.position, goal = ch.spot || '';
+  const arrive = { act: ch.act, x: p.x, y: p.y, z: p.z, yaw: ch.root.rotation.y, free: /^[@^]/.test(goal) };
+  ch.jumped = false;
+  let m = MOVE.get(key);
+  if (!m) { MOVE.set(key, { x: p.x, z: p.z, yaw: arrive.yaw, goal, arrive, path: null, seen: true }); return; }
+  m.seen = true;
+  if (m.goal !== goal) {
+    const was = m.goal; m.goal = goal; m.arrive = arrive;
+    const tele = goal[0] === '^', far = zoneAtX(m.x) !== zoneAtX(p.x);
+    let path = null;
+    if (!tele && !far && was !== '') path = navPath(m.x, m.z, p.x, p.z, ch.mine ? myForbid() : null);
+    if (path && path.length >= 2 && pathLen(path) > 0.05) {
+      m.path = path; m.k = 0; m.run = pathLen(path) > RUN_FROM;
+      if (ch.mine) showDest(p.x, p.z);
+    } else {
+      if (tele) { poof(m.x, m.z); poof(p.x, p.z); }
+      m.path = null; m.x = p.x; m.z = p.z; if (!arrive.free) m.yaw = arrive.yaw;
+      ch.jumped = !!was || tele;
+    }
+  } else m.arrive = arrive;
+  if (arrive.free && !m.path) ch.root.rotation.y = m.yaw;
+  if (m.path) moveShow(ch, m);
+}
+function moveShow(ch, m) {
+  ch.act = m.run ? 'run' : 'walk';
+  ch.root.position.set(m.x, 0, m.z); ch.root.rotation.y = m.yaw;
+  setCue(ch, false);
+}
+// forget people who left
+function moveSweep() { for (const [k, m] of MOVE) { if (!m.seen) MOVE.delete(k); m.seen = false; } }
+// walks go by the real clock (slow phones skip frames, but everyone still arrives on time)
+let moveClock = performance.now();
+PRE_HOOKS.push(() => {
+  const now = performance.now(), dt = Math.min(0.5, (now - moveClock) / 1000); moveClock = now;
+  for (const ch of crowd) {
+    if (ch.npc || ch === draftChar) continue;
+    const m = MOVE.get(ch.uid || ch.name); if (!m || !m.path) continue;
+    let step = (m.run ? RUN_SPEED : WALK_SPEED) * dt;
+    while (step > 0 && m.path) {
+      const q = m.path[m.k + 1];
+      if (!q) { m.path = null; break; }
+      const dx = q[0] - m.x, dz = q[1] - m.z, d = Math.hypot(dx, dz);
+      if (d > 1e-4) { const want = Math.atan2(dx, dz); let dy = want - m.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); m.yaw += dy * Math.min(1, dt * 14); }
+      if (d <= step) { m.x = q[0]; m.z = q[1]; m.k++; step -= d; if (m.k >= m.path.length - 1) m.path = null; }
+      else { m.x += dx / d * step; m.z += dz / d * step; step = 0; }
+    }
+    if (m.path) {
+      // drop to a walk for the last few metres
+      if (m.run && pathLen([[m.x, m.z]].concat(m.path.slice(m.k + 1))) < 2.2) m.run = false;
+      moveShow(ch, m); continue;
+    }
+    // arrived: take up the spot (sit down, lean, deal...) or just stand where you stopped
+    const A = m.arrive;
+    ch.act = A.act; ch.root.position.set(A.x, A.y, A.z);
+    ch.root.rotation.y = A.free ? m.yaw : A.yaw; if (!A.free) m.yaw = A.yaw;
+    setCue(ch, ch.act === 'pool');
+    if (ch.mine) hideDest();
+  }
+});
+
+// ---- the click cross: a little pixel X that spins in and fades where you clicked (gold to walk, red to do something)
+const crossEl = document.createElement('canvas'); crossEl.id = 'clickCross'; crossEl.width = crossEl.height = 15; crossEl.hidden = true; stage.appendChild(crossEl);
+const crossCtx = crossEl.getContext('2d');
+let crossTimer = null;
+function drawCross(f, red) {
+  const x = crossCtx; x.clearRect(0, 0, 15, 15);
+  const fill = red ? ['#ff6a50', '#d8322a'] : ['#ffe08a', '#e0a440'], ink = red ? '#2a0806' : '#2a1606';
+  const L = [6, 5, 3, 2][f], c = 7;
+  const px = (i, j, col) => { x.fillStyle = col; x.fillRect(i, j, 1, 1); };
+  // outline first, then the arms, light on top-left and darker on bottom-right like the brass trim
+  for (let k = -L; k <= L; k++) for (const [i, j] of [[c + k, c + k], [c + k, c - k]]) for (const [di, dj] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) px(i + di, j + dj, ink);
+  for (let k = -L; k <= L; k++) { px(c + k, c + k, k < 0 ? fill[0] : fill[1]); px(c + k, c - k, k < 0 ? fill[0] : fill[1]); }
+  px(c, c, '#fff6dc');
+  // sparks flying off the corners as it closes
+  if (f >= 1) { const s = L + 2 + f; for (const [i, j] of [[c - s, c - s], [c + s, c - s], [c - s, c + s], [c + s, c + s]]) if (i >= 0 && j >= 0 && i < 15 && j < 15) px(i, j, fill[0]); }
+}
+function clickCross(x, y, red) {
+  const r = stage.getBoundingClientRect();
+  crossEl.style.left = Math.round(x - r.left) + 'px'; crossEl.style.top = Math.round(y - r.top) + 'px';
+  crossEl.hidden = false; let f = 0; drawCross(0, red);
+  clearInterval(crossTimer);
+  crossTimer = setInterval(() => { f++; if (f > 3) { clearInterval(crossTimer); crossEl.hidden = true; return; } drawCross(f, red); }, 90);
+}
+// ---- a marker on the ground where you're headed, until you get there
+const destMat = new THREE.MeshBasicMaterial({ color: 0xffc870, transparent: true, opacity: 0.8, depthWrite: false, fog: true, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
+const destMark = new THREE.Mesh(toGeometry([box(-0.05, 0.05, 0, 0.004, -0.32, 0.32, [255, 255, 255], 0), box(-0.32, 0.32, 0, 0.004, -0.05, 0.05, [255, 255, 255], 0)]), destMat);
+destMark.userData.nonav = true; destMark.userData.anyZone = true; destMark.visible = false; destMark.rotation.y = Math.PI / 4; scene.add(destMark);
+function showDest(x, z) { destMark.position.set(x, 0.02, z); destMark.visible = true; }
+function hideDest() { destMark.visible = false; }
+PRE_HOOKS.push((dt, t) => { if (destMark.visible) { destMark.scale.setScalar(0.85 + 0.15 * Math.sin(t * 6)); destMat.opacity = 0.55 + 0.3 * Math.sin(t * 6); } });
+// ---- a teleport flash: gold pixels swirling up and gone
+const POOFS = [];
+const poofGeo = new THREE.BufferGeometry(); poofGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(40 * 3), 3));
+function poof(x, z) {
+  const g = poofGeo.clone(), pts = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffd27a, size: 3, sizeAttenuation: false, transparent: true, depthWrite: false, fog: true }));
+  pts.userData.nonav = true; pts.userData.anyZone = true; pts.frustumCulled = false; scene.add(pts);
+  POOFS.push({ pts, x, z, t: 0, seed: Math.random() * 10 });
+}
+PRE_HOOKS.push((dt) => {
+  for (let k = POOFS.length - 1; k >= 0; k--) {
+    const P = POOFS[k]; P.t += dt;
+    const u = P.t / 1.1, a = P.pts.geometry.attributes.position;
+    for (let i = 0; i < 40; i++) {
+      const ang = i * 2.4 + P.seed + u * 7, r = 0.35 + 0.25 * Math.sin(i * 1.7) - u * 0.25, y = (i / 40) * 1.9 * Math.min(1, u * 2.2) + u * 0.6;
+      a.setXYZ(i, P.x + Math.cos(ang) * r, y, P.z + Math.sin(ang) * r);
+    }
+    a.needsUpdate = true; P.pts.material.opacity = Math.max(0, 1 - u * u);
+    if (u >= 1) { scene.remove(P.pts); P.pts.geometry.dispose(); P.pts.material.dispose(); POOFS.splice(k, 1); }
+  }
+});
+
+// ---- you: walk where you click
+const groundPlane0 = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), groundHit = new THREE.Vector3();
+function groundAtPointer(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  pointerNdc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+  raycaster.setFromCamera(pointerNdc, camera);
+  return raycaster.ray.intersectPlane(groundPlane0, groundHit) ? [groundHit.x, groundHit.z] : null;
+}
+function hotelRoomAt(x, z) { return HOTEL_ROOMS.find((R) => x >= R.x0 && x <= R.x1 && z >= R.z0 && z <= R.z1) || null; }
+function walkTo(x, z, quiet) {
+  const me = myChar();
+  if (!me) { openCreator(); return false; }
+  if (myLock()) { toast("You can't move yet."); return false; }
+  navBuild();
+  const g = navGridAt(x, z); if (!g) return false;
+  const forbid = myForbid(), r = roomAt(x, z);
+  if ((r === ROOMS.vip || r === ROOMS.vest) && forbid.size && forbid.has(ROOM_KEYS.indexOf('vip') + 1)) { if (!quiet) toast('VIP only: spend 1,000 coins to get in.'); return false; }
+  if (r === ROOMS.card && forbid.has(ROOM_KEYS.indexOf('card') + 1)) { if (!quiet) toast('Casino Royale is closed. Poker nights only happen when sh1den is in.'); return false; }
+  const hr = g.zone === 'f2' && hotelRoomAt(x, z);
+  if (hr && !roomOk(hr.i)) { if (!quiet) toast("That room's locked."); return false; }
+  const p = me.root.position, mm = MOVE.get(me.uid || me.name), fx = mm ? mm.x : p.x, fz = mm ? mm.z : p.z, same = navGridAt(fx, fz) === g;
+  const from = same && navNearest(g, fx, fz, 10, forbid);
+  const c = navNearest(g, x, z, 8, forbid, from ? g.comp[from[1] * g.W + from[0]] : undefined);
+  if (!c) { if (!quiet) toast(same ? "You can't get there from here." : "You can't stand there."); return false; }
+  const tx = navX(g, c[0]), tz = navZ(g, c[1]);
+  if (same && !navPath(fx, fz, tx, tz, forbid)) { if (!quiet) toast("You can't get there from here."); return false; }
+  goTo('@' + tx.toFixed(1) + ',' + tz.toFixed(1));
+  if (!camT.free) walkCam = true;
+  return true;
+}
+function walkClick(x, y) {
+  const at = groundAtPointer(x, y);
+  if (!at || !hasCharacter()) return false;
+  if (walkTo(at[0], at[1])) { clickCross(x, y, false); return true; }
+  return false;
+}
+// ---- teleport: back to the bar (or anywhere you like) in a flash, for when you've wandered off too far
+const TELEPORTS = {
+  bar: { name: 'The bar', x: 1.5, z: 1.9, view: 'bar' },
+  street: { name: 'The street', x: 0, z: 5.6, view: 'street' },
+  alley: { name: 'Backstreet', x: 3.0, z: -16.5, view: 'alley' },
+  drive: { name: 'Valet drive', x: 24.5, z: -22.5, view: 'drive' },
+  carpark: { name: 'Car park', x: -40, z: -23, view: 'carpark' },
+  backalley: { name: 'Back alley', x: -82, z: -45, view: 'backalley' },
+  golf: { name: 'Golf club', x: 37, z: -79.5, view: 'golf' }
+};
+let lastTele = 0;
+function teleportTo(k) {
+  const T = TELEPORTS[k]; if (!T) return;
+  const me = myChar();
+  if (!me) { openCreator(); return; }
+  if (myLock()) { toast("You can't move yet."); return; }
+  if (performance.now() - lastTele < 6000) { toast('Your teleport needs a few seconds to charge.'); return; }
+  navBuild();
+  const g = navGridAt(T.x, T.z), c = g && navNearest(g, T.x, T.z, 16, null);
+  const tx = c ? navX(g, c[0]) : T.x, tz = c ? navZ(g, c[1]) : T.z;
+  lastTele = performance.now();
+  hideDest();
+  goTo('^' + tx.toFixed(1) + ',' + tz.toFixed(1));
+  setView(T.view); walkCam = true;
+}
+for (const b of document.querySelectorAll('[data-tp]')) b.addEventListener('click', () => { const m = b.closest('.menu'); if (m) m.hidden = true; teleportTo(b.dataset.tp); });
+// build the walk map once the place has settled, so the first click doesn't wait for it
+setTimeout(() => { try { navBuildSoon(); } catch (e) { console.warn('walk map', e); } }, 4000);
 setInterval(() => {
   const v = myLock();
   lockOverlay.hidden = !v;
@@ -7607,7 +8056,7 @@ const TOUR = [['bar', 'Polishing the bar…'], ['dance', 'Warming up the dance f
 let touring = false, tourI = 0, tourT = 0, gateWanted = false, enteredGame = false;
 function tourShot(i) {
   const [v, label] = TOUR[i % TOUR.length];
-  if (VIEWS[v]) { follow = null; cutTo(() => { Object.assign(camT, VIEWS[v]); camT.free = false; }); }
+  if (VIEWS[v]) { follow = null; walkCam = false; cutTo(() => { Object.assign(camT, VIEWS[v]); camT.free = false; }); }
   if (window.LOAD) window.LOAD.set(Math.min(100, 70 + i * 6), i >= TOUR.length - 1 ? 'Ready.' : label);
 }
 function startTour() {
