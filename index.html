@@ -319,6 +319,8 @@ select { font: inherit; font-size: 12px; color: var(--fg); background: var(--sol
 .keyhint { display: none !important; }
 .bottom { gap: 8px; flex-wrap: nowrap; }
 .dropup { position: relative; }
+/* where you clicked: a little pixel cross, gold to walk, red to do something */
+#clickCross { position: absolute; width: 45px; height: 45px; transform: translate(-50%, -50%); image-rendering: pixelated; pointer-events: none; z-index: 30; }
 .dropup > .menu { position: absolute; bottom: calc(100% + 8px); left: 0; min-width: 220px; display: flex; flex-direction: column; gap: 4px; padding: 10px;
   background: #0c0b0d; border: 1px solid rgba(226,180,103,0.45); box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 6; }
 .dropup.right > .menu { left: auto; right: 0; }
@@ -579,6 +581,19 @@ input[type=range] { box-shadow: none; background: transparent; }
       </div>
     </div>
     <button id="roomBtn" type="button" aria-pressed="false">💬 <span class="lbl">Chat &amp; TV</span><span class="badge" id="chatBadge" hidden>0</span></button>
+    <div class="dropup" id="tpDrop">
+      <button type="button" data-drop="tpMenu" title="Teleport somewhere">✦ <span class="lbl">Teleport</span><span class="caret">▲</span></button>
+      <div class="menu" id="tpMenu" hidden>
+        <div class="mlabel">Teleport to</div>
+        <button type="button" data-tp="bar">The bar</button>
+        <button type="button" data-tp="street">The street</button>
+        <button type="button" data-tp="alley">Backstreet</button>
+        <button type="button" data-tp="drive">Valet drive</button>
+        <button type="button" data-tp="carpark">Car park</button>
+        <button type="button" data-tp="backalley">Back alley</button>
+        <button type="button" data-tp="golf">Golf club</button>
+      </div>
+    </div>
     <span class="spacer"></span>
     <div class="dropup right" id="coinDrop">
       <button type="button" data-drop="coinMenu">🪙 <span id="coinBtnN">0</span><span class="caret">▲</span></button>
@@ -784,7 +799,7 @@ input[type=range] { box-shadow: none; background: transparent; }
 <script>
 // the loading screen: a pixel bar that fills as each part arrives, with a tip underneath
 window.LOAD = (function () {
-  var pct = 0, tips = ['Tip: post a video link in Chat & TV and everyone watches it together.', 'Tip: click anyone in the bar to see their card.', 'Tip: the jukebox takes requests.', 'Tip: on your phone you can still chat and see who\'s in.', 'Tip: make an account (Me → Account) so your character follows you to any device.', 'Tip: pool and poker tables are always open.'];
+  var pct = 0, tips = ['Tip: click the floor to walk anywhere. Wandered too far? Teleport takes you straight back.', 'Tip: post a video link in Chat & TV and everyone watches it together.', 'Tip: click anyone in the bar to see their card.', 'Tip: the jukebox takes requests.', 'Tip: on your phone you can still chat and see who\'s in.', 'Tip: make an account (Me → Account) so your character follows you to any device.', 'Tip: pool and poker tables are always open.'];
   function set(p, label) { pct = Math.max(pct, p); var f = document.getElementById('lfill'); if (f) f.style.width = pct + '%'; var s = document.getElementById('lstage'); if (s && label) s.textContent = label; }
   function tip() { var t = document.getElementById('ltip'); if (t) t.textContent = tips[Math.floor(Math.random() * tips.length)]; }
   tip(); var tipT = setInterval(tip, 4200);
@@ -799,7 +814,7 @@ window.LOAD = (function () {
 <!-- bump ?v= after each update so browsers load the new files right away -->
 <script src="config.js?v=70"></script>
 <script src="net.js?v=70" onload="LOAD.step(36,'Building the bar…')"></script>
-<script src="bar.js?v=78" onload="LOAD.step(62,'Stocking the shelves…')"></script>
+<script src="bar.js?v=79" onload="LOAD.step(62,'Stocking the shelves…')"></script>
 <script src="pool.js?v=70"></script>
 <script src="extras.js?v=70"></script>
 <script src="poker.js?v=70"></script>
