@@ -1134,6 +1134,7 @@ const ROOMS = {
   alley: { x0: -14, x1: 15, z0: -35, z1: -11, name: 'Backstreet', outside: true },
   drive: { x0: 15, x1: 38, z0: -62, z1: 4, name: 'Valet drive', outside: true },
   carpark: { x0: -88, x1: -14.2, z0: -72, z1: 4, name: 'Car park', outside: true },
+  backalley: { x0: -84.2, x1: -19.8, z0: -70.2, z1: 4, name: 'Back alley', outside: true },
   golf: { x0: -50, x1: 120, z0: -275, z1: -62, name: 'Golf club', outside: true }
 };
 function roomAt(x, z) {
@@ -1293,15 +1294,36 @@ const swirlTex = canvasTex(64, 64, (x, w, h) => {
 // furniture and glowing bits get a depth bias so they always win against the floor and walls they touch
 const roomMat = ps1(new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -3 }));
 const glowMat = new THREE.MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 });
-const decal = (opts) => new THREE.MeshBasicMaterial(Object.assign({ polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 }, opts));
+const decal = (opts) => new THREE.MeshBasicMaterial(Object.assign({ polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 }, opts));
+// paint, lines and paths lying on the ground: their own steady layer, pulled forward so they always sit on top
+const groundDecalMat = new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 });
+const GD = [];
 // which floor an x position belongs to (the basement and hotel are built far off to the side)
 function zoneAtX(x) { return x > 150 ? 'f2' : x > 80 ? 'base' : 'main'; }
 // merged static geometry is split into chunks per floor and per 24 m square, so far or hidden chunks can be skipped
+// anything flat lying on a floor or the ground (painted lines, paths, lane markings) is drawn without the PS1 vertex
+// wobble: the wobble bends each surface's depth differently, which is what makes thin layers flicker against each other
+const flatRoomMat = new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -3 });
+// outside, everything static is drawn steady: the street, the drive, the car park, the buildings and the golf course.
+// (inside the bar the wobble stays, it's part of the look and the rooms were checked for flicker with it on)
+function isFlatPart(p) {
+  const v = p.tris[0][0], x = v[0], z = v[2];
+  // anything thin lying right on a floor (inlays, borders, mats) is steady too, like the floors themselves
+  let y0 = Infinity, y1 = -Infinity; for (const t of p.tris) for (const q of t) { if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1]; }
+  if (y1 - y0 < 0.06 && y1 < 0.1 && y0 > -0.05) return true;
+  if (zoneAtX(x) !== 'main') return false;
+  return x < -17.3 || x > 23.3 || z > 4.3 || z < -12.3;
+}
 function addStatic(parts, mat) {
   const by = new Map();
-  for (const p of parts) { const v = p.tris[0] && p.tris[0][0]; const z = v ? zoneAtX(v[0]) : 'main'; const k = v ? z + ':' + Math.floor(v[0] / 24) + ',' + Math.floor(v[2] / 24) : z; if (!by.has(k)) by.set(k, []); by.get(k).push(p); }
+  for (const p of parts) {
+    const v = p.tris[0] && p.tris[0][0]; const z = v ? zoneAtX(v[0]) : 'main';
+    const flat = !mat && v && isFlatPart(p) ? 'F' : '';
+    const k = (v ? z + ':' + Math.floor(v[0] / 24) + ',' + Math.floor(v[2] / 24) : z) + flat;
+    if (!by.has(k)) by.set(k, []); by.get(k).push(p);
+  }
   let last = null;
-  for (const [k, ps] of by) { const m = new THREE.Mesh(toGeometry(ps), mat || roomMat); m.userData.zone = k.split(':')[0]; scene.add(m); last = m; }
+  for (const [k, ps] of by) { const m = new THREE.Mesh(toGeometry(ps), k.endsWith('F') ? flatRoomMat : mat || roomMat); m.userData.zone = k.split(':')[0]; scene.add(m); last = m; }
   return last;
 }
 function scaleUV(geo, su, sv) { const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv); uv.needsUpdate = true; }
@@ -1312,7 +1334,7 @@ function floorFor(r, tex, tile) {
   const w = r.x1 - r.x0, d = r.z1 - r.z0;
   const g = new THREE.PlaneGeometry(w, d, Math.ceil(w * 2), Math.ceil(d * 2));
   scaleUV(g, w / tile, d / tile);
-  const m = new THREE.Mesh(g, ps1(new THREE.MeshLambertMaterial({ map: tex })));
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tex }));   // floors stay steady (no wobble) so rugs never flicker on them
   m.rotation.x = -Math.PI / 2; m.position.set((r.x0 + r.x1) / 2, 0, (r.z0 + r.z1) / 2); scene.add(m);
   return m;
 }
@@ -1334,7 +1356,7 @@ swimFloorTex.wrapS = swimFloorTex.wrapT = THREE.RepeatWrapping;
     const w = x1 - x0, d = z1 - z0, g = new THREE.PlaneGeometry(w, d, Math.ceil(w * 2), Math.ceil(d * 2));
     scaleUV(g, w / 1.5, d / 1.5);
     const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) { uv.setX(i, uv.getX(i) + (x0 - r.x0) / 1.5); uv.setY(i, uv.getY(i) + (z0 - r.z0) / 1.5); }
-    const m = new THREE.Mesh(g, ps1(new THREE.MeshLambertMaterial({ map: swimFloorTex })));
+    const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: swimFloorTex }));
     m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 0, (z0 + z1) / 2); scene.add(m);
   }
 }
@@ -3132,7 +3154,7 @@ function groundPlane(x0, x1, z0, z1, tex, tile, y) {
   const w = x1 - x0, d = z1 - z0;
   const g = new THREE.PlaneGeometry(w, d, Math.ceil(w / 2), Math.max(1, Math.ceil(d / 2)));
   scaleUV(g, w / tile, d / tile);
-  const m = new THREE.Mesh(g, ps1(new THREE.MeshLambertMaterial({ map: tex })));
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tex }));
   m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, y || 0, (z0 + z1) / 2); scene.add(m);
   return m;
 }
@@ -3155,8 +3177,8 @@ groundPlane(ST.x0, ST.x1, ST.curb1 + 0.12, ST.walk1 + 2, pavingTex, 1.2, 0);
 S.push(box(ST.x0, ST.x1, ROAD_Y, 0, ST.curb0 - 0.12, ST.curb0, [74, 74, 80], 0.03));
 S.push(box(ST.x0, ST.x1, ROAD_Y, 0, ST.curb1, ST.curb1 + 0.12, [74, 74, 80], 0.03));
 const PARK_Z = ST.curb0 + 2.25, LANE_Z = (PARK_Z + ST.curb1) / 2;
-for (let x = ST.x0 + 1; x < ST.x1; x += 3.2) S.push(box(x, x + 1.6, ROAD_Y, ROAD_Y + 0.012, LANE_Z - 0.06, LANE_Z + 0.06, [190, 166, 84], 0.03));
-for (const z of [PARK_Z]) S.push(box(ST.x0, ST.x1, ROAD_Y, ROAD_Y + 0.01, z - 0.05, z + 0.05, [150, 150, 150], 0.03));
+for (let x = ST.x0 + 1; x < ST.x1; x += 3.2) GD.push(box(x, x + 1.6, ROAD_Y, ROAD_Y + 0.012, LANE_Z - 0.06, LANE_Z + 0.06, [190, 166, 84], 0.03));
+for (const z of [PARK_Z]) GD.push(box(ST.x0, ST.x1, ROAD_Y, ROAD_Y + 0.01, z - 0.05, z + 0.05, [150, 150, 150], 0.03));
 
 // the building's outside walls: dark stone, taller than the rooms, with the entrance and the back door cut in
 const stoneTex = canvasTex(32, 64, (x, w, h) => {
@@ -3306,7 +3328,7 @@ const stoneLTex = canvasTex(16, 16, (x, w, h) => {
   x.fillStyle = 'rgb(60,58,54)'; x.fillRect(0, 0, w, 1); x.fillRect(0, 0, 1, h);
 });
 for (const t of [settTex, graniteTex, stoneLTex]) t.wrapS = t.wrapT = THREE.RepeatWrapping;
-const flatMat = (tex, units) => ps1(new THREE.MeshLambertMaterial({ map: tex, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: units }));
+const flatMat = (tex, units) => new THREE.MeshLambertMaterial({ map: tex, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: units });
 function ringPlane(r0, r1, mat, tile, y) {
   const g = r0 > 0 ? new THREE.RingGeometry(r0, r1, 64, 2) : new THREE.CircleGeometry(r1, 48);
   scaleUV(g, 2 * r1 / tile, 2 * r1 / tile);
@@ -3315,7 +3337,7 @@ function ringPlane(r0, r1, mat, tile, y) {
 }
 ringPlane(LOT.ro, LOT.rb + 0.6, flatMat(graniteTex, -2), 1.6, 0.02);
 ringPlane(LOT.ri, LOT.ro, flatMat(settTex, -4), 1.1, 0.04);
-groundPlane(4.6, AL.x1 + 0.8, LOT.z - 1.6, LOT.z + 1.6, settTex, 1.1, 0.032);
+groundPlane(4.6, AL.x1 + 0.8, LOT.z - 1.6, LOT.z + 1.6, settTex, 1.1, 0.06);
 groundPlane(-5.2, -2.4, LOT.z + LOT.ro + 0.05, -11.6, stoneLTex, 1.0, 0.07);
 // pieces of a ring (curbs, hedges, inlays), each its own small box so the faces point the right way
 const ang = (a) => [Math.sin(a), -Math.cos(a)];
@@ -3336,7 +3358,7 @@ const D2R = Math.PI / 180;
 S.push(...arcBox(LOT.ri - 0.12, LOT.ri + 0.1, 0, 0.2, 0, 2 * Math.PI, 48, MARBLE_W, 0.03));
 G.push(...arcBox(LOT.ro - 0.035, LOT.ro + 0.035, 0.05, 0.065, 0, 2 * Math.PI, 96, [200, 160, 80], 0));
 // the island: dark lawn, four clipped cypress cones, and a three-tier fountain lit from below
-ringPlane(0, LOT.ri - 0.1, ps1(new THREE.MeshLambertMaterial({ map: canvasTex(16, 16, (x, w, h) => noiseFill(x, w, h, [26, 52, 28], 10)) })), 1.2, 0.16);
+ringPlane(0, LOT.ri - 0.1, new THREE.MeshLambertMaterial({ map: canvasTex(16, 16, (x, w, h) => noiseFill(x, w, h, [26, 52, 28], 10)) }), 1.2, 0.16);
 for (let k = 0; k < 4; k++) {
   const [s, c] = ang(Math.PI / 4 + k * Math.PI / 2), x = LOT.x + s * 1.7, z = LOT.z + c * 1.7;
   S.push(cyl(V(x, 0.16, z), V(x, 0.42, z), 0.2, 0.18, [120, 110, 100], { n: 10 }));
@@ -3427,7 +3449,7 @@ for (const zz of [LOT.z - 1.85, LOT.z + 1.85]) {
 }
 for (const zz of [LOT.z - 1.65, LOT.z + 1.65]) S.push(box(4.8, AL.x1 + 0.8, 0, 0.1, zz - 0.07, zz + 0.07, MARBLE_W, 0.03));
 // a red carpet from the VIP back door to the drive, with brass stanchions and velvet ropes
-{ const g = new THREE.PlaneGeometry(0.8, -11.6 - (LOT.z + LOT.ro + 0.1), 1, 24); const m = new THREE.Mesh(g, ps1(new THREE.MeshLambertMaterial({ map: canvasTex(8, 8, (x, w, h) => noiseFill(x, w, h, [120, 14, 24], 8)), polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -10 })));
+{ const g = new THREE.PlaneGeometry(0.8, -11.6 - (LOT.z + LOT.ro + 0.1), 1, 24); const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: canvasTex(8, 8, (x, w, h) => noiseFill(x, w, h, [120, 14, 24], 8)), polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -10 }));
   m.rotation.x = -Math.PI / 2; m.position.set(-3.8, 0.1, (-11.6 + LOT.z + LOT.ro + 0.1) / 2); scene.add(m); }
 for (const x of [-4.55, -3.05]) {
   const zs = [-12.4, -14.0, -15.6, -17.0];
@@ -3864,10 +3886,10 @@ function buildForest() {
 const CC = { x: ST.x1, z: 2.0 }, CRI = ST.curb0 - CC.z, CRO = ST.curb1 - CC.z;   // turn centre, inner and outer curb radius
 const SS = { x0: CC.x + CRI, x1: CC.x + CRO, z1: CC.z, z0: -66.2 };                  // the side street's road
 const groundAt = (x0, x1, z0, z1, mat, tile, y) => { const m = groundPlane(x0, x1, z0, z1, asphaltTex, tile, y); m.material = mat; return m; };
-const pavingMat = ps1(new THREE.MeshLambertMaterial({ map: pavingTex })), asphaltMat = ps1(new THREE.MeshLambertMaterial({ map: asphaltTex }));
+const pavingMat = new THREE.MeshLambertMaterial({ map: pavingTex }), asphaltMat = new THREE.MeshLambertMaterial({ map: asphaltTex });
 const lawnTex = canvasTex(16, 16, (x, w, h) => { noiseFill(x, w, h, [24, 44, 24], 9); for (let k = 0; k < 18; k++) { x.fillStyle = 'rgb(40,66,34)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 2); } });
 lawnTex.wrapS = lawnTex.wrapT = THREE.RepeatWrapping;
-const lawnMat = ps1(new THREE.MeshLambertMaterial({ map: lawnTex }));
+const lawnMat = new THREE.MeshLambertMaterial({ map: lawnTex });
 // a quarter ring around the turn centre, laid flat
 function cornerRing(r0, r1, mat, tile, y) {
   const g = r0 > 0 ? new THREE.RingGeometry(r0, r1, 24, 2, -Math.PI / 2, Math.PI / 2) : new THREE.CircleGeometry(r1, 24, -Math.PI / 2, Math.PI / 2);
@@ -3876,7 +3898,7 @@ function cornerRing(r0, r1, mat, tile, y) {
   return m;
 }
 cornerRing(CRI - 0.12, CRO + 0.12, asphaltMat, 3, ROAD_Y);
-cornerRing(0, CRI - 0.12, pavingMat, 1.2, -0.02);
+{ const m = cornerRing(0, CRI - 0.12, pavingMat, 1.2, -0.02); m.material = new THREE.MeshLambertMaterial({ map: pavingTex, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 8 }); }   // tucked behind the dance room floor where it runs under it
 cornerRing(CRO + 0.12, CRO + 4.2, pavingMat, 1.2, 0);
 // curbs round the bend, in short pieces
 const cAt = (r, a) => [CC.x + r * Math.sin(a), CC.z + r * Math.cos(a)];
@@ -3886,14 +3908,14 @@ for (let k = 0; k < 16; k++) {
     const q = (y) => [V(...[cAt(r0, a0)[0], y, cAt(r0, a0)[1]]), V(cAt(r0, a1)[0], y, cAt(r0, a1)[1]), V(cAt(r1, a1)[0], y, cAt(r1, a1)[1]), V(cAt(r1, a0)[0], y, cAt(r1, a0)[1])];
     S.push(loft([q(ROAD_Y), q(0)], [74, 74, 80], { amt: 0.03 }));
   }
-  if (k % 2 === 0) { const L = LANE_Z - CC.z, m0 = cAt(L, a0 + 0.02), m1 = cAt(L, a1 - 0.02); S.push(groundStrip(m0[0], m0[1], m1[0], m1[1], 0.12, ROAD_Y, [190, 166, 84])); }
+  if (k % 2 === 0) { const L = LANE_Z - CC.z, m0 = cAt(L, a0 + 0.02), m1 = cAt(L, a1 - 0.02); GD.push(groundStrip(m0[0], m0[1], m1[0], m1[1], 0.12, ROAD_Y, [190, 166, 84])); }
 }
 // the side street itself: road, curbs, centre dashes, sidewalks both sides
 groundAt(SS.x0 - 0.12, SS.x1 + 0.12, SS.z0, SS.z1, asphaltMat, 3, ROAD_Y);
 S.push(box(SS.x0 - 0.12, SS.x0, ROAD_Y, 0, SS.z0, SS.z1, [74, 74, 80], 0.03));
 S.push(box(SS.x1, SS.x1 + 0.12, ROAD_Y, 0, SS.z0, SS.z1, [74, 74, 80], 0.03));
 const SIDE_X = CC.x + (LANE_Z - CC.z);
-for (let z = SS.z1 - 1; z > SS.z0; z -= 3.2) S.push(box(SIDE_X - 0.06, SIDE_X + 0.06, ROAD_Y, ROAD_Y + 0.012, z - 1.6, z, [190, 166, 84], 0.03));
+for (let z = SS.z1 - 1; z > SS.z0; z -= 3.2) GD.push(box(SIDE_X - 0.06, SIDE_X + 0.06, ROAD_Y, ROAD_Y + 0.012, z - 1.6, z, [190, 166, 84], 0.03));
 groundAt(23.02, SS.x0 - 0.12, SS.z0, CC.z, pavingMat, 1.2, -0.02);
 groundAt(SS.x1 + 0.12, SS.x1 + 4.2, SS.z0, CC.z, pavingMat, 1.2, 0);
 // sodium street lamps: the same warm yellow as the dance floor's glow, these ones just don't pulse
@@ -3926,7 +3948,8 @@ for (const a of [0.35, 1.2]) { const [x, z] = cAt(CRO + 0.6, a); lampPost(x, z, 
 groundAt(23.02, SS.x0 - 0.1, LOT.z - 1.6, LOT.z + 1.6, flatMat(settTex, -6), 1.1, 0.034);
 groundAt(AL.x1 + 0.8, 23.02, LOT.z - 1.6, LOT.z + 1.6, flatMat(settTex, -6), 1.1, 0.032);
 for (const zz of [LOT.z - 1.65, LOT.z + 1.65]) S.push(box(AL.x1 + 0.8, SS.x0 - 0.12, 0, 0.1, zz - 0.07, zz + 0.07, MARBLE_W, 0.03));
-groundAt(AL.x1 + 0.05, 22.98, LOT.z + 1.75, -4.05, lawnMat, 1.4, 0.01);
+groundAt(AL.x1 + 0.05, 22.98, LOT.z + 1.75, -12.05, lawnMat, 1.4, 0.01);
+groundAt(18.45, 22.98, -12.05, -4.05, lawnMat, 1.4, 0.01);
 groundAt(AL.x1 + 0.05, 22.98, SS.z0, LOT.z - 1.75, lawnMat, 1.4, 0.01);
 // clipped hedges lining the drive, cypress cones at both ends, beds of flowers in front of the hedges
 function cone(x, z, s) {
@@ -3974,8 +3997,6 @@ groundAt(-19.98, -17.05, -11.0, ST.walk0 - 0.02, lawnMat, 1.4, 0.0);
 groundAt(-19.98, AL.x0 - 0.05, PK2.z0, -11.0, lawnMat, 1.4, 0.0);
 groundAt(PK2.x0 - 6, -48, PK2.z1, ST.walk0 - 0.02, lawnMat, 1.4, 0.0);
 // a paved path from the car park to a gate in the courtyard wall, right by Old Tobias
-groundAt(-20, AL.x0 + 0.05, -33.3, -30.7, pavingMat, 1.2, 0.015);
-for (const zz of [-33.35, -30.65]) S.push(box(-20, AL.x0, 0, 0.08, zz - 0.06, zz + 0.06, [74, 74, 80], 0.03));
 // curb round the edge, a chain-link fence on the far sides
 S.push(box(PK2.x0 - 0.15, PK2.x1, 0, 0.14, PK2.z1 - 0.15, PK2.z1, [74, 74, 80], 0.03));
 for (const [x0, x1, z0, z1] of [[PK2.x0 - 0.15, PK2.x0, PK2.z0, PK2.z1], [PK2.x1, PK2.x1 + 0.15, PK2.z0, -33.4], [PK2.x1, PK2.x1 + 0.15, -30.6, PK2.z1 - 7]]) S.push(box(x0, x1, 0, 0.14, z0, z1, [74, 74, 80], 0.03));
@@ -3999,21 +4020,22 @@ const PROWS = [{ z: -14.4, dir: -1 }, { z: -31.9, dir: 1 }, { z: -31.9, dir: -1 
 const LINE_W = [214, 214, 206];
 for (const r of PROWS) {
   const zb = r.z + r.dir * BAY_D;
-  for (let k = 0; k <= NB; k++) S.push(...paintLine(BX0 + k * BAY_W, r.z, BX0 + k * BAY_W, zb, 0.09, 0.006, LINE_W, 3));
+  for (let k = 0; k <= NB; k++) GD.push(...paintLine(BX0 + k * BAY_W, r.z, BX0 + k * BAY_W, zb, 0.09, 0.006, LINE_W, 3));
   for (let k = 0; k < NB; k++) { const cx = BX0 + (k + 0.5) * BAY_W, sz = r.z + r.dir * 0.45; S.push(box(cx - 0.8, cx + 0.8, 0, 0.13, sz - 0.1, sz + 0.1, [120, 118, 112], 0.04)); }
 }
-for (const z of [-31.9, -49.5]) S.push(...paintLine(BX0, z, BX1, z, 0.09, 0.006, LINE_W, 24));
+for (const z of [-31.9, -49.5]) GD.push(...paintLine(BX0, z, BX1, z, 0.09, 0.006, LINE_W, 24));
 // arrows and a painted "EXIT" in the aisles
 for (const [x, z, a] of [[-24, -24, 0], [-24, -41, Math.PI], [-24, -58, 0], [-50, -23, -Math.PI / 2], [-50, -40.7, Math.PI / 2]]) {
   const s = Math.sin(a), c = Math.cos(a), P2 = (u, v) => [x + u * c - v * s, z + u * s + v * c];
   const shaft = [P2(-1.2, 0), P2(0.5, 0)], h1 = [P2(0.5, -0.4), P2(1.1, 0)], h2 = [P2(0.5, 0.4), P2(1.1, 0)];
-  for (const [p, q] of [shaft, h1, h2]) S.push(groundStrip(p[0], p[1], q[0], q[1], 0.16, 0.006, LINE_W));
+  for (const [p, q] of [shaft, h1, h2]) GD.push(groundStrip(p[0], p[1], q[0], q[1], 0.16, 0.006, LINE_W));
 }
 // planted islands at the end of each double row, with a tree; tall lamps along the middle of the rows
 for (const z of [-31.9, -49.5]) {
   const x0 = BX1 + 0.3, x1 = BX1 + 2.3;
-  S.push(box(x0, x1, 0, 0.16, z - BAY_D + 0.3, z + BAY_D - 0.3, [86, 84, 80], 0.04));
-  groundAt(x0 + 0.12, x1 - 0.12, z - BAY_D + 0.42, z + BAY_D - 0.42, lawnMat, 1.2, 0.17);
+  const za = z - BAY_D + 0.3, zb2 = z + BAY_D - 0.3;
+  for (const [a, b, c, d] of [[x0, x1, za, za + 0.14], [x0, x1, zb2 - 0.14, zb2], [x0, x0 + 0.14, za, zb2], [x1 - 0.14, x1, za, zb2]]) S.push(box(a, b, 0, 0.18, c, d, [86, 84, 80], 0.04));
+  groundAt(x0 + 0.12, x1 - 0.12, za + 0.12, zb2 - 0.12, lawnMat, 1.2, 0.12);
   tree((x0 + x1) / 2, z + 2.6, 0.75); tree((x0 + x1) / 2, z - 2.6, 0.7);
 }
 const PARK_LAMPS = [];
@@ -4150,8 +4172,11 @@ const FACADES_LIB = [
   facadeTex([96, 44, 36], [46, 40, 38], [150, 140, 126], 1),     // red brick
   facadeTex([70, 52, 42], [36, 32, 30], [120, 112, 100], 2),     // brown brick
   facadeTex([88, 86, 82], [52, 50, 48], [150, 146, 138], 3),     // grey stone
-  facadeTex([112, 84, 58], [60, 50, 40], [170, 160, 140], 4)     // tan brick
-].map((t) => ps1(new THREE.MeshLambertMaterial({ map: t, emissiveMap: t, emissive: 0x3a3632 })));
+  facadeTex([112, 84, 58], [60, 50, 40], [170, 160, 140], 4),    // tan brick
+  facadeTex([58, 74, 62], [30, 36, 32], [168, 160, 138], 5),     // painted green brick, flaking
+  facadeTex([48, 40, 38], [24, 22, 22], [96, 90, 84], 6),        // sooty black brick (the warehouse)
+  facadeTex([150, 136, 110], [80, 72, 60], [70, 60, 50], 7)      // cream paint over brick, dark trim
+].map((t) => new THREE.MeshLambertMaterial({ map: t, emissiveMap: t, emissive: 0x3a3632 }));
 // a wall, as two triangles with the window grid lined up to its bottom-left corner
 function wallGeo(ax, az, bx, bz, y0, y1, nx, nz) {
   // the triangles face (-dz, dx) for a wall running a -> b; flip the run if that points inward
@@ -4164,17 +4189,18 @@ function wallGeo(ax, az, bx, bz, y0, y1, nx, nz) {
   return g;
 }
 // the lit windows: one small glowing pane per window, switched on and off a few at a time
-const litMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: true });
+const litMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -6 });
 const litGeo = new THREE.PlaneGeometry(1.2, 1.45);
 const BLOCK_LIGHTS = [];
 const SMOKE_VENTS = [];
 const ROOF_SPOTS = [];
 function building(o) {
-  const { x0, x1, z0, z1, h, front, seed } = o, r = rngFrom(seed), mat = FACADES_LIB[seed % FACADES_LIB.length];
+  const { x0, x1, z0, z1, h, front, seed } = o, r = rngFrom(seed), mat = FACADES_LIB[o.mat !== undefined ? o.mat : seed % 4];
   const sides = [[x0, z1, x1, z1, 0, 1], [x1, z0, x0, z0, 0, -1], [x0, z0, x0, z1, -1, 0], [x1, z1, x1, z0, 1, 0]];
   const geos = [], wins = [];
   for (const [ax, az, bx, bz, nx, nz] of sides) {
     geos.push(wallGeo(ax, az, bx, bz, 0, h, nx, nz));
+    if ((o.join === 'x' && nx) || (o.join === 'z' && nz)) continue;   // a shared wall: no windows or trim
     const len = Math.hypot(bx - ax, bz - az), cols = Math.floor(len / 3 + 1e-6), floors = Math.floor(h / 3.2);
     for (let c = 0; c < cols; c++) for (let f = 1; f < floors; f++) {
       const u = (c + 0.5) * 3, x = ax + (bx - ax) / len * u + nx * 0.03, z = az + (bz - az) / len * u + nz * 0.03, y = f * 3.2 + 1.75;
@@ -4182,8 +4208,8 @@ function building(o) {
     }
     // a ledge at every floor and a heavy cornice at the top
     const ux = (bx - ax) / len, uz = (bz - az) / len;
-    for (let f = 1; f < floors; f++) S.push(groundStrip(ax - ux * 0.05 + nx * 0.06, az - uz * 0.05 + nz * 0.06, bx + ux * 0.05 + nx * 0.06, bz + uz * 0.05 + nz * 0.06, 0.14, f * 3.2 - 0.06, [60, 56, 52], 0.08));
-    S.push(groundStrip(ax - ux * 0.2 + nx * 0.18, az - uz * 0.2 + nz * 0.18, bx + ux * 0.2 + nx * 0.18, bz + uz * 0.2 + nz * 0.18, 0.4, h - 0.4, [56, 52, 48], 0.4));
+    for (let f = 1; f < floors; f++) S.push(groundStrip(ax + nx * 0.08, az + nz * 0.08, bx + nx * 0.08, bz + nz * 0.08, 0.14, f * 3.2 - 0.06, [60, 56, 52], 0.08));
+    S.push(groundStrip(ax + nx * 0.21, az + nz * 0.21, bx + nx * 0.21, bz + nz * 0.21, 0.4, h - 0.47, [56, 52, 48], 0.4));
   }
   const wm = new THREE.Mesh(mergeGeos(geos.map((g) => g)), mat); scene.add(wm);
   // the windows' lights
@@ -4198,10 +4224,11 @@ function building(o) {
   scene.add(im); BLOCK_LIGHTS.push({ im, wins, on, r: rngFrom(seed * 7) });
   // the roof: tar, a parapet round the edge
   S.push(box(x0, x1, h - 0.02, h + 0.04, z0, z1, [34, 34, 38], 0.05));
-  for (const [a, b, c, d] of [[x0, x1, z1 - 0.3, z1], [x0, x1, z0, z0 + 0.3], [x0, x0 + 0.3, z0, z1], [x1 - 0.3, x1, z0, z1]]) { S.push(box(a, b, h, h + 0.85, c, d, [70, 66, 62], 0.05)); S.push(box(a - 0.04, b + 0.04, h + 0.85, h + 0.95, c - 0.04, d + 0.04, [96, 92, 88], 0.03)); }
+  // (the side runs fit between the front and back ones, so no two faces ever lie on top of each other at the corners)
+  for (const [a, b, c, d] of [[x0, x1, z1 - 0.3, z1], [x0, x1, z0, z0 + 0.3], [x0, x0 + 0.3, z0 + 0.3, z1 - 0.3], [x1 - 0.3, x1, z0 + 0.3, z1 - 0.3]]) { S.push(box(a, b, h, h + 0.85, c, d, [70, 66, 62], 0.05)); S.push(box(a, b, h + 0.85, h + 0.95, c, d, [96, 92, 88], 0.03)); }
   const W = x1 - x0, D = z1 - z0, rp = (fx, fz) => [x0 + 0.8 + fx * (W - 1.6), z0 + 0.8 + fz * (D - 1.6)];
   // the stair hut with its door and a bulb over it
-  { const [hx, hz] = rp(r() * 0.4 + 0.05, r() * 0.4 + 0.05); S.push(box(hx, hx + 2.4, h, h + 2.6, hz, hz + 2.2, [74, 70, 66], 0.05)); S.push(box(hx - 0.1, hx + 2.5, h + 2.6, h + 2.7, hz - 0.1, hz + 2.3, [44, 42, 40], 0.03)); S.push(box(hx + 0.7, hx + 1.6, h + 0.02, h + 2.1, hz + 2.2, hz + 2.24, [40, 50, 60], 0.05)); G.push(box(hx + 1.05, hx + 1.25, h + 2.25, h + 2.4, hz + 2.22, hz + 2.3, [255, 220, 150], 0)); lightPool(hx + 1.15, hz + 2.9, 1.6, h); }
+  { const [hx, hz] = rp(r() * 0.4 + 0.05, r() * 0.4 + 0.05); S.push(box(hx, hx + 2.4, h, h + 2.6, hz, hz + 2.2, [74, 70, 66], 0.05)); S.push(box(hx - 0.1, hx + 2.5, h + 2.6, h + 2.7, hz - 0.1, hz + 2.3, [44, 42, 40], 0.03)); S.push(box(hx + 0.7, hx + 1.6, h + 0.02, h + 2.1, hz + 2.2, hz + 2.24, [40, 50, 60], 0.05)); G.push(box(hx + 1.05, hx + 1.25, h + 2.25, h + 2.4, hz + 2.22, hz + 2.3, [255, 220, 150], 0)); lightPool(hx + 1.15, hz + 2.9, 1.6, h + 0.05); }
   // AC units, humming, with a fan grille on top and a pipe down into the roof
   for (let k = 0, n = 1 + Math.floor(r() * 3); k < n; k++) {
     const [ax, az] = rp(0.45 + r() * 0.5, r());
@@ -4219,7 +4246,7 @@ function building(o) {
     if (r() < 0.6) SMOKE_VENTS.push([vx, h + vh + 0.15, vz, rad]);
   }
   // roof hatches and skylights
-  for (let k = 0, n = Math.floor(r() * 3); k < n; k++) { const [sx, sz] = rp(r(), r()); S.push(box(sx - 0.5, sx + 0.5, h, h + 0.35, sz - 0.5, sz + 0.5, [80, 80, 84], 0.04)); G.push(box(sx - 0.42, sx + 0.42, h + 0.35, h + 0.37, sz - 0.42, sz + 0.42, r() < 0.5 ? [120, 140, 170] : [40, 44, 56], 0)); }
+  for (let k = 0, n = Math.floor(r() * 3); k < n; k++) { const [sx, sz] = rp(r(), r()); S.push(box(sx - 0.5, sx + 0.5, h, h + 0.35, sz - 0.5, sz + 0.5, [80, 80, 84], 0.04)); G.push(box(sx - 0.42, sx + 0.42, h + 0.38, h + 0.42, sz - 0.42, sz + 0.42, r() < 0.5 ? [120, 140, 170] : [40, 44, 56], 0)); }
   // a wooden water tank on the tall ones, an aerial or a dish on most
   if (h > 13 && r() < 0.8) {
     const [tx, tz] = rp(0.3 + r() * 0.4, 0.3 + r() * 0.4);
@@ -4241,7 +4268,7 @@ function building(o) {
   }
   ROOF_SPOTS.push({ x0, x1, z0, z1, h, rp });
   // street level: shops along the front, with lit windows, awnings and a sign
-  if (front) {
+  if (front && !o.alley) {
     const [ax, az, bx, bz, nx, nz] = sides[front === 'z1' ? 0 : front === 'z0' ? 1 : front === 'x0' ? 2 : 3], len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len;
     const shops = Math.max(1, Math.floor(len / 5.5)), sw = len / shops;
     for (let k = 0; k < shops; k++) {
@@ -4249,9 +4276,9 @@ function building(o) {
       const P = (u, y, out) => V(cx + ux * u + nx * out, y, cz + uz * u + nz * out);
       const quad = (u0, u1, y0, y1, out, col, glow) => (glow ? G : S).push(loft([[P(u0, y0, out), P(u1, y0, out), P(u1, y0, out + 0.04), P(u0, y0, out + 0.04)], [P(u0, y1, out), P(u1, y1, out), P(u1, y1, out + 0.04), P(u0, y1, out + 0.04)]], col, { amt: glow ? 0 : 0.04 }));
       quad(-hw - 0.2, hw + 0.2, 0, 3.4, 0, [30, 28, 28]);                                  // the shopfront frame
-      quad(-hw, hw - 1.2, 0.5, 2.6, 0.03, open ? [255, 214, 150] : [26, 30, 38], open);     // the window, lit if they're open
-      quad(hw - 1.0, hw - 0.1, 0.02, 2.4, 0.03, [44, 34, 28]);                              // the door
-      if (!open) for (let y = 0.6; y < 2.6; y += 0.18) quad(-hw, hw - 1.2, y, y + 0.06, 0.06, [74, 76, 80]);   // shutters down
+      quad(-hw, hw - 1.2, 0.5, 2.6, 0.12, open ? [255, 214, 150] : [26, 30, 38], open);     // the window, lit if they're open
+      quad(hw - 1.0, hw - 0.1, 0.02, 2.4, 0.12, [44, 34, 28]);                              // the door
+      if (!open) for (let y = 0.6; y < 2.6; y += 0.18) quad(-hw, hw - 1.2, y, y + 0.06, 0.22, [74, 76, 80]);   // shutters down
       const ac = [[150, 30, 40], [30, 90, 60], [40, 60, 130], [140, 110, 40], [80, 40, 100]][Math.floor(r() * 5)];
       // a striped canvas awning sloping out over the window, with a scalloped valance
       const nS = Math.max(4, Math.round((2 * hw + 0.2) / 0.45)), aw = (2 * hw + 0.2) / nS;
@@ -4261,8 +4288,8 @@ function building(o) {
         S.push(loft([[P(u0, 2.24, 1.15), P(u1, 2.24, 1.15), P(u1, 2.24, 1.18), P(u0, 2.24, 1.18)], [P(u0, 2.46, 1.15), P(u1, 2.46, 1.15), P(u1, 2.46, 1.18), P(u0, 2.46, 1.18)]], c2, { amt: 0.04 }));
       }
       // shelves and goods behind the glass
-      if (open) for (const y of [0.9, 1.4, 1.9]) { quad(-hw + 0.1, hw - 1.3, y, y + 0.05, 0.05, [90, 64, 40]); for (let u = -hw + 0.2; u < hw - 1.4; u += 0.22) quad(u, u + 0.14, y + 0.05, y + 0.22 + ((u * 7) % 0.12), 0.06, [[180, 60, 50], [60, 120, 170], [220, 200, 120], [90, 150, 80]][Math.floor(Math.abs(u * 13)) % 4]); }
-      quad(-hw + 0.3, hw - 0.3, 2.95, 3.3, 0.05, open ? [ac[0] + 60, ac[1] + 60, ac[2] + 60] : [50, 50, 54], open);   // the sign band
+      if (open) for (const y of [0.9, 1.4, 1.9]) { quad(-hw + 0.1, hw - 1.3, y, y + 0.05, 0.2, [90, 64, 40]); for (let u = -hw + 0.2; u < hw - 1.4; u += 0.22) quad(u, u + 0.14, y + 0.05, y + 0.22 + ((u * 7) % 0.12), 0.21, [[180, 60, 50], [60, 120, 170], [220, 200, 120], [90, 150, 80]][Math.floor(Math.abs(u * 13)) % 4]); }
+      quad(-hw + 0.3, hw - 0.3, 2.95, 3.3, 0.12, open ? [ac[0] + 60, ac[1] + 60, ac[2] + 60] : [50, 50, 54], open);   // the sign band
       if (open) lightPool(cx + nx * 1.4, cz + nz * 1.4, 2.2, 0);
     }
   }
@@ -4272,7 +4299,7 @@ function building(o) {
     const u0 = Math.min(len - 4, 2 + Math.floor(r() * Math.max(1, len / 3 - 2)) * 3), floors = Math.floor(h / 3.2), IRON = [24, 24, 26];
     const Q = (u, y, out) => V(ax + ux * u + nx * out, y, az + uz * u + nz * out);
     for (let f = 1; f < floors; f++) {
-      const y = f * 3.2 - 0.05;
+      const y = f * 3.2 - 0.3;
       S.push(loft([[Q(u0, y, 0.05), Q(u0 + 3.2, y, 0.05), Q(u0 + 3.2, y, 1.0), Q(u0, y, 1.0)], [Q(u0, y + 0.05, 0.05), Q(u0 + 3.2, y + 0.05, 0.05), Q(u0 + 3.2, y + 0.05, 1.0), Q(u0, y + 0.05, 1.0)]], IRON, { amt: 0.03 }));
       for (const uu of [u0, u0 + 3.2]) S.push(cyl(Q(uu, y, 1.0), Q(uu, y + 0.95, 1.0), 0.02, 0.02, IRON, { n: 3 }));
       S.push(cyl(Q(u0, y + 0.95, 1.0), Q(u0 + 3.2, y + 0.95, 1.0), 0.02, 0.02, IRON, { n: 3 }));
@@ -4287,7 +4314,7 @@ function building(o) {
   for (let x = ST.x0 + 1, k = 0; x < 20.2; k++) {
     const w = Math.min(20.2 - x, 9 + Math.floor(r() * 3) * 3), h = [7.2, 10.4, 13.6, 16.8, 20.0, 23.2][Math.floor(r() * 6)];
     if (w < 6) break;
-    fronts.push({ x0: x, x1: x + w, z0: 16.8, z1: 16.8 + 9 + r() * 6, h, front: 'z0', seed: 100 + k });
+    fronts.push({ join: 'x', x0: x, x1: x + w, z0: 16.8, z1: 16.8 + 9 + r() * 6, h, front: 'z0', seed: 100 + k });
     x += w;
   }
   // the bar's neighbour across the road is a squat two-storey, so its roof shows from the street
@@ -4301,7 +4328,171 @@ function building(o) {
   ROOF_SPOTS.stoner = fronts.find((b) => b.stoner);
 }
 // paving across the corner plot where the old flat fronts stood
-groundPlane(20.6, 52, 2, 34, pavingTex, 1.2, -0.03);
+cornerRing(CRO + 4.2, 46, pavingMat, 1.2, 0);   // outside the bend's sidewalk, up to the corner buildings (never over the road)
+// ================================================================ THE BACK ALLEY: round the outside of the car park fence, old tenements and a warehouse,
+// pigeon coops on the roofs, a big water tower, laundry lines, back doors and the bins nobody empties
+const ALY = { w: 4, xw: -84, zs: -70 };   // west lane x -84..-80 (up to the main street), south lane z -70..-66 (east to a dead end)
+{
+  const alleyTex = canvasTex(32, 32, (x, w, h) => {
+    noiseFill(x, w, h, [26, 26, 30], 10);
+    for (let k = 0; k < 6; k++) { x.fillStyle = 'rgba(70,84,110,0.35)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 4 + Math.floor(rr() * 8), 2 + Math.floor(rr() * 3)); }   // wet patches
+    for (let k = 0; k < 30; k++) { x.fillStyle = 'rgba(0,0,0,0.4)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1 + Math.floor(rr() * 2), 1); }               // cracks and grime
+  });
+  alleyTex.wrapS = alleyTex.wrapT = THREE.RepeatWrapping;
+  const am = new THREE.MeshLambertMaterial({ map: alleyTex, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 });
+  { const m = groundPlane(-84, -80.05, -70, ST.walk0 - 0.02, alleyTex, 2.6, 0.01); m.material = am; }
+  { const m = groundPlane(-80.05, -20, -70, -66.05, alleyTex, 2.6, 0.01); m.material = am; }
+  // a gutter down the middle of each lane
+  GD.push(groundStrip(-82, -69.5, -82, ST.walk0 - 0.3, 0.18, 0.0, [14, 14, 16], 0.016));
+  GD.push(groundStrip(-80, -68, -21, -68, 0.18, 0.0, [14, 14, 16], 0.016));
+  for (let k = 0; k < 9; k++) { const z = -64 + k * 7.5; GD.push(box(-82.3, -81.7, 0, 0.02, z - 0.25, z + 0.25, [40, 40, 44], 0.02)); }   // drain grates
+}
+// the buildings that back onto the alley: a sooty warehouse, tenements in painted brick, a corner block with a pawn shop
+const ALLEY_BLOCKS = [];
+{
+  const r = rngFrom(5151);
+  // south row, facing north onto the lane
+  for (let x = -84, k = 0; x < -21; k++) {
+    const w = Math.min(-21 - x, [10, 12, 15, 9][k % 4]), h = [13.6, 20, 10.4, 23.2, 16.8][k % 5];
+    if (w < 6) break;
+    ALLEY_BLOCKS.push({ join: 'x', x0: x, x1: x + w, z0: -84, z1: -70.3, h, front: 'z1', seed: 300 + k, mat: 4 + (k % 3), alley: true });
+    x += w;
+  }
+  // west row, facing east onto the lane
+  for (let z = -84, k = 0; z < 1; k++) {
+    const d = Math.min(1 - z, [11, 13, 9, 14][k % 4]), h = [16.8, 10.4, 23.2, 13.6, 20][k % 5];
+    if (d < 6) break;
+    ALLEY_BLOCKS.push({ join: 'z', x0: -98, x1: -84.3, z0: z, z1: z + d, h, front: 'x1', seed: 330 + k, mat: 4 + ((k + 1) % 3), alley: true });
+    z += d;
+  }
+  ALLEY_BLOCKS.forEach((b) => building(b));
+  // a dead end at the east of the south lane: a brick wall with a bricked-up arch
+  S.push(box(-20.2, -19.8, 0, 4.2, -70.3, -65.95, [70, 44, 36], 0.05));
+  S.push(box(-20.25, -20.2, 1.0, 3.2, -69.2, -67.1, [60, 38, 32], 0.04));
+}
+// back doors with a caged bulb over each, and the junk that piles up behind shops
+{
+  const r = rngFrom(6262);
+  const backDoor = (x, z, nx, nz) => {
+    const ux = -nz, uz = nx, P = (u, y, o) => V(x + ux * u + nx * o, y, z + uz * u + nz * o);
+    S.push(loft([[P(-0.55, 0, 0.02), P(0.55, 0, 0.02), P(0.55, 0, 0.1), P(-0.55, 0, 0.1)], [P(-0.55, 2.3, 0.02), P(0.55, 2.3, 0.02), P(0.55, 2.3, 0.1), P(-0.55, 2.3, 0.1)]], [[60, 70, 64], [80, 40, 34], [44, 50, 60]][Math.floor(r() * 3)], { amt: 0.06 }));
+    S.push(loft([[P(-0.7, 2.3, 0.02), P(0.7, 2.3, 0.02), P(0.7, 2.3, 0.4), P(-0.7, 2.3, 0.4)], [P(-0.7, 2.36, 0.02), P(0.7, 2.36, 0.02), P(0.7, 2.36, 0.4), P(-0.7, 2.36, 0.4)]], [30, 30, 34], { amt: 0.03 }));
+    G.push(cyl(P(0, 2.55, 0.18), P(0, 2.72, 0.18), 0.06, 0.06, [255, 214, 140], { n: 6, amt: 0 }));
+    S.push(cyl(P(0, 2.5, 0.18), P(0, 2.78, 0.18), 0.08, 0.08, [30, 30, 32], { n: 4 }));
+    lightPool(x + nx * 1.2, z + nz * 1.2, 2.0, 0.01);
+  };
+  for (const b of ALLEY_BLOCKS) {
+    if (b.front === 'z1') for (let x = b.x0 + 2.5; x < b.x1 - 1.5; x += 6 + r() * 4) backDoor(x, b.z1, 0, 1);
+    else for (let z = b.z0 + 2.5; z < b.z1 - 1.5; z += 6 + r() * 4) backDoor(b.x1, z, 1, 0);
+  }
+  // dumpsters, pallets, crates, a mattress, an old sofa, piles of bags
+  const dumpster = (x, z, a, col) => {
+    const c = Math.cos(a), s = Math.sin(a), P = (u, y, v) => V(x + u * c - v * s, y, z + u * s + v * c), q = (u0, u1, y0, y1, v0, v1) => [[P(u0, y0, v0), P(u1, y0, v0), P(u1, y0, v1), P(u0, y0, v1)], [P(u0, y1, v0), P(u1, y1, v0), P(u1, y1, v1), P(u0, y1, v1)]];
+    S.push(loft(q(-1.0, 1.0, 0.12, 1.25, -0.7, 0.7), col, { amt: 0.08 }));
+    S.push(loft(q(-1.05, 1.05, 1.25, 1.32, -0.75, 0.75), col.map((v) => v * 0.8), { amt: 0.05 }));
+    for (const [u, v] of [[-0.85, -0.55], [0.85, -0.55], [-0.85, 0.55], [0.85, 0.55]]) S.push(cyl(P(u, 0, v), P(u, 0.12, v), 0.08, 0.08, [16, 16, 18], { n: 6 }));
+  };
+  const bags = (x, z, n) => { for (let k = 0; k < n; k++) { const bx = x + (r() - 0.5) * 1.4, bz = z + (r() - 0.5) * 1.0, rad = 0.22 + r() * 0.12; S.push(loft([rring(0, rad * 0.7, rad * 0.7, bx, bz, 8, 2), rring(rad * 0.8, rad, rad, bx, bz, 8, 2), rring(rad * 1.5, rad * 0.7, rad * 0.7, bx, bz, 8, 2), rring(rad * 1.8, 0.04, 0.04, bx, bz, 8, 2)], [[14, 14, 16], [20, 26, 40], [40, 36, 30]][Math.floor(r() * 3)], { smooth: true, amt: 0.25 })); } };
+  const pallet = (x, z, y) => { for (let k = 0; k < 5; k++) S.push(box(x - 0.6, x + 0.6, y + 0.1, y + 0.14, z - 0.5 + k * 0.24, z - 0.42 + k * 0.24, [150, 120, 84], 0.12)); for (const dz of [-0.45, 0, 0.45]) S.push(box(x - 0.6, x + 0.6, y, y + 0.1, z + dz - 0.05, z + dz + 0.05, [120, 96, 64], 0.12)); };
+  dumpster(-82.9, -40, Math.PI / 2, [30, 70, 46]); bags(-82.6, -37.5, 5);
+  dumpster(-82.9, -12, Math.PI / 2, [40, 60, 100]); bags(-82.7, -14.5, 3);
+  dumpster(-55, -69.0, 0, [120, 60, 30]); bags(-52.5, -69.1, 4);
+  dumpster(-31, -69.0, 0, [30, 70, 46]); bags(-28.6, -69.2, 6);
+  for (const [x, z] of [[-83.2, -60], [-46, -69.3], [-38, -69.3]]) { pallet(x, z, 0); pallet(x, z, 0.14); if (r() < 0.7) pallet(x + 0.05, z, 0.28); }
+  // a stained mattress against the wall, a sofa someone dumped, a shopping trolley on its side
+  S.push(loft([[V(-83.92, 0, -52.6), V(-83.92, 0, -51.2), V(-83.5, 0, -51.2), V(-83.5, 0, -52.6)], [V(-83.95, 1.9, -52.6), V(-83.95, 1.9, -51.2), V(-83.75, 1.9, -51.2), V(-83.75, 1.9, -52.6)]], [190, 180, 150], { amt: 0.12 }));
+  S.push(box(-66.4, -64.6, 0, 0.42, -69.75, -69.0, [96, 60, 70], 0.1)); S.push(box(-66.4, -64.6, 0.42, 0.95, -69.95, -69.65, [96, 60, 70], 0.1)); for (const x of [-66.5, -64.5]) S.push(box(x - 0.12, x + 0.12, 0, 0.62, -69.95, -69.0, [86, 52, 62], 0.1));
+  { const tx = -44, tz = -67.2; for (let k = 0; k < 6; k++) S.push(cyl(V(tx - 0.4 + k * 0.16, 0.05, tz - 0.3), V(tx - 0.4 + k * 0.16, 0.05, tz + 0.5), 0.012, 0.012, [170, 170, 176], { n: 3 })); for (const zz of [-0.3, 0.5]) S.push(cyl(V(tx - 0.42, 0.05, tz + zz), V(tx + 0.42, 0.05, tz + zz), 0.015, 0.015, [170, 170, 176], { n: 3 })); for (const xx of [-0.42, 0.42]) S.push(cyl(V(tx + xx, 0.05, tz - 0.3), V(tx + xx, 0.6, tz - 0.32), 0.015, 0.015, [170, 170, 176], { n: 3 })); S.push(cyl(V(tx - 0.42, 0.6, tz - 0.32), V(tx + 0.42, 0.6, tz - 0.32), 0.015, 0.015, [170, 170, 176], { n: 3 })); }
+  // litter all down both lanes
+  for (let n = 0; n < 120; n++) {
+    const west = r() < 0.5, x = west ? -83.8 + r() * 3.6 : -79 + r() * 58, z = west ? -69 + r() * 72 : -69.8 + r() * 3.6, kind = r();
+    if (kind < 0.45) { const s = 0.05 + r() * 0.07, v = 140 + Math.floor(r() * 100); S.push(box(x - s, x + s, 0.012, 0.04 + r() * 0.04, z - s * 0.8, z + s * 0.8, [v, v, v - 10], 0.25)); }
+    else if (kind < 0.75) { const a = r() * Math.PI, dx = Math.cos(a) * 0.06, dz = Math.sin(a) * 0.06; S.push(cyl(V(x - dx, 0.045, z - dz), V(x + dx, 0.045, z + dz), 0.033, 0.033, [[180, 30, 30], [170, 170, 176], [30, 70, 150], [40, 120, 50]][Math.floor(r() * 4)], { n: 6 })); }
+    else if (kind < 0.9) S.push(box(x - 0.24, x + 0.24, 0.012, 0.022, z - 0.17, z + 0.17, [200, 196, 180], 0.1));
+    else S.push(box(x - 0.2, x + 0.2, 0.012, 0.2, z - 0.15, z + 0.15, [130, 100, 66], 0.12));
+  }
+  // steam rising from a grate in the west lane
+  SMOKE_VENTS.push([-82, 0.1, -30, 0.3], [-82, 0.1, -26, 0.3]);
+  // laundry strung across the west lane from the tenements to poles on the fence, sheets and shirts on the lines
+  for (const z of [-58, -33, -8]) {
+    const y0 = 5.4 + r() * 2, y1 = 3.2;
+    S.push(cyl(V(-79.6, 0, z), V(-79.6, y1 + 0.2, z), 0.05, 0.05, [80, 80, 86], { n: 5 }));
+    const pts = []; for (let k = 0; k <= 8; k++) { const u = k / 8; pts.push(V(-84.3 + u * 4.7, y0 + (y1 - y0) * u - 0.5 * Math.sin(u * Math.PI), z)); }
+    for (let k = 0; k < 8; k++) S.push(cyl(pts[k], pts[k + 1], 0.008, 0.008, [200, 200, 196], { n: 3 }));
+    for (let k = 1; k < 8; k += 1 + Math.floor(r() * 2)) {
+      const p = { x: pts[k][0], y: pts[k][1] }, c = [[220, 210, 190], [180, 60, 60], [60, 90, 150], [230, 200, 80], [240, 240, 236], [90, 140, 90]][Math.floor(r() * 6)], hgt = 0.35 + r() * 0.5, w = 0.25 + r() * 0.3;
+      S.push(loft([[V(p.x - w, p.y - hgt, z - 0.01), V(p.x + w, p.y - hgt, z - 0.01), V(p.x + w, p.y - hgt, z + 0.01), V(p.x - w, p.y - hgt, z + 0.01)], [V(p.x - w, p.y, z - 0.01), V(p.x + w, p.y, z - 0.01), V(p.x + w, p.y, z + 0.01), V(p.x - w, p.y, z + 0.01)]], c, { amt: 0.08 }));
+    }
+  }
+  // a few lamps on brackets down the lanes
+  for (const z of [-62, -45, -28, -11]) lampPost(-83.7, z, 1, 0, 4.0);
+  for (const x of [-70, -50, -30]) lampPost(x, -69.7, 0, 1, 4.0);
+  pLight(0xffc454, 1.1, 12, -82.8, 3.6, -36); pLight(0xffc454, 1.1, 12, -50, 3.6, -68.8);
+}
+// up on the roofs: pigeon coops (a whole flock lives up here), a big old water tower, a billboard
+{
+  const r = rngFrom(7373);
+  const wireTex = canvasTex(16, 16, (x, w, h) => { x.clearRect(0, 0, w, h); x.strokeStyle = 'rgba(190,190,180,0.9)'; x.lineWidth = 1; for (let i = 0; i < 16; i += 4) { x.beginPath(); x.moveTo(i + 0.5, 0); x.lineTo(i + 0.5, 16); x.stroke(); x.beginPath(); x.moveTo(0, i + 0.5); x.lineTo(16, i + 0.5); x.stroke(); } });
+  wireTex.wrapS = wireTex.wrapT = THREE.RepeatWrapping;
+  const wireMat = new THREE.MeshLambertMaterial({ map: wireTex, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide });
+  const wirePanel = (ax, az, bx, bz, y0, y1) => { const len = Math.hypot(bx - ax, bz - az), g = new THREE.PlaneGeometry(len, y1 - y0); scaleUV(g, len / 0.5, (y1 - y0) / 0.5); const m = new THREE.Mesh(g, wireMat); m.position.set((ax + bx) / 2, (y0 + y1) / 2, (az + bz) / 2); m.rotation.y = Math.atan2(-(bz - az), bx - ax); scene.add(m); };
+  const pigeon = (x, y, z, a) => {
+    const c = [[120, 124, 132], [90, 94, 104], [160, 160, 166], [70, 60, 56]][Math.floor(r() * 4)];
+    const s = Math.sin(a), co = Math.cos(a), P = (u, yy, v) => V(x + u * co - v * s, y + yy, z + u * s + v * co);
+    S.push(loft([[P(-0.05, 0.03, -0.1), P(0.05, 0.03, -0.1), P(0.05, 0.03, 0.1), P(-0.05, 0.03, 0.1)], [P(-0.07, 0.12, -0.12), P(0.07, 0.12, -0.12), P(0.07, 0.12, 0.08), P(-0.07, 0.12, 0.08)], [P(-0.03, 0.16, -0.14), P(0.03, 0.16, -0.14), P(0.03, 0.16, 0.0), P(-0.03, 0.16, 0.0)]], c, { amt: 0.12 }));
+    S.push(cyl(P(0, 0.12, 0.08), P(0, 0.22, 0.12), 0.035, 0.03, c.map((v) => v * 0.8), { n: 5 }));
+    S.push(box(x - 0.012 + co * 0, x + 0.012, y + 0.2, y + 0.215, z - 0.012, z + 0.012, [200, 160, 60], 0));
+  };
+  const coop = (B) => {
+    const W = 3.6, D = 2.2, H = 2.1, x0 = B.x0 + 1.4 + r() * Math.max(0.5, B.x1 - B.x0 - W - 2.8), z0 = B.z0 + 1.4 + r() * Math.max(0.5, B.z1 - B.z0 - D - 2.8), y = B.h, WOOD = [104, 78, 52];
+    S.push(box(x0 - 0.1, x0 + W + 0.1, y, y + 0.35, z0 - 0.1, z0 + D + 0.1, [70, 52, 36], 0.06));   // raised on a frame
+    for (const [px, pz] of [[0, 0], [W, 0], [0, D], [W, D], [W / 2, 0], [W / 2, D]]) S.push(box(x0 + px - 0.05, x0 + px + 0.05, y + 0.35, y + 0.35 + H, z0 + pz - 0.05, z0 + pz + 0.05, WOOD, 0.06));
+    S.push(loft([[V(x0 - 0.2, y + 0.35 + H, z0 - 0.25), V(x0 + W + 0.2, y + 0.35 + H, z0 - 0.25), V(x0 + W + 0.2, y + 0.35 + H, z0 + D + 0.25), V(x0 - 0.2, y + 0.35 + H, z0 + D + 0.25)], [V(x0 - 0.2, y + 0.55 + H, z0 - 0.25), V(x0 + W + 0.2, y + 0.55 + H, z0 - 0.25), V(x0 + W + 0.2, y + 0.75 + H, z0 + D + 0.25), V(x0 - 0.2, y + 0.75 + H, z0 + D + 0.25)]], [60, 60, 66], { amt: 0.05 }));
+    S.push(box(x0, x0 + W, y + 0.35, y + 0.35 + H, z0 + D - 0.06, z0 + D, WOOD, 0.08));   // solid back wall with nesting holes
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) S.push(box(x0 + 0.3 + i * 0.85, x0 + 0.65 + i * 0.85, y + 0.8 + j * 0.7, y + 1.1 + j * 0.7, z0 + D - 0.07, z0 + D - 0.06, [20, 16, 12], 0));
+    const yy0 = y + 0.36, yy1 = y + 0.34 + H;
+    wirePanel(x0, z0 + 0.01, x0 + W, z0 + 0.01, yy0, yy1); wirePanel(x0 + 0.01, z0, x0 + 0.01, z0 + D, yy0, yy1); wirePanel(x0 + W - 0.01, z0, x0 + W - 0.01, z0 + D, yy0, yy1);
+    for (let k = 0; k < 7; k++) pigeon(x0 + 0.3 + r() * (W - 0.6), y + 0.35 + (r() < 0.5 ? 0 : 0.7), z0 + 0.3 + r() * (D - 0.8), r() * 6.28);   // inside
+    for (let k = 0; k < 6; k++) pigeon(x0 - 0.2 + r() * (W + 0.4), y + 0.55 + H + (r() * 0.15), z0 - 0.1 + r() * (D + 0.2), r() * 6.28);  // on the roof of it
+    for (let k = 0; k < 8; k++) { const px = B.x0 + 0.15 + r() * (B.x1 - B.x0 - 0.3), pz = r() < 0.5 ? B.z0 + 0.15 : B.z1 - 0.15; pigeon(px, B.h + 0.95, pz, r() * 6.28); }    // lined up on the parapet
+    // a bucket of feed and a stool
+    S.push(cyl(V(x0 + W + 0.6, y, z0 + 0.4), V(x0 + W + 0.6, y + 0.35, z0 + 0.4), 0.15, 0.17, [140, 140, 146], { n: 8 }));
+    S.push(cyl(V(x0 + W + 0.6, y + 0.36, z0 + 1.1), V(x0 + W + 0.6, y + 0.4, z0 + 1.1), 0.18, 0.18, [104, 78, 52], { n: 8 }));
+  };
+  const bigTower = (B) => {
+    const tx = (B.x0 + B.x1) / 2 + (r() - 0.5) * 2, tz = (B.z0 + B.z1) / 2 + (r() - 0.5) * 2, y = B.h, IRON = [36, 36, 40];
+    for (const [ox, oz] of [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.6], [1.6, 1.6]]) { S.push(cyl(V(tx + ox, y, tz + oz), V(tx + ox * 0.85, y + 4.2, tz + oz * 0.85), 0.09, 0.08, IRON, { n: 5 })); }
+    for (const yy of [1.4, 2.8]) { const k = 1 - yy / 4.2 * 0.15; for (const [a, b] of [[[-1, -1], [1, -1]], [[1, -1], [1, 1]], [[1, 1], [-1, 1]], [[-1, 1], [-1, -1]]]) S.push(cyl(V(tx + a[0] * 1.6 * k, y + yy, tz + a[1] * 1.6 * k), V(tx + b[0] * 1.6 * k, y + yy, tz + b[1] * 1.6 * k), 0.035, 0.035, IRON, { n: 4 })); }
+    for (const [a, b] of [[[-1, -1], [1, 1]], [[1, -1], [-1, 1]]]) S.push(cyl(V(tx + a[0] * 1.55, y + 0.2, tz + a[1] * 1.55), V(tx + b[0] * 1.4, y + 4.0, tz + b[1] * 1.4), 0.025, 0.025, IRON, { n: 3 }));
+    S.push(cyl(V(tx, y + 4.2, tz), V(tx, y + 4.35, tz), 2.1, 2.1, IRON, { n: 16 }));
+    S.push(cyl(V(tx, y + 4.35, tz), V(tx, y + 8.2, tz), 1.95, 2.0, [112, 82, 56], { n: 16, amt: 0.08 }));
+    for (const yy of [4.9, 5.9, 6.9, 7.8]) S.push(cyl(V(tx, y + yy, tz), V(tx, y + yy + 0.07, tz), 2.02, 2.02, IRON, { n: 16 }));
+    S.push(loft([rring(y + 8.2, 2.05, 2.05, tx, tz, 16, 2), rring(y + 9.4, 0.15, 0.15, tx, tz, 16, 2), rring(y + 9.6, 0.02, 0.02, tx, tz, 16, 2)], [58, 50, 44], { amt: 0.06 }));
+    S.push(cyl(V(tx, y + 9.4, tz), V(tx, y + 9.9, tz), 0.04, 0.03, IRON, { n: 4 }));
+    // a ladder up the side and a catwalk ring
+    for (let k = 0; k < 18; k++) S.push(cyl(V(tx + 2.05, y + 4.4 + k * 0.22, tz - 0.25), V(tx + 2.05, y + 4.4 + k * 0.22, tz + 0.25), 0.012, 0.012, IRON, { n: 3 }));
+    for (const e of [-0.25, 0.25]) S.push(cyl(V(tx + 2.05, y + 4.35, tz + e), V(tx + 2.05, y + 8.4, tz + e), 0.02, 0.02, IRON, { n: 3 }));
+    S.push(...arcRing(tx, tz, 2.1, 2.6, y + 4.25, y + 4.3, IRON, 24));
+  };
+  const billboard = (B) => {
+    const bx = B.x0 + 1.2, bz = (B.z0 + B.z1) / 2, y = B.h, W = Math.min(9, B.z1 - B.z0 - 1);
+    for (const e of [-W / 2 + 0.4, W / 2 - 0.4]) { S.push(cyl(V(bx, y, bz + e), V(bx, y + 6.5, bz + e), 0.1, 0.1, [40, 40, 44], { n: 5 })); S.push(cyl(V(bx + 1.2, y, bz + e), V(bx, y + 4, bz + e), 0.06, 0.06, [40, 40, 44], { n: 4 })); }
+    const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d');
+    const gr = x.createLinearGradient(0, 0, 256, 96); gr.addColorStop(0, '#1a2a4a'); gr.addColorStop(1, '#4a1a3a'); x.fillStyle = gr; x.fillRect(0, 0, 256, 96);
+    x.fillStyle = '#ffe08a'; x.font = '30px "Limelight", Georgia, serif'; x.textAlign = 'center'; x.fillText('CHARON', 128, 44); x.font = '15px "IBM Plex Mono", monospace'; x.fillStyle = '#f4e6d0'; x.fillText('LONDON DRY GIN  ·  ONE WAY TICKET', 128, 74);
+    x.fillStyle = 'rgba(0,0,0,0.3)'; for (let k = 0; k < 40; k++) x.fillRect(Math.random() * 256, Math.random() * 96, 2 + Math.random() * 10, 1);   // peeling
+    const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.encoding = THREE.sRGBEncoding;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(W, W * 0.375), new THREE.MeshBasicMaterial({ map: t, fog: true })); m.position.set(bx - 0.08, y + 2.5 + W * 0.19, bz); m.rotation.y = Math.PI / 2; scene.add(m);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { x.fillStyle = gr; x.fillRect(0, 0, 256, 96); x.fillStyle = '#ffe08a'; x.font = '30px "Limelight", Georgia, serif'; x.fillText('CHARON', 128, 44); x.font = '15px "IBM Plex Mono", monospace'; x.fillStyle = '#f4e6d0'; x.fillText('LONDON DRY GIN  ·  ONE WAY TICKET', 128, 74); t.needsUpdate = true; });
+    S.push(box(bx - 0.05, bx + 0.05, y + 2.4, y + 2.5 + W * 0.39, bz - W / 2 - 0.05, bz + W / 2 + 0.05, [30, 30, 34], 0.03));
+    for (const e of [-W / 3, 0, W / 3]) { S.push(cyl(V(bx - 0.1, y + 2.3, bz + e), V(bx - 0.7, y + 2.2, bz + e), 0.02, 0.02, [40, 40, 44], { n: 3 })); G.push(cyl(V(bx - 0.7, y + 2.25, bz + e), V(bx - 0.75, y + 2.1, bz + e), 0.08, 0.05, [255, 240, 210], { n: 6, amt: 0 })); }
+  };
+  const south = ALLEY_BLOCKS.filter((b) => b.front === 'z1'), west = ALLEY_BLOCKS.filter((b) => b.front === 'x1');
+  coop(south[1]); coop(south[3] || south[0]); coop(west[1]); coop(west[4] || west[2]);
+  bigTower(south[2] || south[0]); bigTower(west[3] || west[0]);
+  billboard(west[west.length - 1]);
+}
+
 // steam out of the vents: a few dozen soft puffs rising and fading
 {
   const per = 6, N = SMOKE_VENTS.length * per, pos = new Float32Array(N * 3), geo = new THREE.BufferGeometry();
@@ -4339,7 +4530,7 @@ function blocksTick(dt, t) {
   S.push(box(bx - 1.55, bx - 1.05, h, h + 0.4, bz - 0.25, bz + 0.25, [120, 92, 60], 0.12));
   S.push(cyl(V(bx - 1.3, h + 0.4, bz), V(bx - 1.3, h + 0.46, bz), 0.08, 0.08, [30, 30, 34], { n: 8 }));
   G.push(cyl(V(bx - 1.3, h + 0.46, bz), V(bx - 1.3, h + 0.66, bz), 0.07, 0.07, [255, 200, 120], { n: 8, amt: 0 }));
-  lightPool(bx - 0.6, bz, 2.8, h);
+  lightPool(bx - 0.6, bz, 2.8, h + 0.05);
   for (let k = 0; k < 16; k++) { const x = B.x0 + 1 + k * ((B.x1 - B.x0 - 2) / 15); G.push(cyl(V(x, h + 0.92 - 0.12 * Math.sin((k % 4) / 4 * Math.PI), B.z0 + 0.15), V(x, h + 0.98 - 0.12 * Math.sin((k % 4) / 4 * Math.PI), B.z0 + 0.15), 0.04, 0.04, [[255, 120, 140], [255, 220, 120], [140, 220, 255], [180, 255, 160]][k % 4], { n: 5, amt: 0 })); }
   ROOF_SPOTS.stonerSeat = [bx, h, bz];
 }
@@ -4361,7 +4552,7 @@ function blocksTick(dt, t) {
   for (const [x, c] of [[-44, [30, 70, 150]], [-20, [200, 160, 30]], [-19.4, [40, 120, 60]], [6, [180, 40, 40]]]) { S.push(box(x - 0.25, x + 0.25, 0, 1.05, ST.curb1 + 1.0, ST.curb1 + 1.45, c, 0.05)); G.push(box(x - 0.18, x + 0.18, 0.75, 0.95, ST.curb1 + 0.98, ST.curb1 + 1.0, [220, 220, 200], 0)); }
   // puddles shining under the lamps
   const pud = new THREE.MeshBasicMaterial({ color: 0x1c2638, transparent: true, opacity: 0.7, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -12, fog: true });
-  for (let n = 0; n < 14; n++) { const g = new THREE.CircleGeometry(0.3 + tr() * 0.5, 10); const m = new THREE.Mesh(g, pud); m.rotation.x = -Math.PI / 2; m.scale.set(1.6, 0.8 + tr() * 0.5, 1); m.position.set(ST.x0 + 4 + tr() * (ST.x1 - ST.x0 - 6), ROAD_Y + 0.006, ST.curb0 + 0.6 + tr() * (ST.curb1 - ST.curb0 - 1.2)); scene.add(m); }
+  for (let n = 0; n < 14; n++) { const g = new THREE.CircleGeometry(0.3 + tr() * 0.5, 10); const m = new THREE.Mesh(g, pud); m.rotation.x = -Math.PI / 2; m.scale.set(1.6, 0.8 + tr() * 0.5, 1); m.position.set(ST.x0 + 4 + tr() * (ST.x1 - ST.x0 - 6), ROAD_Y + 0.02, ST.curb0 + 0.6 + tr() * (ST.curb1 - ST.curb0 - 1.2)); scene.add(m); }
 }
 
 // ================================================================ THE GOLF CLUB: down the side street, past the trees, six holes under floodlights
@@ -4379,7 +4570,7 @@ const GOLF = {
 };
 GOLF.holes.forEach((h, i) => { h.n = i + 1; h.len = Math.round(Math.hypot(h.pin[0] - h.tee[0], h.pin[1] - h.tee[1])); });
 // how far each playing surface sits above the ground (the ball and the golfer stand on it)
-const LIFT = { tee: 0.14, green: 0.085, fringe: 0.065, fairway: 0.05 };
+const LIFT = { tee: 0.14, green: 0.12, fringe: 0.085, fairway: 0.05 };
 const golfLift = (x, z) => LIFT[golfSurface(x, z)] || 0;
 const segDist = (x, z, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz; let u = l2 ? ((x - a[0]) * dx + (z - a[1]) * dz) / l2 : 0; u = Math.max(0, Math.min(1, u)); return Math.hypot(x - a[0] - dx * u, z - a[1] - dz * u); };
 // bunkers sit cleanly in the rough: nudge any that clip a fairway or a green's fringe out until they don't
@@ -4452,35 +4643,35 @@ function golfSurface(x, z) {
     for (let k = 0; k < (o.patches || 0); k++) { x.fillStyle = `rgba(${o.patchCol || '70,60,30'},0.35)`; x.beginPath(); x.arc(r() * w, r() * h, 2 + r() * 5, 0, 7); x.fill(); }
     for (let k = 0; k < (o.flowers || 0); k++) { x.fillStyle = ['#e8e4d0', '#e8d24a', '#c8a0e8'][Math.floor(r() * 3)]; x.fillRect(Math.floor(r() * w), Math.floor(r() * h), 1, 1); }
   });
-  const gm = (tex, units, emi) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; return ps1(new THREE.MeshLambertMaterial({ map: tex, emissive: emi || 0x000000, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: units })); };
+  const gm = (tex, units, emi, factor) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; return new THREE.MeshLambertMaterial({ map: tex, emissive: emi || 0x000000, polygonOffset: true, polygonOffsetFactor: factor || -1, polygonOffsetUnits: units }); };
   const roughTex = grass([22, 42, 21], { blades: 1400, var: 46, len: 4, clover: 40, patches: 6, patchCol: '60,52,26', flowers: 10, seed: 'r' });
   roughTex.wrapS = roughTex.wrapT = THREE.RepeatWrapping;
-  const roughMat = ps1(new THREE.MeshLambertMaterial({ map: roughTex, emissive: 0x040904 }));
+  const roughMat = new THREE.MeshLambertMaterial({ map: roughTex, emissive: 0x040904 });
   GOLF.roughMat = roughMat; GOLF.roughTex = roughTex;
   const B = GOLF.bounds;
-  for (const [a, b, c, d] of [[B.x0 - 40, B.x1 + 40, B.z0 - 40, -80], [B.x0 - 40, 22, -80, -66.2], [35.2, B.x1 + 40, -80, -66.2], [22, 35.2, -80, -77.4], [34.4, B.x1 + 40, -66.2, 2]]) { const m = groundPlane(a, b, c, d, roughTex, 2.4, 0); m.material = roughMat; }
-  const firstCut = gm(grass([30, 60, 28], { blades: 1100, var: 34, len: 3, clover: 20, seed: 'c' }), -1, 0x060c06);
-  const fwMat = gm(grass([46, 96, 40], { stripe: 'diag', amt: 0.09, blades: 900, var: 24, len: 2, seed: 'f' }), -2, 0x081408);
-  const teeMat = gm(grass([52, 104, 46], { stripe: 'diag', amt: 0.06, blades: 800, var: 20, len: 2, seed: 't' }), -2, 0x081408);
-  const fringeMat = gm(grass([50, 104, 44], { blades: 900, var: 22, len: 2, seed: 'g' }), -3, 0x0a180a);
-  const greenMat = gm(grass([78, 160, 64], { stripe: 'check', amt: 0.08, blades: 700, var: 16, len: 1, seed: 'p' }), -4, 0x123012);
+  for (const [a, b, c, d] of [[B.x0 - 40, B.x1 + 40, B.z0 - 40, -80], [B.x0 - 40, 22, -80, -66.2], [35.2, B.x1 + 40, -80, -66.2], [22, 35.2, -80, -77.4], [36.25, B.x1 + 40, -66.2, 2]]) { const m = groundPlane(a, b, c, d, roughTex, 2.4, 0); m.material = roughMat; }
+  const firstCut = gm(grass([30, 60, 28], { blades: 1100, var: 34, len: 3, clover: 20, seed: 'c' }), -4, 0x060c06, -2);
+  const fwMat = gm(grass([46, 96, 40], { stripe: 'diag', amt: 0.09, blades: 900, var: 24, len: 2, seed: 'f' }), -6, 0x081408, -3);
+  const teeMat = gm(grass([52, 104, 46], { stripe: 'diag', amt: 0.06, blades: 800, var: 20, len: 2, seed: 't' }), -6, 0x081408, -3);
+  const fringeMat = gm(grass([50, 104, 44], { blades: 900, var: 22, len: 2, seed: 'g' }), -8, 0x0a180a, -4);
+  const greenMat = gm(grass([78, 160, 64], { stripe: 'check', amt: 0.08, blades: 700, var: 16, len: 1, seed: 'p' }), -10, 0x123012, -5);
   const sandMat = gm(canvasTex(64, 64, (x, w, h) => {
     noiseFill(x, w, h, [196, 178, 130], 14);
     for (let j = 2; j < h; j += 5) { x.fillStyle = 'rgba(120,100,64,0.35)'; for (let i = 0; i < w; i++) x.fillRect(i, j + Math.round(Math.sin(i / 7) * 1.2), 1, 1); }   // rake lines
     for (let k = 0; k < 40; k++) { x.fillStyle = 'rgba(255,248,220,0.5)'; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 1, 1); }
-  }), -5, 0x14100a);
-  const mudMat = gm(canvasTex(32, 32, (x, w, h) => noiseFill(x, w, h, [44, 38, 28], 12)), -2, 0x000000);
-  const waterMat = new THREE.MeshBasicMaterial({ map: (() => { const t = canvasTex(64, 64, (x, w, h) => { noiseFill(x, w, h, [16, 40, 62], 6); for (let k = 0; k < 40; k++) { x.fillStyle = `rgba(${120 + Math.floor(rr() * 60)},${170 + Math.floor(rr() * 50)},230,${0.25 + rr() * 0.3})`; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 3 + Math.floor(rr() * 8), 1); } }); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })(), polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -5, fog: true });
+  }), -7, 0x14100a, -5);
+  const mudMat = gm(canvasTex(32, 32, (x, w, h) => noiseFill(x, w, h, [44, 38, 28], 12)), -6, 0x000000, -4);
+  const waterMat = new THREE.MeshBasicMaterial({ map: (() => { const t = canvasTex(64, 64, (x, w, h) => { noiseFill(x, w, h, [16, 40, 62], 6); for (let k = 0; k < 40; k++) { x.fillStyle = `rgba(${120 + Math.floor(rr() * 60)},${170 + Math.floor(rr() * 50)},230,${0.25 + rr() * 0.3})`; x.fillRect(Math.floor(rr() * w), Math.floor(rr() * h), 3 + Math.floor(rr() * 8), 1); } }); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })(), polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -10, fog: true });
   GOLF.waterTex = waterMat.map;
   const fwEdge = (h) => capPts(h.fw[0], h.fw[1], h.fwr + 1.8);
   for (const h of GOLF.holes) {
     // the first cut of rough hugs the fairway, then the fairway itself sits a few centimetres proud
-    if (h.fw.length) { lay(fwEdge(h), firstCut, 0.008, 6); raise(capPts(h.fw[0], h.fw[1], h.fwr), fwMat, LIFT.fairway, 8, 0.5); }
+    if (h.fw.length) { lay(fwEdge(h), firstCut, 0.002 + h.n * 0.004, 6); raise(capPts(h.fw[0], h.fw[1], h.fwr), fwMat, LIFT.fairway, 8, 0.5); }
     raise([[h.tee[0] - 2.6, h.tee[1] - 2.6], [h.tee[0] + 2.6, h.tee[1] - 2.6], [h.tee[0] + 2.6, h.tee[1] + 2.6], [h.tee[0] - 2.6, h.tee[1] + 2.6]], teeMat, LIFT.tee, 3, 0.35);
     raise(ellPts(h.green, 1.6, 48), fringeMat, LIFT.fringe, 4, 0.45);
     raise(ellPts(h.green, 0, 48), greenMat, LIFT.green, 4, 0.3);
     for (const b of h.bunkers) {
-      lay(ellPts([b[0], b[1], b[2], b[2]], 0.05, 24), sandMat, 0.012, 3);
+      lay(ellPts([b[0], b[1], b[2], b[2]], 0.05, 24), sandMat, 0.008, 3);
       S.push(...arcRing(b[0], b[1], b[2] - 0.05, b[2] + 0.12, 0, 0.11, [196, 178, 130], 24));     // the sand banks up to the lip
       S.push(...arcRing(b[0], b[1], b[2] + 0.12, b[2] + 0.42, 0, 0.13, [34, 70, 30], 24));       // and a grassy lip round the outside
       // a rake left in the sand
@@ -4490,8 +4681,8 @@ function golfSurface(x, z) {
     }
     for (const w of h.water) {
       const m = Math.max(w[2], w[3]), sx = w[2] / m, sz = w[3] / m;
-      lay(ellPts(w, 0.9, 40), mudMat, 0.01, 3);
-      lay(ellPts(w, 0, 40), waterMat, 0.016, 5);
+      lay(ellPts(w, 0.9, 40), mudMat, 0.006, 3);
+      lay(ellPts(w, 0, 40), waterMat, 0.01, 5);
       // stones round the bank, and reeds and lily pads
       const wr = rngFrom(hashStr('pond' + w[0]));
       for (let k = 0; k < 46; k++) { const a = (k / 46) * Math.PI * 2 + wr() * 0.1, rr2 = 1 + 0.06 + wr() * 0.08; const x = w[0] + Math.cos(a) * w[2] * rr2, z = w[1] + Math.sin(a) * w[3] * rr2, s = 0.12 + wr() * 0.16, g = 70 + Math.floor(wr() * 40); S.push(loft([rring(0, s, s * 0.8, x, z, 6, 2), rring(s * 0.7, s * 0.9, s * 0.7, x, z, 6, 2), rring(s * 1.1, 0.02, 0.02, x, z, 6, 2)], [g, g - 4, g - 10], { amt: 0.25 })); }
@@ -4526,6 +4717,7 @@ function golfSurface(x, z) {
   }
   // ---- trees: a belt round the course and copses between the holes, never on a hole's line of play
   const treeOK = (x, z) => {
+    if (x < -16 && z > -88) return false;   // the back alley and its buildings
     if (golfSurface(x, z) !== 'rough' && golfSurface(x, z) !== 'ob') return false;
     for (const h of GOLF.holes) { if (segDist(x, z, h.tee, h.pin) < Math.max(9, h.fwr + 4)) return false; if (Math.hypot(x - h.tee[0], z - h.tee[1]) < 6) return false; }
     if (Math.hypot(x - 28.6, z - -71) < 9 || (x > 22 && x < 35 && z > -80) || (x > 33 && x < 56 && z > -78)) return false;   // the turnaround and the clubhouse
@@ -4560,20 +4752,20 @@ function golfSurface(x, z) {
     S.push(loft([rring(-0.2, w, d, x, z, 16, 2), rring(h * 0.4, w * 0.82, d * 0.82, x, z, 16, 2), rring(h * 0.8, w * 0.5, d * 0.5, x, z, 16, 2), rring(h, w * 0.18, d * 0.18, x, z, 16, 2)], [22, 42, 24], { smooth: true, amt: 0.08 }));
   }
   // a winding cart path
-  const pathPts = [[30, -76], [31.5, -95], [33, -120], [32, -150], [33, -180], [30, -205], [24, -230]];
-  for (let k = 0; k < pathPts.length - 1; k++) { const [a, b] = [pathPts[k], pathPts[k + 1]]; S.push(groundStrip(a[0], a[1], b[0], b[1], 1.6, 0.005, [70, 66, 58])); }
+  const pathPts = [[30, -76], [31.5, -95], [33, -120], [32, -150], [33, -180], [30, -205], [23, -223]];
+  for (let k = 0; k < pathPts.length - 1; k++) { const [a, b] = [pathPts[k], pathPts[k + 1]]; GD.push(groundStrip(a[0], a[1], b[0], b[1], 1.6, 0.0, [70, 66, 58], 0.012)); }
 
   // ---- floodlights on tall masts at the corners, bathing the course in pale light
   for (const [x, z, ax, az] of [[31, -110, 1, -1], [31, -190, -1, 1], [B.x1 + 2, -150, -1, 0], [B.x0 - 2, -125, 1, 0]]) {
     S.push(cyl(V(x, 0, z), V(x, 13, z), 0.18, 0.12, [56, 58, 62], { n: 6 }));
     S.push(box(x - 1.3, x + 1.3, 12.6, 13.0, z - 0.1, z + 0.1, [40, 42, 46], 0.02));
     for (let k = -1; k <= 1; k++) { S.push(box(x + k * 0.85 - 0.36, x + k * 0.85 + 0.36, 13.0, 13.7, z - 0.25, z + 0.25, [30, 30, 34], 0.03)); G.push(box(x + k * 0.85 - 0.3, x + k * 0.85 + 0.3, 13.06, 13.64, z + az * 0.26 - 0.01, z + az * 0.26 + 0.01, [236, 244, 255], 0)); }
-    const pool = lightPool(x + ax * 14, z + az * 14, 26); pool.material = golfPoolMat;
+    const pool = lightPool(x + ax * 14, z + az * 14, 26, 0.16); pool.material = golfPoolMat;
   }
   pLight(0xdfe8ff, 1.3, 46, 31, 12, -110); pLight(0xdfe8ff, 1.3, 46, 52, 12, -190); pLight(0xdfe8ff, 1.2, 40, 8, 12, -150);
 
   // ---- the turnaround at the end of the side street, and the clubhouse beside it
-  { const g = new THREE.CircleGeometry(6.2, 28); scaleUV(g, 12.4 / 3, 12.4 / 3); const m = new THREE.Mesh(g, asphaltMat); m.rotation.x = -Math.PI / 2; m.position.set(28.6, ROAD_Y + 0.002, -71); scene.add(m); }
+  { const g = new THREE.CircleGeometry(6.2, 28); scaleUV(g, 12.4 / 3, 12.4 / 3); const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: asphaltTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })); m.rotation.x = -Math.PI / 2; m.position.set(28.6, ROAD_Y + 0.015, -71); scene.add(m); }
   S.push(...arcRing(28.6, -71, 6.2, 6.32, ROAD_Y, 0, [74, 74, 80], 36, 1, 1, Math.PI * 1.36, Math.PI * 2.64));
   S.push(loft([rring(ROAD_Y, 2.2, 2.2, 28.6, -71, 14, 2), rring(0.3, 2.2, 2.2, 28.6, -71, 14, 2)], [86, 84, 80], { amt: 0.04 }));
   tree(28.6, -71, 0.9);
@@ -4583,7 +4775,7 @@ function golfSurface(x, z) {
     S.push(box(x0, x1, 0.3, H, z0, z1, wood, 0.05));
     S.push(box(x0 - 0.3, x1 + 0.3, H, H + 0.25, z0 - 0.3, z1 + 0.3, trim, 0.03));
     S.push(loft([[V(x0 - 0.5, H + 0.25, z0 - 0.6), V(x1 + 0.5, H + 0.25, z0 - 0.6), V(x1 + 0.5, H + 0.25, z1 + 0.6), V(x0 - 0.5, H + 0.25, z1 + 0.6)], [V(x0 + 2, H + 2.4, (z0 + z1) / 2 - 0.2), V(x1 - 2, H + 2.4, (z0 + z1) / 2 - 0.2), V(x1 - 2, H + 2.4, (z0 + z1) / 2 + 0.2), V(x0 + 2, H + 2.4, (z0 + z1) / 2 + 0.2)]], [40, 54, 46], { amt: 0.05 }));
-    for (let x = x0 + 1.2; x < x1 - 1; x += 2.4) { G.push(box(x, x + 1.3, 1.0, 2.5, z0 - 0.02, z0 + 0.01, [255, 206, 140], 0)); S.push(box(x - 0.08, x + 1.38, 0.92, 1.0, z0 - 0.1, z0 + 0.02, trim, 0.03)); }
+    for (let x = x0 + 1.2; x < x1 - 1; x += 2.4) { G.push(box(x, x + 1.3, 1.0, 2.5, z0 - 0.05, z0 + 0.01, [255, 206, 140], 0)); S.push(box(x - 0.08, x + 1.38, 0.92, 1.0, z0 - 0.1, z0 + 0.02, trim, 0.03)); }
     for (let x = x0 + 0.6; x <= x1; x += 3.6) S.push(cyl(V(x, 0.3, z0 - 1.05), V(x, H, z0 - 1.05), 0.09, 0.09, trim, { n: 8 }));
     S.push(box(x0, x1, H - 0.2, H, z0 - 1.2, z0, trim, 0.03));
     const c = document.createElement('canvas'); c.width = 320; c.height = 64; const cx = c.getContext('2d');
@@ -4644,6 +4836,7 @@ function golfSurface(x, z) {
       const x = B2.x0 - 14 + gr() * (B2.x1 - B2.x0 + 28), z = B2.z0 - 14 + gr() * (B2.z1 - B2.z0 + 14);
       const s = golfSurface(x, z);
       if (s !== 'rough' && s !== 'ob') continue;
+      if (x < -16 && z > -88) continue;
       // thicker by the trees and the edges of play, thinner out in the open
       let near = 0; for (const h of GOLF.holes) { if (h.fw.length) near = Math.max(near, 1 - Math.abs(segDist(x, z, h.fw[0], h.fw[1]) - h.fwr - 3) / 6); }
       if (gr() > 0.18 + near * 0.5) continue;
@@ -4737,6 +4930,7 @@ function golfSurface(x, z) {
   }
 
   buildForest();
+  if (GOLF.life) for (const f of GOLF.life) f(0);   // put the mower and the ducks where they belong before anyone looks
   // Pan the starter, at his podium by the first tee
   S.push(box(33.4, 34.2, 0, 1.05, -79.3, -78.7, [70, 50, 34], 0.04)); S.push(box(33.3, 34.3, 1.05, 1.12, -79.4, -78.6, [214, 206, 188], 0.03));
   lampPost(30.5, -80, 1, 0, 4.4);
@@ -4824,6 +5018,7 @@ ROOMS.f2 = { x0: HF.x0, x1: HF.x1, z0: HF.z0, z1: HF.z1, name: 'Hotel corridor' 
 for (const R of HOTEL_ROOMS) ROOMS['h' + R.i] = { x0: R.x0, x1: R.x1, z0: R.z0, z1: R.z1, name: 'Room ' + R.num };
 addStatic(S);
 addStatic(G, glowMat);
+addStatic(GD, groundDecalMat);
 for (const [x, z] of [[6.3, -8.0], [12.7, -8.0]]) {
   const rug = new THREE.Mesh(new THREE.CircleGeometry(0.85, 20), decal({ map: swirlTex }));
   rug.rotation.x = -Math.PI / 2; rug.position.set(x, 0.024, z); scene.add(rug);
@@ -5511,6 +5706,7 @@ const VIEWS = {
   alley: { tx: 2.0, ty: 0.9, tz: -21.5, d: 12, yaw: -0.25, pitch: 0.5 },
   drive: { tx: 20.5, ty: 1.0, tz: -22.5, d: 11, yaw: 1.25, pitch: 0.32 },
   carpark: { tx: -40, ty: 1.0, tz: -30, d: 14, yaw: 0.75, pitch: 0.38 },
+  backalley: { tx: -82, ty: 1.4, tz: -52, d: 9, yaw: 2.6, pitch: 0.18 },
   golf: { tx: 37, ty: 1.2, tz: -90, d: 13, yaw: 0.35, pitch: 0.3 },
   map: { tx: -4, ty: 0, tz: -60, d: 75, yaw: 0, pitch: 1.3, free: true }
 };
