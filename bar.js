@@ -3305,9 +3305,8 @@ driveTraffic(0);
 const AL = { x0: -14, x1: 15, z0: -35, z1: -11 };
 groundPlane(AL.x0, 5, AL.z0, -11.02, wetTex, 3, 0);
 groundPlane(5, AL.x1, AL.z0, -12.02, wetTex, 3, 0);
-// the far side of the courtyard: the back of another building, and high walls left and right (an arch on the right for the drive)
-facade(-14.01, AL.z0, -14.01, -11.0, 1, 0, [[1.5, 4.5]]);   // a gate through to the car park, by Old Tobias
-facade(-14.06, -11.0, -14.06, AL.z0, -1, 0, [[19.5, 22.5]]);
+// the far side of the courtyard: the back of another building, and a high wall on the right (an arch for the drive)
+// no wall on the car park side: the courtyard opens straight onto the lawn and the path to the car park, by Old Tobias
 facade(15.01, -12.0, 15.01, AL.z0, -1, 0, [[8.3, 12.2]]);   // the arch for the drive at z -24.2..-20.3
 facade(14.0, -12.01, 15.0, -12.01, 0, 1);
 // the round drive: a raised island with a fountain, a ring of granite setts, and eight bays fanned around it
@@ -3994,9 +3993,12 @@ groundAt(PK2.x0, PK2.x1, PK2.z0, PK2.z1, asphaltMat, 3.2, 0);
 groundAt(-27, -20, PK2.z1, ST.walk0, asphaltMat, 3.2, 0.012);            // the way in, off the main street
 groundAt(-48, -27.02, PK2.z1, ST.walk0 - 0.02, lawnMat, 1.4, 0.0);           // lawn between the street and the car park
 groundAt(-19.98, -17.05, -11.0, ST.walk0 - 0.02, lawnMat, 1.4, 0.0);
-groundAt(-19.98, AL.x0 - 0.05, PK2.z0, -11.0, lawnMat, 1.4, 0.0);
+groundAt(-19.98, AL.x0 - 0.05, PK2.z0, -33.3, lawnMat, 1.4, 0.0);
+groundAt(-19.98, AL.x0 - 0.05, -30.7, -11.0, lawnMat, 1.4, 0.0);
 groundAt(PK2.x0 - 6, -48, PK2.z1, ST.walk0 - 0.02, lawnMat, 1.4, 0.0);
-// a paved path from the car park to a gate in the courtyard wall, right by Old Tobias
+// a paved path from the car park gate to the courtyard, right by Old Tobias: lawn either side, never under it
+groundAt(-19.98, AL.x0 - 0.05, -33.3, -30.7, pavingMat, 1.2, 0.0);
+for (const zz of [-33.36, -30.64]) S.push(box(-19.98, AL.x0 - 0.05, 0, 0.08, zz - 0.06, zz + 0.06, [74, 74, 80], 0.03));
 // curb round the edge, a chain-link fence on the far sides
 S.push(box(PK2.x0 - 0.15, PK2.x1, 0, 0.14, PK2.z1 - 0.15, PK2.z1, [74, 74, 80], 0.03));
 for (const [x0, x1, z0, z1] of [[PK2.x0 - 0.15, PK2.x0, PK2.z0, PK2.z1], [PK2.x1, PK2.x1 + 0.15, PK2.z0, -33.4], [PK2.x1, PK2.x1 + 0.15, -30.6, PK2.z1 - 7]]) S.push(box(x0, x1, 0, 0.14, z0, z1, [74, 74, 80], 0.03));
@@ -4047,10 +4049,8 @@ for (const z of [-31.9, -49.5]) for (const k of [3, 9, 15]) {
 for (const x of [-68, -49, -30]) PARK_LAMPS.push(lampPost(x, PK2.z1 + 0.6, 0, -1, 5.0));
 lampPost(PK2.x0 + 7, PK2.z0 + 0.8, 0, 1, 5.0);   // one over the dumpster corner
 // a lantern over the gate through to the courtyard
-S.push(box(AL.x0 - 0.3, AL.x0 - 0.02, 2.55, 2.62, -32.2, -31.8, [20, 20, 22], 0.03));
-S.push(box(AL.x0 - 0.42, AL.x0 - 0.18, 2.2, 2.55, -32.12, -31.88, [26, 26, 30], 0.03));
-G.push(box(AL.x0 - 0.4, AL.x0 - 0.2, 2.24, 2.5, -32.1, -31.9, SODIUM, 0));
-lightPool(AL.x0 - 1.5, -32, 2.6);
+lampPost(AL.x0 - 0.9, -29.9, 0, -1, 4.2);
+lightPool(AL.x0 - 2.0, -31.6, 2.6);
 for (const [x, y, z] of [PARK_LAMPS[0], PARK_LAMPS[4], PARK_LAMPS[7], PARK_LAMPS[10], PARK_LAMPS[13]]) pLight(SODIUM_HEX, 1.6, 17, x, y, z);
 // a few cars left here overnight
 {
@@ -4104,17 +4104,17 @@ for (const [x, y, z] of [PARK_LAMPS[0], PARK_LAMPS[4], PARK_LAMPS[7], PARK_LAMPS
 // ---- people walking about outside (they're not players, just passers-by)
 const WALKERS = [
   { path: [[-23.5, 5.3], [-23.5, -22], [-60, -23], [-60, -41], [-23.5, -41], [-23.5, -22]], speed: 1.25 },
-  { path: [[-30, -58], [-74, -58], [-74, -40], [-30, -40]], speed: 1.1 },
+  { path: [[-30, -58], [-78.6, -58], [-78.6, -40], [-30, -40]], speed: 1.1 },   // round the end of the rows by the fence, not through the parked cars
   { path: [[-36, -22.5], [-20.5, -32], [-15.2, -32], [-20.5, -32]], speed: 1.0 },
   { path: [[24.1, 1.2], [24.1, -55]], speed: 1.3 },
   { path: [[-80, 15.6], [18, 15.6]], speed: 1.35 },
   { path: [[-70, -23], [-28, -23.5]], speed: 1.15 },
-  { path: [[33.2, -50], [33.2, 0.5], [31.0, 9.0], [26.5, 13.6], [20.6, 15.4], [-40, 15.4]], speed: 1.2 }
+  { path: [[33.2, -50], [33.2, 0.5], [31.0, 9.0], [26.5, 13.6], [20.6, 15.4], [-40, 15.4]], speed: 1.2, there: true }   // there and back: looping would cut straight through the bar
 ].map((w, i) => {
   // pre-measure each path so the walker's position is just a distance along it
-  const pts = w.path.concat(w.path.length > 2 ? [w.path[0]] : []), segs = [];
+  const loop = w.path.length > 2 && !w.there, pts = w.path.concat(loop ? [w.path[0]] : []), segs = [];
   let L = 0; for (let k = 0; k < pts.length - 1; k++) { const d = Math.hypot(pts[k + 1][0] - pts[k][0], pts[k + 1][1] - pts[k][1]); segs.push([pts[k], pts[k + 1], L, d]); L += d; }
-  return { segs, L, loop: w.path.length > 2, speed: w.speed, s: (i * 13.7) % L, dir: 1, look: randomLook(rngFrom(900 + i * 17)), ch: null };
+  return { segs, L, loop, speed: w.speed, s: (i * 13.7) % L, dir: 1, look: randomLook(rngFrom(900 + i * 17)), ch: null };
 });
 const bagParts = () => [cyl(V(0, -0.45, -0.2), V(0, 0.35, -0.24), 0.12, 0.12, [40, 70, 50], { n: 8 }), cyl(V(0, 0.35, -0.24), V(0, 0.42, -0.24), 0.13, 0.13, [200, 196, 186], { n: 8 }), cyl(V(-0.04, 0.4, -0.22), V(-0.06, 0.62, -0.2), 0.02, 0.02, [190, 190, 196], { n: 4 }), cyl(V(0.05, 0.4, -0.25), V(0.07, 0.66, -0.27), 0.02, 0.02, [190, 190, 196], { n: 4 }), box(-0.06, 0.1, 0.62, 0.7, -0.28, -0.18, [60, 60, 66], 0.02)];
 function walkersRebuild() {
@@ -4194,7 +4194,9 @@ const litGeo = new THREE.PlaneGeometry(1.2, 1.45);
 const BLOCK_LIGHTS = [];
 const SMOKE_VENTS = [];
 const ROOF_SPOTS = [];
+const BUILT_FOOT = [];
 function building(o) {
+  BUILT_FOOT.push(o);
   const { x0, x1, z0, z1, h, front, seed } = o, r = rngFrom(seed), mat = FACADES_LIB[o.mat !== undefined ? o.mat : seed % 4];
   const sides = [[x0, z1, x1, z1, 0, 1], [x1, z0, x0, z0, 0, -1], [x0, z0, x0, z1, -1, 0], [x1, z1, x1, z0, 1, 0]];
   const geos = [], wins = [];
@@ -4844,8 +4846,19 @@ function golfSurface(x, z) {
       put(x, z, gr() < 0.12);
     }
     // the lawns by the drive, behind the courtyard and along the side street too
+    // never indoors (the hotel, any building), never on the path by Old Tobias
+    const indoors = (x, z) => {
+      for (const k in ROOMS) { const r = ROOMS[k]; if (!r.outside && x > r.x0 - 0.6 && x < r.x1 + 0.6 && z > r.z0 - 0.6 && z < r.z1 + 0.6) return true; }
+      for (const b of BUILT_FOOT) if (x > b.x0 - 0.5 && x < b.x1 + 0.5 && z > b.z0 - 0.5 && z < b.z1 + 0.5) return true;
+      return false;
+    };
     for (const [x0, x1, z0, z1, n] of [[15.2, 22.6, -66, -4.5, 900], [AL.x0 + 0.5, AL.x1 - 0.5, -66, -36, 900], [-47, -28, -13.5, 3.5, 500], [-19.8, -14.3, -64, 3.5, 450], [35, 62, -64, -14, 900]]) {
-      for (let k = 0; k < n; k++) { const x = x0 + gr() * (x1 - x0), z = z0 + gr() * (z1 - z0); if (Math.abs(z - LOT.z) < 2.6 && x > 15) continue; put(x, z, gr() < 0.15); }
+      for (let k = 0; k < n; k++) {
+        const x = x0 + gr() * (x1 - x0), z = z0 + gr() * (z1 - z0);
+        if (Math.abs(z - LOT.z) < 2.6 && x > 15) continue;
+        if (indoors(x, z) || (x < AL.x0 && z > -33.9 && z < -30.1)) continue;
+        put(x, z, gr() < 0.15);
+      }
     }
     for (const [key, list] of cells) {
       const flower = key.endsWith('f'), im = new THREE.InstancedMesh(flower ? flowerGeo : tuftGeo, flower ? flowerMat : tuftMat, list.length);
